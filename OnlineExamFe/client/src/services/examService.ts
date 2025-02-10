@@ -53,5 +53,18 @@ export const examService = {
 
   generateExam: async (data: CreateExamForStudentDto): Promise<ExamGenerateResponse> => {
     return await apiClient.post<ExamGenerateResponse>('/api/Exam/generate', data) as unknown as Promise<ExamGenerateResponse>;
+  },
+
+  getStudentExams: async (studentId: number): Promise<any[]> => {
+    // Assuming endpoint exists or using a placeholder.
+    return await apiClient.get<any[]>(`/api/Exam/student/${studentId}`) as unknown as Promise<any[]>;
+  },
+
+  submitExam: async (data: { examId: number; studentId: number; answers: any[] }): Promise<any> => {
+     return await apiClient.post<any>('/api/Exam/submit', data) as unknown as Promise<any>;
+  },
+
+  getAllExams: async (): Promise<any[]> => {
+    return await apiClient.get<any[]>('/api/Exam/all') as unknown as Promise<any[]>;
   }
 };

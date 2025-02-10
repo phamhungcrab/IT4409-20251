@@ -10,6 +10,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using OnlineExam.Application.Dtos.Exam;
+using OnlineExam.Application.Interfaces;
+using OnlineExam.Application.Services.Base;
+using OnlineExam.Domain.Entities;
+using OnlineExam.Domain.Enums;
+using OnlineExam.Domain.Interfaces;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace OnlineExam.Application.Services
@@ -20,13 +32,17 @@ namespace OnlineExam.Application.Services
         private readonly IRepository<ExamBlueprint> _blueprintRepo;
         private readonly IRepository<QuestionExam> _questionExamRepo;
         private readonly IRepository<ExamStudent> _examStudentRepo;
+        private readonly IRepository<StudentClass> _studentClassRepo;
+        private readonly IRepository<StudentQuestion> _studentQuestionRepo;
 
         public ExamService(
             IRepository<Exam> examRepo,
             IRepository<Question> questionRepo,
             IRepository<ExamBlueprint> blueprintRepo,
             IRepository<QuestionExam> questionExamRepo,
-            IRepository<ExamStudent> examStudentRepo
+            IRepository<ExamStudent> examStudentRepo,
+            IRepository<StudentClass> studentClassRepo,
+            IRepository<StudentQuestion> studentQuestionRepo
 
             ) : base(examRepo)
         {
@@ -34,6 +50,8 @@ namespace OnlineExam.Application.Services
             _blueprintRepo = blueprintRepo;
             _questionExamRepo = questionExamRepo;
             _examStudentRepo = examStudentRepo;
+            _studentClassRepo = studentClassRepo;
+            _studentQuestionRepo = studentQuestionRepo;
         }
 
         public async Task<ExamStudent?> GetExamStudent(int examId, int studentId)
@@ -85,7 +103,7 @@ namespace OnlineExam.Application.Services
             allQuestions = allQuestions.OrderBy(x => Guid.NewGuid()).ToList();
 
             BuildQuestionExam(questionExams, exam, allQuestions, dto.StudentId);
-            
+
 
             await _questionExamRepo.AddRangeAsync(questionExams);
             await _questionExamRepo.SaveChangesAsync();
@@ -162,6 +180,72 @@ namespace OnlineExam.Application.Services
         private string CleanAnswer(string raw)
         {
             return "";
+        }
+
+        public async Task<List<Exam>> GetStudentExamsAsync(int studentId)
+        {
+            var classIds = await _studentClassRepo.Query()
+                .Where(sc => sc.StudentId == studentId)
+                .Select(sc => sc.ClassId)
+                .ToListAsync();
+
+            if (!classIds.Any()) return new List<Exam>();
+
+            var exams = await _repository.Query()
+                .Where(e => classIds.Contains(e.ClassId))
+                .ToListAsync();
+
+            return exams;
+        }
+
+        public async Task<List<Exam>> GetAllExamsAsync()
+        {
+            var exams = await _repository.GetAllAsync();
+            return exams.ToList();
+        }
+
+        public async Task SubmitExamAsync(ExamSubmissionDto dto)
+        {
+             var examStudent = await _examStudentRepo.Query()
+                .FirstOrDefaultAsync(es => es.ExamId == dto.ExamId && es.StudentId == dto.StudentId);
+
+            if (examStudent == null) throw new Exception("Exam session not found");
+
+            examStudent.Status = ExamStatus.COMPLETED;
+            examStudent.EndTime = DateTime.Now;
+
+            // Save answers
+            var studentQuestions = new List<StudentQuestion>();
+            foreach (var ans in dto.Answers)
+            {
+                studentQuestions.Add(new StudentQuestion
+                {
+                    ExamId = dto.ExamId,
+                    StudentId = dto.StudentId,
+                    QuestionId = ans.QuestionId,
+                    Answer = ans.Answer,
+                    CreatedAt = DateTime.Now
+                });
+            }
+
+            await _studentQuestionRepo.AddRangeAsync(studentQuestions);
+            await _examStudentRepo.SaveChangesAsync();
+            await _studentQuestionRepo.SaveChangesAsync();
+        }
+
+        public async Task<List<ExamStudent>> GetResultsByStudentAsync(int studentId)
+        {
+            return await _examStudentRepo.Query()
+                .Include(es => es.Exam)
+                .Where(es => es.StudentId == studentId && es.Status == ExamStatus.COMPLETED)
+                .ToListAsync();
+        }
+
+        public async Task<ExamStudent?> GetResultDetailAsync(int examId, int studentId)
+        {
+            return await _examStudentRepo.Query()
+                .Include(es => es.Exam)
+                .FirstOrDefaultAsync(es => es.ExamId == examId && es.StudentId == studentId);
         }
 
     }

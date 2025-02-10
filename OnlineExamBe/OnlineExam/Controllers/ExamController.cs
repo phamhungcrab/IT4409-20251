@@ -71,7 +71,7 @@ namespace OnlineExam.Controllers
                     return Ok(new
                     {
                         status = "completed"
-                        
+
                     });
                 }
 
@@ -81,7 +81,7 @@ namespace OnlineExam.Controllers
                     return Ok(new
                     {
                         status = "expired"
-                        
+
                     });
                 }
                 else return BadRequest("Không có status bài thi tương ứng");
@@ -108,13 +108,13 @@ namespace OnlineExam.Controllers
                     EndTime = exam.EndTime,
                 });
                 return Ok(new
-                {   
+                {
                     status = "create",
                     wsUrl = websocketUrl,
                     examForStudent
                 });
             }
-                
+
         }
 
         [HttpPost("generate")]
@@ -132,6 +132,48 @@ namespace OnlineExam.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpGet("student/{studentId}")]
+        public async Task<IActionResult> GetStudentExams(int studentId)
+        {
+            try
+            {
+                var exams = await _examService.GetStudentExamsAsync(studentId);
+                return Ok(exams);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllExams()
+        {
+            try
+            {
+                var exams = await _examService.GetAllExamsAsync();
+                return Ok(exams);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("submit")]
+        public async Task<IActionResult> SubmitExam([FromBody] ExamSubmissionDto dto)
+        {
+            try
+            {
+                await _examService.SubmitExamAsync(dto);
+                return Ok(new { message = "Exam submitted successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
             }
         }
     }

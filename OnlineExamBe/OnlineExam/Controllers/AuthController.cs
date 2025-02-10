@@ -16,13 +16,13 @@ namespace OnlineExam.Controllers
     {
         private readonly IAuthService _authservice;
         private readonly IUserService _userService;
-        public AuthController(IAuthService authservice, IUserService userService) 
-        { 
+        public AuthController(IAuthService authservice, IUserService userService)
+        {
             _authservice = authservice;
             _userService = userService;
         }
-       
-        
+
+
 
         [HttpPost]
         [Route("login")]
@@ -57,6 +57,15 @@ namespace OnlineExam.Controllers
         {
             ResultApiModel apiResultModel = new ResultApiModel();
             apiResultModel = await _authservice.CheckOtp(dto);
+            if (apiResultModel.IsStatus == true) return Ok(apiResultModel);
+            else return BadRequest(apiResultModel);
+        }
+
+        [HttpPost]
+        [Route("refresh-token")]
+        public async Task<IActionResult> RefreshToken(RefreshTokenDto dto)
+        {
+            ResultApiModel apiResultModel = await _authservice.RefreshToken(dto);
             if (apiResultModel.IsStatus == true) return Ok(apiResultModel);
             else return BadRequest(apiResultModel);
         }

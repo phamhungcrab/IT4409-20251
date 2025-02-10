@@ -1,62 +1,36 @@
-/**
- * useAnnouncements hook.
- *
- * Manages real-time and initial announcements for the application.  When
- * mounted, it fetches the current list of announcements from the
- * backend and stores them in local state.  It also exposes a helper
- * function to append a new announcement, which can be used by other
- * components when receiving live updates via websockets or polling.
- * Replace the stubbed fetch call with your actual API endpoint.
- */
+import { useState, useEffect } from 'react';
+import apiClient from '../utils/apiClient';
+import { Announcement } from '../components/AnnouncementBanner';
 
-import { useEffect, useState } from 'react';
-import type { Announcement } from '../components/AnnouncementBanner';
-
-interface UseAnnouncementsReturn {
-  announcements: Announcement[];
-  addAnnouncement: (announcement: Announcement) => void;
-  removeAnnouncement: (id: number) => void;
-}
-
-export default function useAnnouncements(): UseAnnouncementsReturn {
+export const useAnnouncements = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch initial announcements from the server.  This should call
-    // GET /announcements or similar.  Here we use a stubbed list.
-    const fetchInitial = async () => {
-      // TODO: replace with API call, e.g. const data = await api.get('/announcements');
-      const sampleAnnouncements: Announcement[] = [
-        { id: 1, message: 'System maintenance scheduled for Friday 10 PM.', type: 'warning' },
-        { id: 2, message: 'New questions have been added to the bank.', type: 'info' },
-      ];
-      setAnnouncements(sampleAnnouncements);
+    const fetchAnnouncements = async () => {
+      try {
+        // Mock implementation for now as backend might not have this endpoint yet
+        // In real app: const response = await apiClient.get<Announcement[]>('/api/Announcements');
+        // setAnnouncements(response.data);
+
+        // Simulating fetch delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        setAnnouncements([
+          { id: 1, message: 'Welcome to the Online Exam System!', type: 'info' },
+          { id: 2, message: 'System maintenance scheduled for Sunday.', type: 'warning' }
+        ]);
+        setLoading(false);
+      } catch (err) {
+        console.error('Failed to fetch announcements', err);
+        setError('Failed to load announcements');
+        setLoading(false);
+      }
     };
-    fetchInitial();
-    // Optionally, set up a websocket/SignalR connection here to listen
-    // for realtime announcements and call addAnnouncement on receipt.
+
+    fetchAnnouncements();
   }, []);
 
-  /**
-   * Add a new announcement to the list.  Useful when receiving
-   * realtime notifications.
-   */
-  const addAnnouncement = (announcement: Announcement) => {
-    setAnnouncements((prev) => [...prev, announcement]);
-  };
-
-  /**
-   * Remove an announcement by id.  This can be invoked by the
-   * announcement banner when a user dismisses a message to ensure it is
-   * not shown again.
-   */
-  const removeAnnouncement = (id: number) => {
-    setAnnouncements((prev) => prev.filter((a) => a.id !== id));
-  };
-
-  return {
-    announcements,
-    addAnnouncement,
-    removeAnnouncement,
-  };
-}
+  return { announcements, loading, error };
+};

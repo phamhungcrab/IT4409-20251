@@ -32,11 +32,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (token) {
       // TODO: Decode token to get user info or fetch profile
-      // For now, we might need a way to get user info if not stored
-      // If the login response included user info, we should have stored it.
-      // Let's assume for now we decode it or fetch it.
-      // Since we don't have a "me" endpoint in the plan yet, we might rely on localStorage for user info too
-      // or just stub it for now until we have a proper profile endpoint.
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
         setUser(JSON.parse(storedUser));
@@ -52,12 +47,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response && response.accessToken) {
         setToken(response.accessToken);
         localStorage.setItem('token', response.accessToken);
+        if (response.refreshToken) {
+            localStorage.setItem('refreshToken', response.refreshToken);
+        }
 
-        // Ideally, decode token or use response user info if available.
-        // The TokenResponse only has accessToken and refreshToken.
-        // We might need to fetch user profile separately or decode token.
-        // For now, let's just set a placeholder user or decode if we had a library.
-        // We will store a dummy user for now to allow the app to function.
+        // TODO: Decode JWT to get real role
         const dummyUser: User = { id: 0, email: data.email, role: UserRole.Student };
         setUser(dummyUser);
         localStorage.setItem('user', JSON.stringify(dummyUser));
@@ -77,6 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     setUser(null);
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
   };
 
@@ -85,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const handleLogout = () => logout();
     window.addEventListener('auth:logout', handleLogout);
     return () => window.removeEventListener('auth:logout', handleLogout);
-  }, []);
+  }, [user]); // Add user dependency to ensure logout has access to current user if needed
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout }}>

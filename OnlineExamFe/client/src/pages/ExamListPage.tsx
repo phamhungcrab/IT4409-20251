@@ -1,120 +1,92 @@
-/**
- * ExamListPage component.
- *
- * Displays a list of exams that are available for the current user.  Each
- * exam shows its title, scheduled start and end time, and current status
- * (e.g. upcoming, in progress, or completed).  Users can click the "Start"
- * or "Continue" button to enter the exam room.  In a full implementation,
- * this page would fetch the list of exams from the backend API using a
- * hook or service (e.g. examService.listExams()) and handle pagination
- * or filtering.  Here, we use sample data to illustrate structure and
- * component interactions.
- */
-
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { examService } from '../services/examService';
+import useAuth from '../hooks/useAuth';
 
-// Define the shape of an exam item.  Additional fields (e.g. subject,
-// description) can be added as needed.
-interface ExamItem {
+interface Exam {
   id: number;
-  title: string;
-  startTime: Date;
-  endTime: Date;
-  status: 'upcoming' | 'in_progress' | 'completed';
+  name: string;
+  durationMinutes: number;
+  startTime: string;
+  endTime: string;
+  status: string; // e.g., 'Scheduled', 'Ongoing', 'Completed'
 }
 
 const ExamListPage: React.FC = () => {
-  const [exams, setExams] = useState<ExamItem[]>([]);
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Populate the list with sample exams.  Replace this with a call to
-    // fetch data from your API.  Times are set relative to the current
-    // time for demonstration purposes.
-    const now = Date.now();
-    setExams([
-      {
-        id: 301,
-        title: 'Physics Quiz',
-        startTime: new Date(now + 1 * 24 * 60 * 60 * 1000),
-        endTime: new Date(now + 1 * 24 * 60 * 60 * 1000 + 45 * 60 * 1000),
-        status: 'upcoming',
-      },
-      {
-        id: 302,
-        title: 'Chemistry Midterm',
-        startTime: new Date(now - 30 * 60 * 1000), // started 30 min ago
-        endTime: new Date(now + 60 * 60 * 1000),   // ends in 1 hour
-        status: 'in_progress',
-      },
-      {
-        id: 303,
-        title: 'Literature Final',
-        startTime: new Date(now - 5 * 24 * 60 * 60 * 1000),
-        endTime: new Date(now - 5 * 24 * 60 * 60 * 1000 + 120 * 60 * 1000),
-        status: 'completed',
-      },
-    ]);
-  }, []);
+    const fetchExams = async () => {
+      if (!user) return;
+      try {
+        const data = await examService.getStudentExams(user.id);
+        setExams(data);
+      } catch (error) {
+        console.error('Failed to fetch exams', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Helper function to get a human-friendly status label
-  const getStatusLabel = (status: ExamItem['status']) => {
-    switch (status) {
-      case 'in_progress':
-        return 'In Progress';
-      case 'completed':
-        return 'Completed';
-      case 'upcoming':
-      default:
-        return 'Upcoming';
+    fetchExams();
+  }, [user]);
+
+  const handleStartExam = async (examId: number) => {
+    if (!user) return;
+    try {
+      const response = await examService.startExam({
+          examId,
+          studentId: user.id,
+          classId: 1, // Placeholder
+          blueprintId: 1, // Placeholder
+          durationMinutes: 60 // Placeholder
+      });
+
+      if (response.status === 'success' || response.wsUrl) {
+          navigate(`/exam/${examId}`, { state: { wsUrl: response.wsUrl } });
+      } else {
+          alert('Could not start exam. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error starting exam', error);
+      alert('Error starting exam');
     }
   };
 
+  if (loading) return <div>{t('common.loading')}</div>;
+
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-4">
-      <h1 className="text-2xl font-semibold mb-2">Your Exams</h1>
-      {exams.length > 0 ? (
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6 text-gray-800">{t('exam.listTitle')}</h1>
+
+      {exams.length === 0 ? (
+        <p className="text-gray-600">{t('exam.noExams')}</p>
+      ) : (
         <div className="grid gap-4">
           {exams.map((exam) => (
-            <div key={exam.id} className="p-4 border rounded-lg bg-white shadow">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h2 className="text-lg font-medium text-gray-800">
-                    {exam.title}
-                  </h2>
-                  <p className="text-sm text-gray-500">
-                    {exam.startTime.toLocaleString()} – {exam.endTime.toLocaleString()}
-                  </p>
-                  <span className="inline-block mt-1 text-xs uppercase tracking-wide text-gray-600">
-                    Status: {getStatusLabel(exam.status)}
-                  </span>
+            <div key={exam.id} className="bg-white p-4 rounded-lg shadow border border-gray-200 flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-semibold text-blue-700">{exam.name}</h3>
+                <div className="text-sm text-gray-500 mt-1">
+                  <p>{t('exam.duration')}: {exam.durationMinutes} mins</p>
+                  <p>{t('exam.startTime')}: {new Date(exam.startTime).toLocaleString()}</p>
+                  <p>{t('exam.status')}: <span className="font-medium text-gray-700">{exam.status}</span></p>
                 </div>
-                {/* Button to start or continue the exam */}
-                {exam.status === 'completed' ? (
-                  <Link
-                    // Navigate to the results page.  The results route is defined
-                    // as `results` in routes.tsx, without a parameter.  If you
-                    // implement a details view per exam result, update this
-                    // link accordingly (e.g. `/results/${exam.id}`).
-                    to={`/results`}
-                    className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md text-sm"
-                  >
-                    View Result
-                  </Link>
-                ) : (
-                  <Link
-                    to={`/exam/${exam.id}`}
-                    className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
-                  >
-                    {exam.status === 'upcoming' ? 'Start' : 'Continue'}
-                  </Link>
-                )}
               </div>
+              <button
+                onClick={() => handleStartExam(exam.id)}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+              >
+                {t('exam.startExam')}
+              </button>
             </div>
           ))}
         </div>
-      ) : (
-        <p className="text-gray-500">No exams available at this time.</p>
       )}
     </div>
   );

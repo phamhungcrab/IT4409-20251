@@ -54,6 +54,14 @@ export interface TokenResponse {
   refreshToken: string;
 }
 
+export interface RefreshTokenDto {
+  accessToken: string;
+  refreshToken: string;
+  deviceId: string;
+  ipAddress: string;
+  userAgent: string;
+}
+
 export const authService = {
   login: async (data: LoginDto): Promise<TokenResponse> => {
     // Cast the result because our interceptor unwraps the response, but Axios types don't know that.
@@ -62,6 +70,10 @@ export const authService = {
 
   logout: async (data: LogoutDto): Promise<void> => {
     return await apiClient.post<void>('/api/AuthController/logout', data) as unknown as Promise<void>;
+  },
+
+  refreshToken: async (data: RefreshTokenDto): Promise<TokenResponse> => {
+    return await apiClient.post<TokenResponse>('/api/AuthController/refresh-token', data) as unknown as Promise<TokenResponse>;
   },
 
   sendOtp: async (data: SendOtpDto): Promise<void> => {

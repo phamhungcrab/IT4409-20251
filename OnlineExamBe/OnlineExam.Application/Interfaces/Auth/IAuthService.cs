@@ -18,5 +18,6 @@ namespace OnlineExam.Application.Interfaces.Auth
         public Task<ResultApiModel> ResetPassword(ResetPasswordDto resetPassword);
         public Task<ResultApiModel> CheckOtp(CheckOtpDto dto);
         public Task<ResultApiModel> SendOtp(SendOtpDto dto);
+        public Task<ResultApiModel> RefreshToken(RefreshTokenDto dto);
     }
 }

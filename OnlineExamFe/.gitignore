@@ -71,3 +71,5 @@
 /OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0/.NETCoreApp,Version=v8.0.AssemblyAttributes.cs
 /OnlineExamBe/OnlineExam.Domain/obj/Debug/net8.0/.NETCoreApp,Version=v8.0.AssemblyAttributes.cs
 /OnlineExamBe/OnlineExam.Infrastructure/obj/Debug/net8.0/OnlineExam.Infrastructure.GlobalUsings.g.cs
+
+!client/src/i18n/*.json

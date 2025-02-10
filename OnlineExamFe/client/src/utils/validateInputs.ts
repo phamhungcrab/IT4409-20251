@@ -1,58 +1,35 @@
 /**
  * Input validation helpers.
- *
- * Contains functions to validate common form inputs such as email
- * addresses, passwords, required fields and selections for multi-choice
- * questions.  Each function returns either `true` (valid) or a string
- * describing the validation error.  Use these helpers to enforce
- * consistent validation rules across the application.
  */
 
-// Validate that a value is non-empty.  Returns true if valid or an
-// error message otherwise.
-export function validateRequired(value: string): true | string {
-  return value.trim() !== '' || 'This field is required.';
+// Validate that a value is non-empty.
+export function isRequired(value: string): boolean {
+  return value.trim() !== '';
 }
 
-// Validate an email address using a simple regex.  Returns true if
-// valid or an error message otherwise.  Note: This regex does not
-// capture every possible valid email but works for common cases.
-export function validateEmail(email: string): true | string {
+// Validate an email address using a regex.
+export function isValidEmail(email: string): boolean {
   const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-  return pattern.test(email) || 'Please enter a valid email address.';
+  return pattern.test(email);
 }
 
-// Validate a password meets minimum length requirements.  Adjust
-// criteria (e.g. include numbers, symbols) as needed.  Returns true
-// if valid or an error message otherwise.
-export function validatePassword(password: string, minLength = 8): true | string {
-  return password.length >= minLength || `Password must be at least ${minLength} characters.`;
+// Validate a password meets complexity rules.
+// Example: At least 8 chars, 1 uppercase, 1 lowercase, 1 number.
+export function isValidPassword(password: string): boolean {
+  const minLength = 8;
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+
+  return (
+    password.length >= minLength &&
+    hasUpperCase &&
+    hasLowerCase &&
+    hasNumber
+  );
 }
 
-// Validate that at least `min` and at most `max` options have been
-// selected for a multi-choice question.  Returns true if valid or an
-// error message otherwise.
-export function validateMultiChoice(selection: number[], min = 1, max?: number): true | string {
-  if (selection.length < min) {
-    return `Please select at least ${min} option${min > 1 ? 's' : ''}.`;
-  }
-  if (max !== undefined && selection.length > max) {
-    return `Please select no more than ${max} option${max > 1 ? 's' : ''}.`;
-  }
-  return true;
-}
-
-// Aggregate validation: returns an object containing validation errors
-// keyed by field name.  Pass an object where keys are field names and
-// values are functions returning true or error strings.  Useful for
-// validating entire forms at once.
-export function validateFields(rules: Record<string, () => true | string>): Record<string, string> {
-  const errors: Record<string, string> = {};
-  Object.entries(rules).forEach(([field, validator]) => {
-    const result = validator();
-    if (result !== true) {
-      errors[field] = result as string;
-    }
-  });
-  return errors;
+// Validate multi-choice selection
+export function isValidSelection(selection: number[], min = 1): boolean {
+  return selection.length >= min;
 }

@@ -1,27 +1,22 @@
 /**
  * resultService module.
  *
- * Provides functions for fetching exam results.
- * Currently, the backend does not expose a dedicated endpoint for results.
- * This service is a placeholder for future implementation.
+ * Contains functions for fetching exam results.
  */
 
 import apiClient from '../utils/apiClient';
+import { ResultItem } from '../components/ResultTable';
 
-export interface ExamResult {
-  examId: number;
-  studentId: number;
-  score: number;
-  status: string;
-}
+export type { ResultItem };
 
 export const resultService = {
-  // Placeholder for getting results
-  // The backend currently handles results via ExamController state or WebSocket
-  getResults: async (): Promise<ExamResult[]> => {
-    // TODO: Implement when backend endpoint is available
-    // For now, return empty array or mock data
-    console.warn('getResults API not implemented on backend');
-    return [];
+  getResultsByStudent: async (studentId: number): Promise<ResultItem[]> => {
+    // Assuming endpoint exists: GET /api/Result/student/{studentId}
+    // If not, we might need to adjust or use a mock
+    return await apiClient.get<ResultItem[]>(`/api/Result/student/${studentId}`) as unknown as Promise<ResultItem[]>;
+  },
+
+  getResultDetail: async (resultId: number): Promise<any> => {
+    return await apiClient.get<any>(`/api/Result/${resultId}`) as unknown as Promise<any>;
   }
 };

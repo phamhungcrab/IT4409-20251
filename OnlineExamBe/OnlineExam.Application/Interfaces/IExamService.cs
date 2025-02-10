@@ -14,5 +14,10 @@ namespace OnlineExam.Application.Interfaces
     {
         Task<ExamGenerateResultDto> GenerateExamAsync(CreateExamForStudentDto dto);
         Task<ExamStudent?> GetExamStudent(int examId, int studentId);
+        Task<List<Exam>> GetStudentExamsAsync(int studentId);
+        Task<List<Exam>> GetAllExamsAsync();
+        Task SubmitExamAsync(ExamSubmissionDto dto);
+        Task<List<ExamStudent>> GetResultsByStudentAsync(int studentId);
+        Task<ExamStudent?> GetResultDetailAsync(int examId, int studentId);
     }
 }

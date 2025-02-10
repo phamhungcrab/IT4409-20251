@@ -39,7 +39,7 @@ namespace OnlineExam.Application.Services.Auth
                            IJwtService jwtService,
                            IEmailService emailService,
                            IRepository<RefreshToken> refreshTokenRepository,
-                           IMemoryCache cache, 
+                           IMemoryCache cache,
                            IOptions<SmtpSettings> smtp,
                            IUserService userService) : base(userRepository)
         {
@@ -52,7 +52,7 @@ namespace OnlineExam.Application.Services.Auth
             _smtp = smtp.Value;
         }
 
- 
+
         /// <summary>
         /// Dang ki tai khoan
         /// </summary>
@@ -155,19 +155,19 @@ namespace OnlineExam.Application.Services.Auth
                 };
             }
             // tim token cu va kiem tra
-            var refreshToken = (await _refreshTokenRepository.FindAsync(t => t.UserId.Equals(user.Id) && t.DeviceId.Equals(login.DeviceId) 
+            var refreshToken = (await _refreshTokenRepository.FindAsync(t => t.UserId.Equals(user.Id) && t.DeviceId.Equals(login.DeviceId)
                                                                           && t.IpAddress.Equals(login.IpAdress) && t.UserAgent.Equals(login.UserAgent) && !t.IsExpired));
 
-            if(refreshToken.Any()) { 
+            if(refreshToken.Any()) {
                 refreshToken.First().IsExpired = true;
                 await _refreshTokenService.UpdateAsync(refreshToken.First());
             }
                 // tao token moi
                 var newAccessToken = _jwtService.GenerateAccessToken(user, 150000, login.DeviceId, login.IpAdress, login.UserAgent);
                 var newRefreshToken = await _jwtService.generateRefreshToken(user, 15, login.DeviceId, login.IpAdress, login.UserAgent);
-                
+
                 await _refreshTokenService.CreateAsync(newRefreshToken);
-            
+
             // Tra ve access token va refresh token
             return new ResultApiModel()
             {
@@ -226,7 +226,7 @@ namespace OnlineExam.Application.Services.Auth
                     Data = "Sai mat khau"
                 };
             }
-            
+
             user.PasswordHash = newPasswordHash;
             await _userService.UpdateAsync(user);
             return new ResultApiModel()
@@ -236,7 +236,7 @@ namespace OnlineExam.Application.Services.Auth
                 Data = "Cap nhat mat khau thanh cong"
             };
         }
-        
+
         /// <summary>
         /// chua trien khai, chua co otp
         /// </summary>
@@ -284,7 +284,7 @@ namespace OnlineExam.Application.Services.Auth
             _cache.Set(cacheKey, code, TimeSpan.FromMinutes(3));
 
             var to = new[] { dto.Email };
-            
+
             await _emailService.SendMail(dto.Email, code);
             return new ResultApiModel()
             {
@@ -299,6 +299,62 @@ namespace OnlineExam.Application.Services.Auth
             using var sha256 = SHA256.Create();
             var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
             return Convert.ToHexString(bytes);
+        }
+
+        public async Task<ResultApiModel> RefreshToken(RefreshTokenDto dto)
+        {
+            if (dto == null || string.IsNullOrEmpty(dto.RefreshToken))
+            {
+                return new ResultApiModel()
+                {
+                    IsStatus = false,
+                    MessageCode = ResponseCode.BadRequest,
+                    Data = "Invalid client request"
+                };
+            }
+
+            var refreshToken = (await _refreshTokenRepository.FindAsync(t => t.Token == dto.RefreshToken)).FirstOrDefault();
+
+            if (refreshToken == null || refreshToken.IsExpired)
+            {
+                return new ResultApiModel()
+                {
+                    IsStatus = false,
+                    MessageCode = ResponseCode.Unauthorized,
+                    Data = "Invalid refresh token"
+                };
+            }
+
+            var user = await _userService.GetByIdAsync(refreshToken.UserId);
+            if (user == null)
+            {
+                return new ResultApiModel()
+                {
+                    IsStatus = false,
+                    MessageCode = ResponseCode.NotFound,
+                    Data = "User not found"
+                };
+            }
+
+            // Revoke old refresh token
+            refreshToken.IsExpired = true;
+            await _refreshTokenService.UpdateAsync(refreshToken);
+
+            // Generate new tokens
+            var newAccessToken = _jwtService.GenerateAccessToken(user, 150000, dto.DeviceId, dto.IpAddress, dto.UserAgent);
+            var newRefreshToken = await _jwtService.generateRefreshToken(user, 15, dto.DeviceId, dto.IpAddress, dto.UserAgent);
+            await _refreshTokenService.CreateAsync(newRefreshToken);
+
+            return new ResultApiModel()
+            {
+                IsStatus = true,
+                MessageCode = ResponseCode.Success,
+                Data = new TokenResponse()
+                {
+                    AccessToken = newAccessToken,
+                    RefreshToken = newRefreshToken.Token
+                }
+            };
         }
     }
 

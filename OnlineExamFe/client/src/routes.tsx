@@ -11,6 +11,7 @@
 import React, { lazy } from 'react';
 import type { RouteObject } from 'react-router-dom';
 import Layout from './components/Layout';
+import RoleGuard from './components/RoleGuard';
 
 // Lazy-loaded page components.  React.lazy allows components to be loaded
 // asynchronously when they are first rendered.  The webpack/vite bundler
@@ -45,19 +46,35 @@ export const appRoutes: RouteObject[] = [
       },
       {
         path: 'exams',
-        element: <ExamListPage />,
+        element: (
+          <RoleGuard allowedRoles={['Student', 'Teacher', 'Admin']}>
+            <ExamListPage />
+          </RoleGuard>
+        ),
       },
       {
         path: 'exam/:examId',
-        element: <ExamRoomPage />,
+        element: (
+          <RoleGuard allowedRoles={['Student']}>
+            <ExamRoomPage />
+          </RoleGuard>
+        ),
       },
       {
         path: 'results',
-        element: <ResultsPage />,
+        element: (
+          <RoleGuard allowedRoles={['Student', 'Teacher', 'Admin']}>
+            <ResultsPage />
+          </RoleGuard>
+        ),
       },
       {
         path: 'admin',
-        element: <AdminPage />,
+        element: (
+          <RoleGuard allowedRoles={['Admin']}>
+            <AdminPage />
+          </RoleGuard>
+        ),
       },
       {
         path: '*',
