@@ -9,7 +9,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Đăng ký DbContext
-builder.Services.AddDbContext<OnlineExamDbContext>(options =>
+builder.Services.AddDbContext<ExamSystemDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")
     ));

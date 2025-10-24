@@ -10,8 +10,8 @@ using OnlineExam.Infrastructure.Data;
 
 namespace OnlineExam.Infrastructure.Migrations
 {
-    [DbContext(typeof(OnlineExamDbContext))]
-    partial class OnlineExamDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(ExamSystemDbContext))]
+    partial class ExamSystemDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
