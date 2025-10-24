@@ -1,0 +1,6 @@
+@Thi_truc_tuyen_be_HostAddress = http://localhost:5114
+
+GET {{Thi_truc_tuyen_be_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
