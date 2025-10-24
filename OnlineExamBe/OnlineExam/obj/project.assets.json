@@ -5247,23 +5247,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\huyhu\\.nuget\\packages\\": {},
+    "C:\\Users\\lehuo\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Danh_sach_mon_hoc\\Web_dich_vu\\IT4409-20251\\OnlineExamBe\\OnlineExam\\OnlineExam.csproj",
+      "projectUniqueName": "D:\\Documents\\cnweb\\IT4409-20251\\OnlineExamBe\\OnlineExam\\OnlineExam.csproj",
       "projectName": "OnlineExam",
-      "projectPath": "D:\\Danh_sach_mon_hoc\\Web_dich_vu\\IT4409-20251\\OnlineExamBe\\OnlineExam\\OnlineExam.csproj",
-      "packagesPath": "C:\\Users\\huyhu\\.nuget\\packages\\",
-      "outputPath": "D:\\Danh_sach_mon_hoc\\Web_dich_vu\\IT4409-20251\\OnlineExamBe\\OnlineExam\\obj\\",
+      "projectPath": "D:\\Documents\\cnweb\\IT4409-20251\\OnlineExamBe\\OnlineExam\\OnlineExam.csproj",
+      "packagesPath": "C:\\Users\\lehuo\\.nuget\\packages\\",
+      "outputPath": "D:\\Documents\\cnweb\\IT4409-20251\\OnlineExamBe\\OnlineExam\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\huyhu\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\lehuo\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -5278,11 +5278,11 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "D:\\Danh_sach_mon_hoc\\Web_dich_vu\\IT4409-20251\\OnlineExamBe\\OnlineExam.Application\\OnlineExam.Application.csproj": {
-              "projectPath": "D:\\Danh_sach_mon_hoc\\Web_dich_vu\\IT4409-20251\\OnlineExamBe\\OnlineExam.Application\\OnlineExam.Application.csproj"
+            "D:\\Documents\\cnweb\\IT4409-20251\\OnlineExamBe\\OnlineExam.Application\\OnlineExam.Application.csproj": {
+              "projectPath": "D:\\Documents\\cnweb\\IT4409-20251\\OnlineExamBe\\OnlineExam.Application\\OnlineExam.Application.csproj"
             },
-            "D:\\Danh_sach_mon_hoc\\Web_dich_vu\\IT4409-20251\\OnlineExamBe\\OnlineExam.Infrastructure\\OnlineExam.Infrastructure.csproj": {
-              "projectPath": "D:\\Danh_sach_mon_hoc\\Web_dich_vu\\IT4409-20251\\OnlineExamBe\\OnlineExam.Infrastructure\\OnlineExam.Infrastructure.csproj"
+            "D:\\Documents\\cnweb\\IT4409-20251\\OnlineExamBe\\OnlineExam.Infrastructure\\OnlineExam.Infrastructure.csproj": {
+              "projectPath": "D:\\Documents\\cnweb\\IT4409-20251\\OnlineExamBe\\OnlineExam.Infrastructure\\OnlineExam.Infrastructure.csproj"
             }
           }
         }
@@ -5341,7 +5341,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.305/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.303/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
