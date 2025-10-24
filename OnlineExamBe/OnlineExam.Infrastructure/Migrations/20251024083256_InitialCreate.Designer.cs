@@ -11,8 +11,8 @@ using OnlineExam.Infrastructure.Data;
 
 namespace OnlineExam.Infrastructure.Migrations
 {
-    [DbContext(typeof(OnlineExamDbContext))]
-    [Migration("20251024075734_InitialCreate")]
+    [DbContext(typeof(ExamSystemDbContext))]
+    [Migration("20251024083256_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
