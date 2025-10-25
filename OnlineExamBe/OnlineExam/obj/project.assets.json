@@ -1736,7 +1736,6 @@
         "dependencies": {
           "Microsoft.EntityFrameworkCore": "9.0.10",
           "Microsoft.EntityFrameworkCore.SqlServer": "9.0.10",
-          "OnlineExam.Application": "1.0.0",
           "OnlineExam.Domain": "1.0.0"
         },
         "compile": {
