@@ -1,0 +1,44 @@
+name: CD
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '7.0.x'
+
+      - name: Publish API
+        run: dotnet publish -c Release -o publish
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install and build client
+        run: |
+          npm install
+          npm run build
+        working-directory: client
+
+      # Example deployment step (to Azure Web Apps, DigitalOcean, etc.)
+      # Replace this with your actual deployment provider.
+      - name: Deploy to Azure Web App
+        if: false # update conditions when deployment is configured
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ secrets.AZURE_APP_NAME }}
+          slot-name: production
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+          package: publish

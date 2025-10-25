@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    // Target the latest ECMAScript version supported by modern browsers
+    "target": "ES2021",
+    // Use native ES modules and produce ESM output
+    "module": "ESNext",
+    // Include DOM and ESNext library definitions
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    // Emit JSX syntax compatible with React 17+ (JSX runtime)
+    "jsx": "react-jsx",
+    // Enable strict type-checking options
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    // Allow import of JSON files
+    "resolveJsonModule": true,
+    // Skip checking of declaration files for faster builds
+    "skipLibCheck": true,
+    // Force consistent casing in file names
+    "forceConsistentCasingInFileNames": true,
+    // Enable incremental compilation for faster rebuilds
+    "incremental": true,
+    // Allow default imports from CommonJS modules
+    "esModuleInterop": false,
+    "allowSyntheticDefaultImports": true,
+    // Use Node module resolution algorithm
+    "moduleResolution": "node",
+    // Allow defining classes before they are declared
+    "useDefineForClassFields": false
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "build"]
+}
