@@ -24,7 +24,7 @@ namespace Api.Models.Entities
         /// <summary>
         /// The main text of the question.
         /// </summary>
-        public string Text { get; set; } 
+        public string Text { get; set; } = string.Empty;
 
         /// <summary>
         /// Type of the question (e.g., "SINGLE_CHOICE", "MULTI_CHOICE", "ESSAY").
@@ -56,6 +56,6 @@ namespace Api.Models.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public bool IsDeleted { get; set; } = false;
-
+        
     }
 }

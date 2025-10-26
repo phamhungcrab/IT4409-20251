@@ -349,4 +349,4 @@ note:
 - npm install tailwindcss postcss autoprefixer @tailwindcss/forms @tailwindcss/typography
 - npm run build
 - npm install i18next react-i18next
-- 
+- dotnet tool install --global dotnet-ef

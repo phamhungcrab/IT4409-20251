@@ -7,6 +7,7 @@ using Api.Models.Entities;
 using Api.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Api.Data;
+using Api.Models.Enumerations;
 
 namespace Api.Services
 {
@@ -143,7 +144,7 @@ namespace Api.Services
                         {
                             ExamId = examId,
                             StudentId = student.Id,
-                            Status = Models.Enumerations.ExamStatus.NotStarted,
+                            Status = Models.Enumerations.ExamStatus.NotStarted.ToString(),
                             AssignedAt = DateTime.UtcNow
                         });
                     }
@@ -164,7 +165,7 @@ namespace Api.Services
                     {
                         ExamId = examId,
                         StudentId = studentId,
-                        Status = Models.Enumerations.ExamStatus.NotStarted,
+                        Status = Models.Enumerations.ExamStatus.NotStarted.ToString(),
                         AssignedAt = DateTime.UtcNow
                     });
                 }
@@ -197,7 +198,7 @@ namespace Api.Services
                     Id = exam.Author.Id,
                     Email = exam.Author.Email,
                     FullName = exam.Author.FullName,
-                    Role = exam.Author.Role.ToString()
+                    Role = exam.Author.Role
                 },
                 QuestionCount = exam.QuestionExams?.Count ?? 0
             };
@@ -230,7 +231,7 @@ namespace Api.Services
                     Id = e.Author.Id,
                     Email = e.Author.Email,
                     FullName = e.Author.FullName,
-                    Role = e.Author.Role.ToString()
+                    Role = e.Author.Role
                 },
                 QuestionCount = e.QuestionExams?.Count ?? 0
             }).ToList();

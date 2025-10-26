@@ -88,5 +88,7 @@ namespace Api.Models.Entities
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public bool IsDeleted { get; set; } = false;
         public ExamStatus Status { get; set; }
+        public User? Author { get; set; }
+
     }
 }

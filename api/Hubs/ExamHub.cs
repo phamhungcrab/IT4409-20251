@@ -36,7 +36,7 @@ namespace Api.Hubs
         /// implementation you might record that the student went
         /// offline and update monitoring dashboards.
         /// </summary>
-        public override async Task OnDisconnectedAsync(System.Exception exception)
+        public override async Task OnDisconnectedAsync(System.Exception? exception)
         {
             // Remove the connection from groups or update state
             await base.OnDisconnectedAsync(exception);

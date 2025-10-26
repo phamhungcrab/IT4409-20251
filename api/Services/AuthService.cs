@@ -53,7 +53,7 @@ namespace Api.Services
                     Id = user.Id,
                     Email = user.Email,
                     FullName = user.FullName,
-                    Role = user.Role.ToString()
+                    Role = Role.Admin
                 }
             };
             return response;

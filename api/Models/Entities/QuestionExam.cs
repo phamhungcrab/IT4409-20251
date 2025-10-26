@@ -69,7 +69,7 @@ namespace Api.Models.Entities
         /// Student-specific questions referencing this snapshot.
         /// </summary>
         public virtual ICollection<StudentQuestion> StudentQuestions { get; set; } = new List<StudentQuestion>();
-        public string Explanation { get; internal set; }
+
         public string Text { get; set; } = string.Empty;
         public QuestionType Type { get; set; }
         public string? Explanation { get; set; }

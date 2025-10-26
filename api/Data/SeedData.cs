@@ -91,7 +91,7 @@ namespace Api.Data
                 {
                     SubjectId = subject.Id,
                     Text = "What is the capital of France?",
-                    Type = QuestionType.SingleChoice.ToString(),
+                    Type = QuestionType.SingleChoice,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     Options = new List<Option>
