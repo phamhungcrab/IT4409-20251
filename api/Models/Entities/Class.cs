@@ -20,7 +20,7 @@ namespace Api.Models.Entities
         /// Optional code or number identifying the class (e.g., "2025F-1").
         /// </summary>
         public string? ClassCode { get; set; }
-;
+
         /// <summary>
         /// Name of the class.  Usually includes the subject and term.
         /// </summary>
@@ -30,14 +30,14 @@ namespace Api.Models.Entities
         /// Foreign key to the subject this class is teaching.
         /// </summary>
         public int SubjectId { get; set; }
-;
+
         /// <summary>
         /// Optional foreign key to the teacher assigned to this class.
         /// Null if no teacher is assigned.
         /// </summary>
         public int? TeacherId { get; set; }
-;
-        /// <summary>
+
+   /// <summary>
         /// Navigation property for the subject.
         /// </summary>
         public virtual Subject Subject { get; set; } = null!;
@@ -46,7 +46,7 @@ namespace Api.Models.Entities
         /// Navigation property for the teacher.
         /// </summary>
         public virtual User? Teacher { get; set; }
-;
+
         /// <summary>
         /// Collection of exams associated with this class.  Exams may
         /// be shared across multiple classes.

@@ -19,12 +19,12 @@ namespace Api.Models.Entities
         /// Foreign key to the exam-student assignment.
         /// </summary>
         public int ExamStudentId { get; set; }
-;
+
         /// <summary>
         /// Foreign key to the question snapshot.
         /// </summary>
         public int QuestionExamId { get; set; }
-;
+
         /// <summary>
         /// Order in which this question should appear for the student.
         /// Each student can have a different order.  Stored to
@@ -38,17 +38,17 @@ namespace Api.Models.Entities
         /// property may be null.
         /// </summary>
         public string? SelectedOptionIds { get; set; }
-;
+
         /// <summary>
         /// Optional free text answer for essay questions.
         /// </summary>
         public string? EssayAnswer { get; set; }
-;
+
         /// <summary>
         /// Score awarded for this question.  Null if not yet graded.
         /// </summary>
         public decimal? Score { get; set; }
-;
+
         /// <summary>
         /// Navigation to the exam-student assignment.
         /// </summary>

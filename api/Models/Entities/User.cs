@@ -29,7 +29,7 @@ namespace Api.Models.Entities
         /// be identified by a student code instead.
         /// </summary>
         public string? FullName { get; set; }
-;
+
         /// <summary>
         /// Securely hashed and salted password.  Use a modern
         /// algorithm such as Argon2id or bcrypt【110133013481214†L193-L204】.  The raw
@@ -43,7 +43,7 @@ namespace Api.Models.Entities
         /// persisted as an integer or string column in the database.
         /// </summary>
         public Role Role { get; set; }
-;
+
         /// <summary>
         /// Timestamp of when the user record was created (UTC).
         /// </summary>
@@ -83,5 +83,7 @@ namespace Api.Models.Entities
         /// Audit events recorded for actions taken by this user.
         /// </summary>
         public virtual ICollection<AuditEvent> AuditEvents { get; set; } = new List<AuditEvent>();
+        public ICollection<Class>? EnrolledClasses { get; set; }
+
     }
 }

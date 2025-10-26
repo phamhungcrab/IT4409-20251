@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Api.Models.Enumerations;
 
 namespace Api.Models.Entities
 {
@@ -19,13 +20,13 @@ namespace Api.Models.Entities
         /// Foreign key to the exam this snapshot belongs to.
         /// </summary>
         public int ExamId { get; set; }
-;
+
         /// <summary>
         /// Foreign key to the original question.  Useful for analytics
         /// but not used for grading.
         /// </summary>
         public int QuestionId { get; set; }
-;
+
         /// <summary>
         /// Copy of the question text at the time of publication.
         /// </summary>
@@ -46,7 +47,7 @@ namespace Api.Models.Entities
         /// be null.
         /// </summary>
         public string? CorrectAnswersJson { get; set; }
-;
+
         /// <summary>
         /// Order of the question within the exam.  The order should
         /// be preserved for each student but the frontend can shuffle
@@ -68,5 +69,10 @@ namespace Api.Models.Entities
         /// Student-specific questions referencing this snapshot.
         /// </summary>
         public virtual ICollection<StudentQuestion> StudentQuestions { get; set; } = new List<StudentQuestion>();
+        public string Explanation { get; internal set; }
+        public string Text { get; set; } = string.Empty;
+        public QuestionType Type { get; set; }
+        public string? Explanation { get; set; }
+
     }
 }

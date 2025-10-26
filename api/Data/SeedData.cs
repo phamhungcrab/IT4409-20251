@@ -29,7 +29,7 @@ namespace Api.Data
                     Email = "admin@example.com",
                     FullName = "System Admin",
                     PasswordHash = "hashed-password", // TODO: hash properly
-                    Role = Role.ADMIN,
+                    Role = Role.Admin,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -38,7 +38,7 @@ namespace Api.Data
                     Email = "teacher@example.com",
                     FullName = "Jane Teacher",
                     PasswordHash = "hashed-password",
-                    Role = Role.TEACHER,
+                    Role = Role.Teacher,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -47,7 +47,7 @@ namespace Api.Data
                     Email = "student@example.com",
                     FullName = "John Student",
                     PasswordHash = "hashed-password",
-                    Role = Role.STUDENT,
+                    Role = Role.Student,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -70,7 +70,7 @@ namespace Api.Data
             if (!context.Classes.Any())
             {
                 var subject = await context.Subjects.FirstAsync();
-                var teacher = await context.Users.FirstAsync(u => u.Role == Role.TEACHER);
+                var teacher = await context.Users.FirstAsync(u => u.Role == Role.Teacher);
                 var cls = new Class
                 {
                     Name = "CS101-A",
@@ -78,7 +78,7 @@ namespace Api.Data
                     TeacherId = teacher.Id
                 };
                 // Assign student to class
-                var student = await context.Users.FirstAsync(u => u.Role == Role.STUDENT);
+                var student = await context.Users.FirstAsync(u => u.Role == Role.Student);
                 cls.Students.Add(student);
                 context.Classes.Add(cls);
                 await context.SaveChangesAsync();
@@ -91,7 +91,7 @@ namespace Api.Data
                 {
                     SubjectId = subject.Id,
                     Text = "What is the capital of France?",
-                    Type = QuestionType.SingleChoice,
+                    Type = QuestionType.SingleChoice.ToString(),
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     Options = new List<Option>
@@ -107,7 +107,7 @@ namespace Api.Data
             // Seed exam
             if (!context.Exams.Any())
             {
-                var teacher = await context.Users.FirstAsync(u => u.Role == Role.TEACHER);
+                var teacher = await context.Users.FirstAsync(u => u.Role == Role.Teacher);
                 var exam = new Exam
                 {
                     Title = "Sample Exam",

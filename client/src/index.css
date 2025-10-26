@@ -1,0 +1,20 @@
+/*
+ * Global styles for the Online Examination System client.
+ *
+ * Tailwind CSS uses the `@tailwind` directives below to inject
+ * its base styles, component styles and utility classes.  You
+ * can add your own custom styles after these directives as
+ * needed.  See https://tailwindcss.com/docs/installation for
+ * details on setting up Tailwind with Vite.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom global styles (optional) */
+html,
+body {
+  min-height: 100%;
+  background-color: #f9fafb;
+  color: #1f2937;
+}

@@ -1,387 +1,310 @@
-Online Examination System
-Welcome to the Online Examination System – a full‑stack platform for creating, managing and conducting exams over the web. It provides role‑based access for administrators, teachers and students, and supports automated scoring, real‑time monitoring and rigorous audit logging. The solution is built with React on the frontend, ASP.NET Core Web API with SignalR on the backend, and SQL Server as the database.
-This README describes the project structure, features, setup and deployment instructions so that contributors can quickly get started.
-Table of Contents
-1.	Project Features
-2.	Folder Structure
-3.	Database Schema & SQL
-4.	Installation
-5.	Running Locally
-6.	Deployment
-7.	Contributing
-8.	Security Notes
-9.	License
-Project Features
-The system is designed to support the following capabilities, satisfying both functional and non‑functional requirements documented in the design specification:
-•	Role‑Based Access: Separate interfaces and permissions for ADMIN, TEACHER, STUDENT roles.
-•	User Management: Administrators can create/modify users, assign roles, manage subjects and classes.
-•	Question Bank: Teachers can create, update and delete questions of type single choice, multiple choice and essay. Options and correct answers are stored in a structured and queryable way, with import/export support.
-•	Exam Lifecycle: Teachers create exams with start and end times (UTC), assign questions, randomize question and option order per student, and publish when ready. Questions are snapshotted at publish time to ensure immutability.
-•	Student Examination Flow: Students authenticate, start assigned exams, receive a materialized set of questions (with per‑student randomization). A server‑authoritative timer runs via SignalR; responses are auto‑saved and automatically submitted on timeout.
-•	Grading & Results: Objective questions are auto‑graded with optional partial scoring for multiple choice; essays are manually graded. Scores combine into a final result, which can be viewed and exported.
-•	Real‑Time Monitoring: Teachers monitor live participants, view progress and remaining time, and broadcast announcements to a class or exam via SignalR.
-•	Audit Logging: Critical actions (publishing an exam, grading, account changes) are captured in an immutable audit table for traceability. Timestamps are stored in UTC and time‑zone conversions occur in the application layer[1].
-•	Performance & Scalability: The system targets p95 API response times under 250 ms (excellent according to industry benchmarks[2]), supports 100–300 concurrent examinees per room, and uses database normalization (3NF) to reduce redundancy[3].
-•	Security: Passwords are hashed using modern algorithms (Argon2id or bcrypt with work factors ≥10) and salted[4]. Transport uses HTTPS/WSS and CORS whitelisting; secrets are provided via environment variables.
-Folder Structure
-The repository follows a monorepo layout. At the top level you will find separate folders for the backend API, frontend client, database scripts and documentation. A .gitignore file ensures that secrets, compiled binaries and other transient files are excluded from version control.
-├── api/                          # ASP.NET Core Web API
-│   ├── Controllers/              # API controllers (auth, users, exams, results...)
-│   ├── Data/                     # DbContext, entity configurations, seeds
-│   ├── Hubs/                     # SignalR hubs for timer, announcements, monitoring
-│   ├── Models/                   # Entity classes, DTOs
-│   ├── Services/                 # Business logic, grading, randomization
-│   ├── Migrations/               # EF Core migration files
-│   ├── Program.cs                # Entry point and services registration
-│   ├── appsettings.json          # Non‑secret configuration (connection names, logging)
-│   └── ...
-├── client/                       # React single‑page application
-│   ├── public/                   # Static files and HTML template
-│   ├── src/
-│   │   ├── components/           # Reusable UI components (forms, tables, timer)
-│   │   ├── pages/                # Route pages (login, dashboard, exam room, admin)
-│   │   ├── hooks/                # Custom React hooks (auth, API, timer)
-│   │   ├── services/             # API client wrappers, authentication helpers
-│   │   ├── i18n/                 # Localization files (ready for internationalization)
-│   │   └── index.tsx            # Frontend entry point
-│   ├── package.json              # Frontend dependencies and scripts
-│   └── ...
-├── db/
-│   ├── schema.sql                # SQL script to create tables, indexes, constraints
-│   ├── seed.sql                  # Optional: insert sample data for development/testing
-│   └── README.md                 # Notes on using the SQL scripts
-├── docs/
-│   ├── design/                   # Design agent outputs: glossary, ERD, logical schema
-│   ├── contracts/                # Policies for randomization, timing, grading, retention
-│   ├── evidence/                 # Evidence ledger and artefacts (see Evidence.md)
-│   ├── report.pdf                # Comprehensive report (10–20 pages)
-│   └── rubric_matrix.md          # Mapping of rubric criteria to deliverables
-├── tests/
-│   ├── api/                      # Unit and integration tests for backend
-│   ├── client/                   # Unit tests for frontend components
-│   └── load/                     # Load and performance tests
-├── .github/
-│   └── workflows/               # CI/CD pipeline definitions (GitHub Actions)
-├── .env.example                  # Example environment variables (copy to .env)
-├── .gitignore                    # Ignore build outputs, secrets, environment files
-├── docker-compose.yml            # Development environment (API, SQL Server, client)
-├── README.md                     # You are reading it!
-└── LICENSE                       # Project license (e.g., MIT)
-Important Files
-•	db/schema.sql – Contains the SQL DDL statements to create the relational database schema, including tables, indexes, foreign key constraints and enumerations. You can import this file directly into SQL Server if you prefer not to use EF Core migrations. It follows third normal form to eliminate redundancy[3].
-•	docker-compose.yml – Defines services for the API, client and SQL Server. Running docker compose up spins up a complete local environment.
-•	.env.example – Template for setting environment variables (database connection string, JWT secret, CORS origins). Copy to .env and fill in the values.
-•	.gitignore – Lists files and patterns to exclude from version control: bin/, obj/, node_modules/, .env, compiled artifacts, log files, etc.
-Database Schema & SQL
-The database schema is designed around the domain glossary defined in the design document. Key entities include User, Subject, Class, Question, Option, Exam, QuestionExam (snapshotted question assignments), ExamStudent (exam assignment per student), StudentQuestion (per‑student randomization and answers), Score, Announcement and AuditEvent. Relationships are enforced via foreign keys, and enumerations such as user roles, question types and exam statuses are implemented using lookup tables or CHECK constraints.
-All date/time columns use datetime2(3) and store values in UTC[1]. Passwords are hashed with modern algorithms (Argon2id or bcrypt) and salted[4]. The schema includes indexes on hot paths (e.g., lookups by user, exam, class) to meet performance targets (p95 < 250 ms[2]).
-To create the database using the SQL script:
-# Ensure SQL Server is running (see docker compose instructions)
-# Use sqlcmd or your preferred client to run the script
-sqlcmd -S localhost -U sa -P <YourStrong@Passw0rd> -d master -i db/schema.sql
+Tuyệt vời 👍
+Dưới đây là **file `README.md` hoàn chỉnh (chuẩn GitHub)** —
+viết bằng **Markdown tiếng Việt dễ hiểu**, mô tả **cách cài đặt, kết nối SQL Server Microsoft, khởi tạo database**,
+**chạy backend ASP.NET Core + frontend React**, và **giải thích nhiệm vụ từng file chính** trong dự án.
 
-# Optionally seed data
-sqlcmd -S localhost -U sa -P <YourStrong@Passw0rd> -d OnlineExamDb -i db/seed.sql
-Alternatively, you can let EF Core migrations create the schema automatically when the API starts. The migrations are located in the api/Migrations folder.
-Installation
-Prerequisites
-•	Node.js (≥ 18) and npm or yarn – for the React client.
-•	.NET SDK (≥ 8.0) – for the backend API.
-•	SQL Server 2019/2022 or Docker (to run SQL Server in a container).
-•	Git – to clone the repository.
-Clone the Repository
-git clone https://github.com/your-username/online-examination-system.git
-cd online-examination-system
-Configure Environment Variables
-Copy the example environment file and edit the values:
-cp .env.example .env
+---
 
-# Edit .env in your editor of choice and set:
-# - DATABASE_CONNECTION_STRING (e.g., "Server=localhost,1433;Database=OnlineExamDb;User Id=sa;Password=YourStrong@Passw0rd;")
-# - JWT_SECRET (random long string)
-# - ALLOWED_ORIGINS (comma‑separated list of frontend URLs)
-# - SIGNALR_BACKPLANE (optional; e.g., Redis connection string when scaling out)
-Install Dependencies
-# Backend dependencies
-cd api
-dotnet restore
-cd ..
+```markdown
+# 🧠 HỆ THỐNG THI TRỰC TUYẾN – ONLINE EXAMINATION SYSTEM
 
-# Frontend dependencies
-cd client
-npm install  # or yarn install
-cd ..
-Running Locally
-There are two ways to run the system locally: using Docker (recommended) or running each component manually.
-Option 1: Docker Compose
-Use the provided docker-compose.yml to spin up SQL Server, API and frontend simultaneously:
-docker compose up
-The services will be available at:
-•	API – https://localhost:5001 (Swagger at /swagger)
-•	Frontend – https://localhost:3000
-•	SQL Server – Port 1433 (credentials defined in .env or compose file)
-To tear down the environment:
-docker compose down
-Option 2: Manual Startup
-If you prefer to run services individually:
-1.	Start SQL Server (locally installed or in Docker).
-2.	Apply migrations or import db/schema.sql.
-3.	Start the backend API:
-cd api
-dotnet run
-1.	In a separate terminal, start the frontend:
-cd client
-npm start  # or yarn start
-The application will be accessible at the URLs shown above.
-Deployment
-For production deployment you should:
-1.	Build Docker Images – Create images for the API and client:
-# Build API image
-docker build -t online-exam-api:latest ./api
+> **Tác giả:** Phạm Ngọc Hưng – MSSV: 20235342
+> **Công nghệ:** React + ASP.NET Core Web API + SignalR + SQL Server
+> **Ngày tạo:** 2025-10-26
+> **Mục tiêu:** Xây dựng nền tảng thi trực tuyến full-stack hỗ trợ giám sát và chấm điểm tự động.
 
-# Build client image
-docker build -t online-exam-client:latest ./client
-1.	Push Images – Push to a container registry (e.g., Docker Hub, GitHub Packages, Azure Container Registry).
-2.	Provision Infrastructure – Choose a cloud provider (DigitalOcean, Azure, AWS). Create a managed SQL Server instance or use Azure SQL/Database for PostgreSQL. Configure VM or container service to host API and client.
-3.	Secure Traffic – Use a reverse proxy (e.g., Nginx, Traefik) with TLS certificates to serve the API and client over HTTPS. Configure WSS for SignalR and restrict allowed origins.
-4.	Configure Secrets – Store connection strings, JWT secret and other sensitive data in a secret manager (Azure Key Vault, AWS Secrets Manager). Do not commit secrets to version control.
-5.	CI/CD – Use GitHub Actions (see .github/workflows/) to automate build and deployment. The pipeline can build images, run tests, and deploy to your target environment when a pull request is merged into main.
-6.	Monitoring & Scaling – Enable application logging and monitoring. Use horizontal scaling (e.g., Azure Web App scale‑out or Kubernetes with a Redis backplane for SignalR) to support more concurrent examinees. Keep p95 latency under 250 ms by adding indexes and caching hot queries[2].
-Contributing
-Contributions are welcome! Please follow these guidelines:
-•	Fork the repository and create a feature branch (git checkout -b feature/your-feature).
-•	Write descriptive commit messages and open a pull request against the main branch. Each PR must be reviewed by at least one other contributor.
-•	Do not commit secrets, .env files or compiled artifacts. Ensure .gitignore filters out these items.
-•	Run dotnet test and frontend unit tests before submitting your PR.
-•	Update documentation (design docs, policies, README) if your changes affect architecture or data models.
-Security Notes
-•	Password Handling – Passwords are hashed using Argon2id or bcrypt with a work factor of at least 10 and salted[4]. Do not log raw passwords or store them in plain text.
-•	Timestamps – All times are stored in UTC and converted to local time at the client; this prevents ambiguity across time zones[1].
-•	Data Privacy – Personally identifiable information (PII) such as email addresses and student codes should be encrypted or masked when logged. Audit logs record user actions without exposing sensitive data.
-•	Secrets Management – Place secrets in environment variables or a secret manager; never commit them to the repository. The .env.example file documents required variables without values.
-License
-This project is licensed under the MIT License – see the LICENSE file for details.
-________________________________________
-[1] Dates and Times in SQL Server: AT TIME ZONE
-https://dzone.com/articles/dates-and-times-in-sql-server-at-time-zone
-[2] Odown Blog | API Response Time Standards: What's Good, Bad, and Unacceptable
-https://odown.com/blog/api-response-time-standards/
-[3] Database normalization description - Microsoft 365 Apps | Microsoft Learn
-https://learn.microsoft.com/en-us/troubleshoot/microsoft-365-apps/access/database-normalization-description
-[4] Password Storage - OWASP Cheat Sheet Series
-https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
+---
 
+## 📘 Giới thiệu
 
-PHẠM NGỌC HƯNG 20235342
+Dự án “Online Examination System” là nền tảng web giúp:
+- Tổ chức kỳ thi trực tuyến cho **giáo viên và sinh viên**.
+- Quản lý người dùng, đề thi, câu hỏi, lớp học.
+- Làm bài thi thời gian thực có đồng hồ **đồng bộ server (SignalR)**.
+- Chấm điểm tự động, lưu log audit và giám sát phòng thi theo thời gian thực.
+
+---
+
+## 📂 Cấu trúc thư mục
+
+```
 
 online-examination-system/
-├── api/                                  # ASP.NET Core Web API
-│   ├── Controllers/                      # REST controllers
-│   │   ├── AuthController.cs             # Login, refresh tokens
-│   │   ├── UsersController.cs            # CRUD users, roles
-│   │   ├── SubjectsController.cs         # CRUD subjects
-│   │   ├── ClassesController.cs          # CRUD classes and student assignments
-│   │   ├── QuestionsController.cs        # CRUD questions and options
-│   │   ├── ExamsController.cs            # Exam creation, assignment, publish
-│   │   ├── ExamSessionController.cs      # Start exam, autosave, submit
-│   │   ├── ResultsController.cs          # Retrieve results, export reports
-│   │   ├── MonitoringController.cs       # Real‑time monitoring endpoints
-│   │   └── AnnouncementsController.cs    # Broadcast announcements
-│   ├── Hubs/                             # SignalR hubs
-│   │   ├── ExamHub.cs                    # Hub for per‑exam timer and events
-│   │   └── MonitoringHub.cs              # Live dashboard updates
-│   ├── Models/                           # Domain entities and DTOs
-│   │   ├── Entities/
-│   │   │   ├── User.cs
-│   │   │   ├── Role.cs                   # Enum mapping for Admin/Teacher/Student
-│   │   │   ├── Subject.cs
-│   │   │   ├── Class.cs
-│   │   │   ├── Question.cs
-│   │   │   ├── Option.cs
-│   │   │   ├── Exam.cs
-│   │   │   ├── QuestionExam.cs           # Snapshotted question assignments
-│   │   │   ├── ExamStudent.cs            # Student–exam assignment & status
-│   │   │   ├── StudentQuestion.cs        # Per‑student randomization & answers
-│   │   │   ├── Answer.cs                 # Stores answer content (structured)
-│   │   │   ├── Score.cs                  # Records auto/manual grading per student
-│   │   │   ├── Announcement.cs
-│   │   │   └── AuditEvent.cs             # Audit logs of critical actions
-│   │   ├── DTOs/
-│   │   │   ├── Auth/
-│   │   │   │   ├── LoginRequest.cs
-│   │   │   │   ├── LoginResponse.cs
-│   │   │   │   └── RefreshTokenRequest.cs
-│   │   │   ├── User/
-│   │   │   │   ├── CreateUserRequest.cs
-│   │   │   │   └── UserResponse.cs
-│   │   │   ├── Question/
-│   │   │   │   ├── CreateQuestionRequest.cs
-│   │   │   │   └── QuestionResponse.cs
-│   │   │   ├── Exam/
-│   │   │   │   ├── CreateExamRequest.cs
-│   │   │   │   ├── PublishExamRequest.cs
-│   │   │   │   └── ExamResponse.cs
-│   │   │   ├── ExamSession/
-│   │   │   │   ├── StartExamRequest.cs
-│   │   │   │   ├── SaveAnswerRequest.cs
-│   │   │   │   └── SubmitExamRequest.cs
-│   │   │   └── Result/
-│   │   │       ├── GradeRequest.cs
-│   │   │       └── ResultResponse.cs
-│   │   └── Enumerations/
-│   │       ├── QuestionType.cs
-│   │       ├── ExamStatus.cs             # InProgress, Completed, Expired
-│   │       └── MultiChoiceScoringPolicy.cs
-│   ├── Services/                         # Business logic
-│   │   ├── Interfaces/
-│   │   │   ├── IAuthService.cs
-│   │   │   ├── IQuestionService.cs
-│   │   │   ├── IExamService.cs
-│   │   │   ├── IGradingService.cs
-│   │   │   ├── IMonitoringService.cs
-│   │   │   └── IAuditService.cs
-│   │   ├── AuthService.cs
-│   │   ├── QuestionService.cs
-│   │   ├── ExamService.cs
-│   │   ├── GradingService.cs
-│   │   ├── MonitoringService.cs
-│   │   └── AuditService.cs
-│   ├── Data/                             # EF Core context and configurations
-│   │   ├── ApplicationDbContext.cs
-│   │   ├── Configurations/
-│   │   │   ├── UserConfiguration.cs
-│   │   │   ├── SubjectConfiguration.cs
-│   │   │   ├── ClassConfiguration.cs
-│   │   │   ├── QuestionConfiguration.cs
-│   │   │   ├── OptionConfiguration.cs
-│   │   │   ├── ExamConfiguration.cs
-│   │   │   ├── QuestionExamConfiguration.cs
-│   │   │   ├── ExamStudentConfiguration.cs
-│   │   │   ├── StudentQuestionConfiguration.cs
-│   │   │   ├── AnswerConfiguration.cs
-│   │   │   ├── ScoreConfiguration.cs
-│   │   │   ├── AnnouncementConfiguration.cs
-│   │   │   └── AuditEventConfiguration.cs
-│   │   └── SeedData.cs                   # Initial seed data for dev environment
-│   ├── Migrations/                       # EF migrations (auto‑generated)
-│   │   └── 20251024_InitialCreate.cs
-│   ├── Helpers/
-│   │   ├── PasswordHasher.cs             # Use Argon2id/bcrypt
-│   │   ├── RandomizationHelper.cs        # Question/option shuffling
-│   │   └── PartialScoringHelper.cs       # Multi‑choice scoring logic
-│   ├── Middleware/
-│   │   ├── ExceptionMiddleware.cs        # Global error handling
-│   │   └── AuditMiddleware.cs            # Records audit events
-│   ├── Program.cs                        # WebApplication builder (minimal API)
-│   ├── appsettings.json                  # Non‑secret config (connection names)
-│   ├── appsettings.Development.json
+├── api/                        # Backend ASP.NET Core Web API
+│   ├── Controllers/            # Xử lý các yêu cầu REST (Auth, Exam, Result, ...)
+│   ├── Hubs/                   # SignalR Hub cho giám sát và đồng hồ đếm ngược
+│   ├── Models/                 # Entities, DTOs, Enums mô tả cấu trúc dữ liệu
+│   ├── Services/               # Business logic (AuthService, ExamService, ...)
+│   ├── Data/                   # DbContext, cấu hình bảng (EF Core)
+│   ├── Helpers/                # Mã hóa mật khẩu, chấm điểm, random hóa đề
+│   ├── Middleware/             # Xử lý ngoại lệ & ghi log Audit
+│   ├── Program.cs              # Điểm khởi chạy Web API
+│   ├── appsettings.json        # Cấu hình kết nối Database
 │   └── api.csproj
-├── client/                               # React SPA
-│   ├── public/
-│   │   ├── index.html
-│   │   └── manifest.json
+│
+├── client/                     # Frontend React SPA (Vite + TypeScript + Tailwind)
 │   ├── src/
-│   │   ├── index.tsx
-│   │   ├── App.tsx
-│   │   ├── routes.tsx                    # Route definitions
-│   │   ├── components/
-│   │   │   ├── Layout.tsx                # Common page layout
-│   │   │   ├── Sidebar.tsx               # Navigation menu
-│   │   │   ├── Timer.tsx                 # Exam countdown timer
-│   │   │   ├── QuestionCard.tsx          # Renders question & options
-│   │   │   ├── OptionList.tsx
-│   │   │   ├── ResultTable.tsx
-│   │   │   └── AnnouncementBanner.tsx
-│   │   ├── pages/
-│   │   │   ├── HomePage.tsx
-│   │   │   ├── LoginPage.tsx
-│   │   │   ├── ExamListPage.tsx
-│   │   │   ├── ExamRoomPage.tsx
-│   │   │   ├── ResultsPage.tsx
-│   │   │   ├── AdminPage.tsx
-│   │   │   └── NotFoundPage.tsx
-│   │   ├── hooks/
-│   │   │   ├── useAuth.ts                # Authentication & JWT handling
-│   │   │   ├── useApi.ts                 # Axios wrapper with interceptors
-│   │   │   ├── useExam.ts                # Manages exam state and autosave
-│   │   │   ├── useTimer.ts               # Timer logic (SignalR integration)
-│   │   │   └── useAnnouncements.ts
-│   │   ├── services/
-│   │   │   ├── authService.ts
-│   │   │   ├── questionService.ts
-│   │   │   ├── examService.ts
-│   │   │   ├── resultService.ts
-│   │   │   └── monitoringService.ts
-│   │   ├── i18n/
-│   │   │   └── en.json                   # Default language file
-│   │   ├── styles/
-│   │   │   └── Tailwind.config.js        # Or your chosen CSS framework config
-│   │   └── utils/
-│   │       ├── validateInputs.ts         # Form validation helpers
-│   │       └── formatting.ts             # Date/time formatting, UTC→local
-│   ├── .eslintrc.js
-│   ├── tsconfig.json
-│   ├── vite.config.ts                    # Or webpack configuration
+│   │   ├── pages/              # Các trang chính (Login, ExamRoom, Result, Admin,...)
+│   │   ├── components/         # Thành phần UI (Timer, Sidebar, QuestionCard,...)
+│   │   ├── hooks/              # Logic frontend (useAuth, useExam, useTimer,...)
+│   │   ├── services/           # Gọi API backend
+│   │   ├── utils/              # Hàm tiện ích (validate, format thời gian)
+│   │   ├── i18n/en.json        # File ngôn ngữ
+│   │   ├── App.tsx             # Cấu hình Router chính
+│   │   ├── index.tsx           # Điểm vào React
+│   │   └── routes.tsx
+│   ├── Tailwind.config.js      # Cấu hình Tailwind CSS
+│   ├── postcss.config.js
+│   ├── vite.config.ts
 │   ├── package.json
-│   └── yarn.lock or package-lock.json
+│   └── index.html
+│
 ├── db/
-│   ├── schema.sql                        # SQL DDL for creating the database schema
-│   ├── seed.sql                          # Inserts sample subjects, classes, users, questions
-│   └── README.md                         # Instructions on running the SQL scripts
+│   ├── schema.sql              # Cấu trúc cơ sở dữ liệu (DDL)
+│   ├── seed.sql                # Dữ liệu mẫu (môn học, lớp, user, câu hỏi)
+│   └── README.md
+│
 ├── docs/
-│   ├── design/
-│   │   ├── glossary.md                   # Domain glossary definitions
-│   │   ├── erd.mmd                       # Mermaid ER diagram
-│   │   ├── logical_schema.md             # Table definitions, constraints, indexes
-│   │   └── rationale.md                  # Design rationale and trade‑offs
-│   ├── contracts/
-│   │   ├── randomization.md
-│   │   ├── snapshot_policy.md
-│   │   ├── grading_policy.md
-│   │   ├── timing_policy.md
-│   │   ├── security_policy.md
-│   │   └── retention_policy.md
-│   ├── evidence/
-│   │   ├── Evidence.md                   # Evidence ledger template
-│   │   └── screenshots/                  # Collected screenshots for rubric proof
-│   ├── report.pdf                        # Final project report (10–20 pages)
-│   └── rubric_matrix.md                  # Mapping of rubric items to deliverables
-├── tests/
-│   ├── api/
-│   │   ├── AuthControllerTests.cs
-│   │   ├── ExamsControllerTests.cs
-│   │   ├── ResultsControllerTests.cs
-│   │   ├── GradingServiceTests.cs
-│   │   ├── MonitoringHubTests.cs
-│   │   └── TestFixtures/
-│   │       └── TestDbContextFactory.cs
-│   ├── client/
-│   │   ├── pages/
-│   │   │   ├── LoginPage.test.tsx
-│   │   │   ├── ExamListPage.test.tsx
-│   │   │   └── ExamRoomPage.test.tsx
-│   │   ├── components/
-│   │   │   ├── Timer.test.tsx
-│   │   │   ├── QuestionCard.test.tsx
-│   │   │   └── ResultTable.test.tsx
-│   │   └── hooks/
-│   │       └── useTimer.test.ts
-│   ├── load/
-│   │   └── load_test.js                  # k6 or JMeter script for performance testing
-│   └── README.md                         # How to run the tests
-├── .github/
-│   └── workflows/
-│       ├── ci.yml                        # Build, test and lint for every PR
-│       └── cd.yml                        # Optional: deploy to cloud on merge to main
-├── .env.example                          # Template for environment variables
-├── .gitignore                            # Specifies files not to commit (bin/, obj/, node_modules/, .env, etc.)
-├── docker-compose.yml                    # Compose services: API, client, SQL Server
-├── LICENSE                               # Choose MIT, Apache‑2.0 or similar
-└── README.md                             # Project overview and setup instructions (already written)
+│   ├── design/                 # Tài liệu ERD, Glossary, Logical Schema
+│   ├── contracts/              # Chính sách grading, timing, randomization
+│   ├── report.pdf              # Báo cáo cuối kỳ
+│   └── rubric_matrix.md
+│
+├── tests/                      # Unit tests & load tests
+│
+├── docker-compose.yml           # Chạy toàn hệ thống bằng Docker
+├── .env.example                 # Biến môi trường mẫu
+├── .gitignore
+└── LICENSE
 
+```
 
+---
 
-note:
-- .NET > 6.0 https://dotnet.microsoft.com/en-us/download
+## ⚙️ CÀI ĐẶT MÔI TRƯỜNG
 
+### 1️⃣ Cài đặt phần mềm cần thiết
 
+| Thành phần | Phiên bản tối thiểu |
+|-------------|--------------------|
+| .NET SDK    | ≥ 8.0 |
+| Node.js + npm | ≥ 18 |
+| SQL Server (Microsoft) | 2019 / 2022 |
+| Git | Bất kỳ |
+
+**Tải SQL Server Developer + SSMS (Microsoft SQL Server Management Studio):**
+🔗 https://www.microsoft.com/en-us/sql-server/sql-server-downloads
+
+---
+
+## 🧩 KHỞI TẠO DATABASE (SQL SERVER)
+
+### 🔹 Bước 1: Mở SSMS (SQL Server Management Studio)
+
+Kết nối với SQL Server (ví dụ):
+```
+
+Server name: localhost
+Authentication: SQL Server Authentication
+Login: sa
+Password: YourStrong@Passw0rd
+
+````
+
+### 🔹 Bước 2: Tạo database
+
+Trong SSMS → New Query → chạy:
+
+```sql
+CREATE DATABASE OnlineExamDb;
+GO
+````
+
+### 🔹 Bước 3: Chạy script khởi tạo
+
+Chạy 2 file SQL trong thư mục `db/`:
+
+```sql
+-- Tạo bảng
+:r .\db\schema.sql
+
+-- Seed dữ liệu mẫu
+:r .\db\seed.sql
+```
+
+Hoặc trong terminal (nếu có `sqlcmd`):
+
+```bash
+sqlcmd -S localhost -U sa -P YourStrong@Passw0rd -d master -i db/schema.sql
+sqlcmd -S localhost -U sa -P YourStrong@Passw0rd -d OnlineExamDb -i db/seed.sql
+```
+
+---
+
+## 🖥️ CHẠY DỰ ÁN TRÊN LOCAL
+
+### 🧱 Backend (ASP.NET Core API)
+
+#### 🔹 Cấu hình `.env` hoặc `appsettings.json`
+
+Trong `api/appsettings.json`:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost,1433;Database=OnlineExamDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True;"
+  },
+  "JwtSettings": {
+    "Key": "ChuoiBiMatRatDai123456",
+    "Issuer": "OnlineExam",
+    "Audience": "OnlineExamUsers"
+  },
+  "AllowedHosts": "*"
+}
+```
+
+#### 🔹 Cài đặt dependencies & chạy API
+
+```bash
+cd api
+dotnet restore
+dotnet build
+dotnet run
+```
+
+API sẽ chạy tại:
+🌐 `https://localhost:5001/swagger` (Swagger UI để test endpoints)
+
+---
+
+### 💻 Frontend (React + Vite)
+
+#### 🔹 Cài dependencies
+
+```bash
+cd ../client
+npm install
+```
+
+Cài thêm Tailwind (nếu chưa có):
+
+```bash
+npm install tailwindcss postcss autoprefixer @tailwindcss/forms @tailwindcss/typography
+npx tailwindcss init -p
+```
+
+Thêm vào `src/index.css`:
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+#### 🔹 Chạy frontend
+
+```bash
+npm run dev
+```
+
+Frontend sẽ chạy tại:
+🌐 `http://localhost:3000`
+
+> Lưu ý: đảm bảo backend API đang chạy ở `https://localhost:5001` để tránh lỗi CORS.
+
+---
+
+## 🔗 KẾT NỐI FRONTEND ↔ BACKEND
+
+Trong file `client/src/services/useApi.ts` hoặc `.env` frontend, cấu hình endpoint:
+
+```
+VITE_API_BASE_URL=https://localhost:5001
+```
+
+Tất cả services (authService, examService, questionService, ...) sẽ tự động gọi API dựa trên biến này.
+
+---
+
+## 🧱 TỔNG QUAN LUỒNG CHẠY HỆ THỐNG
+
+| Luồng                     | File chính liên quan                         | Mô tả                                        |
+| ------------------------- | -------------------------------------------- | -------------------------------------------- |
+| **Đăng nhập**             | LoginPage.tsx → useAuth.ts → authService.ts  | Gửi yêu cầu `/api/auth/login`, lưu token JWT |
+| **Xem danh sách kỳ thi**  | ExamListPage.tsx → examService.ts            | Lấy danh sách kỳ thi được gán cho sinh viên  |
+| **Vào phòng thi**         | ExamRoomPage.tsx → useExam.ts + Timer.tsx    | Nhận đề thi, random câu hỏi, chạy đồng hồ    |
+| **Làm bài & lưu tự động** | useExam.ts → examService.saveAnswers()       | Lưu câu trả lời định kỳ (autosave)           |
+| **Giám sát**              | monitoringService.ts → MonitoringHub.cs      | Giáo viên xem realtime progress qua SignalR  |
+| **Nộp bài & chấm điểm**   | examService.submitExam() → GradingService.cs | Nộp bài, chấm điểm tự động                   |
+| **Xem kết quả**           | ResultsPage.tsx → resultService.ts           | Hiển thị điểm và chi tiết bài làm            |
+
+---
+
+## 📘 NHIỆM VỤ TỪNG FILE CHÍNH
+
+| Vị trí                               | Nhiệm vụ                                                  |
+| ------------------------------------ | --------------------------------------------------------- |
+| **api/Controllers/**                 | Xử lý các yêu cầu REST, gọi services                      |
+| **api/Hubs/**                        | Truyền realtime dữ liệu giữa client và server qua SignalR |
+| **api/Services/**                    | Xử lý logic nghiệp vụ chính (Auth, Exam, Grading, Audit)  |
+| **api/Data/ApplicationDbContext.cs** | Giao tiếp EF Core với SQL Server                          |
+| **api/Data/Configurations/**         | Cấu hình quan hệ và khóa ngoại giữa các bảng              |
+| **api/Helpers/**                     | Mã hóa mật khẩu, random đề, chấm điểm từng phần           |
+| **api/Middleware/**                  | Bắt lỗi toàn cục, ghi log audit mỗi request               |
+| **client/src/pages/**                | Các trang giao diện chính                                 |
+| **client/src/components/**           | Thành phần UI tái sử dụng                                 |
+| **client/src/hooks/**                | Chứa logic React (authentication, countdown, exam flow)   |
+| **client/src/services/**             | Các module gọi API backend                                |
+| **client/src/utils/**                | Hàm định dạng và validate dữ liệu                         |
+| **db/schema.sql**                    | Tạo cấu trúc bảng, khóa chính, khóa ngoại                 |
+| **db/seed.sql**                      | Dữ liệu mẫu (user, class, subject, question)              |
+| **docker-compose.yml**               | Chạy API + Client + SQL Server đồng thời qua Docker       |
+| **.env.example**                     | Biến môi trường mẫu (điền thật vào .env)                  |
+
+---
+
+## 🧰 LỆNH TẮT HỮU ÍCH
+
+| Mục đích                | Lệnh                             |
+| ----------------------- | -------------------------------- |
+| Cài đặt toàn bộ         | `dotnet restore && npm install`  |
+| Chạy Backend            | `cd api && dotnet run`           |
+| Chạy Frontend           | `cd client && npm run dev`       |
+| Build Frontend          | `npm run build`                  |
+| Chạy tất cả bằng Docker | `docker compose up`              |
+| Kiểm tra Swagger        | `https://localhost:5001/swagger` |
+
+---
+
+## 🔒 LƯU Ý BẢO MẬT
+
+* Không commit `.env`, `.pfx`, hoặc chuỗi JWT_SECRET vào repo.
+* Mọi timestamp lưu theo **UTC**, frontend sẽ tự convert sang local.
+* Mật khẩu được băm bằng **Argon2id hoặc Bcrypt**.
+* Chỉ cho phép origin `https://localhost:3000` (frontend) trong CORS.
+
+---
+
+## 📜 GIẤY PHÉP
+
+Dự án được phát hành theo giấy phép **MIT License**.
+Bạn có thể sử dụng, sao chép, sửa đổi hoặc triển khai tự do — miễn giữ nguyên dòng bản quyền.
+
+---
+
+> 🧑‍💻 **Tác giả:** Phạm Ngọc Hưng – MSSV: 20235342
+> 🏫 Trường Đại học Bách Khoa Hà Nội – Khoa CNTT
+> 📅 Cập nhật: 26/10/2025
+
+```
+
+---
+
+### ✅ Hướng dẫn tiếp theo
+Bạn có thể:
+- Copy nội dung trên → lưu thành `README.md` trong thư mục gốc dự án.
+- Khi push lên GitHub, GitHub sẽ tự hiển thị đầy đủ Markdown.
+- Nếu bạn muốn, mình có thể tạo thêm **file README_EN.md** bản tiếng Anh song song (chuẩn cho báo cáo song ngữ).
+
+Bạn có muốn mình làm luôn bản `README_EN.md` không?
+```

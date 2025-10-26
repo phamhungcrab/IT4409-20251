@@ -14,6 +14,6 @@ namespace Api.Models.DTOs.User
         public string Email { get; set; } = string.Empty;
         public string? FullName { get; set; }
         public Role Role { get; set; }
-;
+
     }
 }

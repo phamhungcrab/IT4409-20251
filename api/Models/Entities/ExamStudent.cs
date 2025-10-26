@@ -18,12 +18,12 @@ namespace Api.Models.Entities
         /// Foreign key to the exam.
         /// </summary>
         public int ExamId { get; set; }
-;
+
         /// <summary>
         /// Foreign key to the student user.
         /// </summary>
         public int StudentId { get; set; }
-;
+
         /// <summary>
         /// Status of the exam attempt (e.g., "IN_PROGRESS",
         /// "COMPLETED", "EXPIRED").  Using a string here allows
@@ -36,26 +36,26 @@ namespace Api.Models.Entities
         /// until the student actually begins.
         /// </summary>
         public DateTime? StartTime { get; set; }
-;
+
         /// <summary>
         /// Timestamp when the student ended or submitted the exam
         /// (UTC).  Null if not yet finished.
         /// </summary>
         public DateTime? EndTime { get; set; }
-;
+
         /// <summary>
         /// Timestamp when the exam was actually submitted.  This may
         /// differ from EndTime if autosave occurs.  Null if not yet
         /// submitted.
         /// </summary>
         public DateTime? SubmittedAt { get; set; }
-;
+
         /// <summary>
         /// The final score achieved by the student.  May be null
         /// until grading completes.
         /// </summary>
         public decimal? TotalScore { get; set; }
-;
+
         /// <summary>
         /// Navigation to the exam.
         /// </summary>
@@ -76,6 +76,7 @@ namespace Api.Models.Entities
         /// optional if scores are stored directly on this entity.
         /// </summary>
         public virtual Score? Score { get; set; }
-;
+        public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
+
     }
 }

@@ -25,13 +25,13 @@ namespace Api.Models.DTOs.Result
         {
             [Required]
             public int StudentQuestionId { get; set; }
-;
+
             [Required]
             [Range(0, double.MaxValue)]
             public decimal Score { get; set; }
-;
+
             public string? Comment { get; set; }
-;
+
         }
     }
 }

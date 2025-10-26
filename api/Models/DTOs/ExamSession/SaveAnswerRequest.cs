@@ -17,13 +17,13 @@ namespace Api.Models.DTOs.ExamSession
         /// </summary>
         [Required]
         public int ExamStudentId { get; set; }
-;
+
         /// <summary>
         /// Identifier of the question snapshot being answered.
         /// </summary>
         [Required]
         public int QuestionExamId { get; set; }
-;
+
         /// <summary>
         /// Selected option IDs for objective questions.  For multi
         /// choice questions include all selected options.  For single
@@ -31,12 +31,12 @@ namespace Api.Models.DTOs.ExamSession
         /// essay questions.
         /// </summary>
         public List<int>? SelectedOptionIds { get; set; }
-;
+
         /// <summary>
         /// Free form answer text for essay questions.  Should be
         /// null for objective questions.
         /// </summary>
         public string? EssayAnswer { get; set; }
-;
+
     }
 }

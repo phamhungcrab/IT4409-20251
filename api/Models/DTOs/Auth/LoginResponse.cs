@@ -22,7 +22,7 @@ namespace Api.Models.DTOs.Auth
         /// tokens are not implemented.
         /// </summary>
         public string? RefreshToken { get; set; }
-;
+
         /// <summary>
         /// Basic information about the authenticated user.  See
         /// <see cref="UserResponse"/> for details.

@@ -19,7 +19,7 @@ namespace Api.Models.Entities
         /// unauthenticated context.
         /// </summary>
         public int? ActorId { get; set; }
-;
+
         /// <summary>
         /// The action taken (e.g., "CREATE_EXAM", "DELETE_USER").
         /// </summary>
@@ -41,17 +41,17 @@ namespace Api.Models.Entities
         /// additional data.  Keep this small to avoid bloating the log.
         /// </summary>
         public string? Payload { get; set; }
-;
+
         /// <summary>
         /// IP address of the actor, if available.
         /// </summary>
         public string? IpAddress { get; set; }
-;
-        /// <summary>
+
+        // <summary>
         /// User agent string of the actor’s browser/client.
         /// </summary>
         public string? UserAgent { get; set; }
-;
+
         /// <summary>
         /// Timestamp when the audit event was recorded (UTC).
         /// </summary>
@@ -61,6 +61,6 @@ namespace Api.Models.Entities
         /// Navigation to the actor (user).
         /// </summary>
         public virtual User? Actor { get; set; }
-;
+
     }
 }

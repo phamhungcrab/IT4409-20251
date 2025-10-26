@@ -15,7 +15,7 @@ namespace Api.Models.DTOs.ExamSession
         /// </summary>
         [Required]
         public int ExamStudentId { get; set; }
-;
+
         /// <summary>
         /// Indicates whether to force submission even if the exam
         /// duration has not elapsed or other validation fails.

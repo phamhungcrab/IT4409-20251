@@ -1,0 +1,24 @@
+
+SELECT name, suser_sname(owner_sid) AS OwnerName
+FROM sys.databases;
+
+USE master;
+GO
+ALTER AUTHORIZATION ON DATABASE::testDB2 TO sa;
+GO
+
+USE master;
+ALTER DATABASE E SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+DROP DATABASE E;
+
+USE master;
+GO
+DROP DATABASE testDB2;
+GO
+
+
+CREATE DATABASE OnlineExamDb;
+GO
+USE OnlineExamDb;
+GO
+

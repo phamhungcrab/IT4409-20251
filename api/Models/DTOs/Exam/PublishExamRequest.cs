@@ -17,7 +17,7 @@ namespace Api.Models.DTOs.Exam
         /// published.  If null, the exam is published immediately.
         /// </summary>
         public DateTime? PublishAtUtc { get; set; }
-;
+
         /// <summary>
         /// Whether to send notifications to assigned students upon
         /// publication.  The backend may ignore this flag if

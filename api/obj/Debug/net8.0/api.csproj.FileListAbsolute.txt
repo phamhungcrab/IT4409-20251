@@ -1,0 +1,9 @@
+E:\project\IT4409-20251\api\obj\Debug\net8.0\api.csproj.AssemblyReference.cache
+E:\project\IT4409-20251\api\obj\Debug\net8.0\rpswa.dswa.cache.json
+E:\project\IT4409-20251\api\obj\Debug\net8.0\api.GeneratedMSBuildEditorConfig.editorconfig
+E:\project\IT4409-20251\api\obj\Debug\net8.0\api.AssemblyInfoInputs.cache
+E:\project\IT4409-20251\api\obj\Debug\net8.0\api.AssemblyInfo.cs
+E:\project\IT4409-20251\api\obj\Debug\net8.0\api.csproj.CoreCompileInputs.cache
+E:\project\IT4409-20251\api\obj\Debug\net8.0\api.MvcApplicationPartsAssemblyInfo.cs
+E:\project\IT4409-20251\api\obj\Debug\net8.0\api.MvcApplicationPartsAssemblyInfo.cache
+E:\project\IT4409-20251\api\obj\Debug\net8.0\api.sourcelink.json

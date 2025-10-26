@@ -17,7 +17,7 @@ namespace Api.Models.DTOs.Question
         /// </summary>
         [Required]
         public int SubjectId { get; set; }
-;
+
         /// <summary>
         /// The question text.
         /// </summary>
@@ -35,7 +35,7 @@ namespace Api.Models.DTOs.Question
         /// Optional explanation or hint shown after answering.
         /// </summary>
         public string? Explanation { get; set; }
-;
+
         /// <summary>
         /// List of answer options.  For essay questions this list
         /// should be empty.  For multi choice questions at least one
@@ -53,7 +53,8 @@ namespace Api.Models.DTOs.Question
             [Required]
             public string Text { get; set; } = string.Empty;
             public bool IsCorrect { get; set; }
-;
+            public int Order { get; set; }
+
         }
     }
 }

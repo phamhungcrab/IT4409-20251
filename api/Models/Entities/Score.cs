@@ -18,30 +18,30 @@ namespace Api.Models.Entities
         /// Foreign key to the exam-student assignment.
         /// </summary>
         public int ExamStudentId { get; set; }
-;
+
         /// <summary>
         /// Sum of scores for objective questions (auto graded).
         /// </summary>
         public decimal ObjectiveScore { get; set; }
-;
+
         /// <summary>
         /// Sum of scores for subjective questions (manually graded).
         /// </summary>
         public decimal SubjectiveScore { get; set; }
-;
+
         /// <summary>
         /// Combined total score (objective + subjective).  Should be
         /// computed whenever either component changes.
         /// </summary>
         public decimal TotalScore { get; set; }
-;
+
         /// <summary>
         /// Indicates whether the score is finalized (no further
         /// changes allowed).  Teachers should set this after
         /// reviewing manual grades.
         /// </summary>
         public bool IsFinal { get; set; }
-;
+
         /// <summary>
         /// Timestamp when the score record was created.
         /// </summary>

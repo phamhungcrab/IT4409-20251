@@ -1,0 +1,39 @@
+{
+    "signIn": {
+        "title": "Đăng nhập",
+        "emailLabel": "Email",
+        "passwordLabel": "Mật khẩu",
+        "button": "Đăng nhập"
+    },
+    "home": {
+        "welcome": "Chào mừng đến với Hệ thống Thi Trực Tuyến!",
+        "upcomingExams": "Kỳ thi sắp diễn ra",
+        "recentResults": "Kết quả gần đây",
+        "noUpcoming": "Hiện bạn chưa có kỳ thi nào sắp diễn ra."
+    },
+    "exam": {
+        "timeLeft": "Thời gian còn lại",
+        "submit": "Nộp bài thi",
+        "loading": "Đang tải đề thi...",
+        "start": "Bắt đầu",
+        "continue": "Tiếp tục",
+        "viewResult": "Xem kết quả"
+    },
+    "results": {
+        "title": "Kết quả thi",
+        "noResults": "Chưa có kết quả nào."
+    },
+    "admin": {
+        "dashboardTitle": "Bảng điều khiển quản trị",
+        "manageUsers": "Quản lý người dùng",
+        "manageQuestions": "Quản lý câu hỏi",
+        "manageExams": "Quản lý kỳ thi",
+        "monitoringReports": "Giám sát & Báo cáo"
+    },
+    "labels": {
+        "online": "Trực tuyến",
+        "offline": "Ngoại tuyến",
+        "submitted": "Đã nộp",
+        "expired": "Đã hết hạn"
+    }
+}

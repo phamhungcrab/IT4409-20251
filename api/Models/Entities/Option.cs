@@ -18,7 +18,7 @@ namespace Api.Models.Entities
         /// Foreign key to the question this option belongs to.
         /// </summary>
         public int QuestionId { get; set; }
-;
+
         /// <summary>
         /// The visible text of the option.
         /// </summary>

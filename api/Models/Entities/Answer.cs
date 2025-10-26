@@ -18,7 +18,7 @@ namespace Api.Models.Entities
         /// Foreign key to the student question this answer belongs to.
         /// </summary>
         public int StudentQuestionId { get; set; }
-;
+
         /// <summary>
         /// Timestamp when this answer was recorded (UTC).
         /// </summary>

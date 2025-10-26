@@ -22,21 +22,21 @@ namespace Api.Models.DTOs.Exam
         /// Optional description or instructions for the exam.
         /// </summary>
         public string? Description { get; set; }
-;
+
         /// <summary>
         /// UTC start time when the exam will become available.  Must
         /// precede EndTimeUtc.
         /// </summary>
         [Required]
         public DateTime StartTimeUtc { get; set; }
-;
+
         /// <summary>
         /// UTC end time when the exam closes.  Students cannot
         /// submit after this time.
         /// </summary>
         [Required]
         public DateTime EndTimeUtc { get; set; }
-;
+
         /// <summary>
         /// List of question IDs selected from the question bank to
         /// include in this exam.  At least one question must be
@@ -51,12 +51,12 @@ namespace Api.Models.DTOs.Exam
         /// endpoint.
         /// </summary>
         public List<int>? ClassIds { get; set; }
-;
+
         /// <summary>
         /// Optional list of individual student IDs to assign the exam
         /// to.  Mutually exclusive with ClassIds.
         /// </summary>
         public List<int>? StudentIds { get; set; }
-;
+
     }
 }

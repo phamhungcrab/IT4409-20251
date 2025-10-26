@@ -16,7 +16,7 @@ namespace Api.Models.DTOs.Question
         public string Text { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
         public string? Explanation { get; set; }
-;
+
         public List<OptionResponse> Options { get; set; } = new List<OptionResponse>();
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace Api.Models.DTOs.Question
             public int Id { get; set; }
             public string Text { get; set; } = string.Empty;
             public bool? IsCorrect { get; set; }
-;
+            public int Order { get; internal set; }
         }
     }
 }

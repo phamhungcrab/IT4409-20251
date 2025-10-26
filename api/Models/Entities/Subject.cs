@@ -31,7 +31,7 @@ namespace Api.Models.Entities
         /// Optional detailed description.
         /// </summary>
         public string? Description { get; set; }
-;
+
         /// <summary>
         /// Collection of classes associated with this subject.
         /// </summary>

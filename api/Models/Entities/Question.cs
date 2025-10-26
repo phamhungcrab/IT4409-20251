@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Api.Models.Enumerations;
 
 namespace Api.Models.Entities
 {
@@ -20,24 +21,22 @@ namespace Api.Models.Entities
         /// Foreign key to the subject this question belongs to.
         /// </summary>
         public int SubjectId { get; set; }
-;
         /// <summary>
         /// The main text of the question.
         /// </summary>
-        public string Text { get; set; } = string.Empty;
+        public string Text { get; set; } 
 
         /// <summary>
         /// Type of the question (e.g., "SINGLE_CHOICE", "MULTI_CHOICE", "ESSAY").
         /// Using a string here allows adding new types without changing
         /// the code.  Alternatively an enum can be used.
         /// </summary>
-        public string Type { get; set; } = string.Empty;
+        public QuestionType Type { get; set; }
 
         /// <summary>
         /// Optional explanation or additional instructions.
         /// </summary>
         public string? Explanation { get; set; }
-;
         /// <summary>
         /// Navigation property to the subject.
         /// </summary>
@@ -54,5 +53,9 @@ namespace Api.Models.Entities
         /// navigation is optional but can be useful for analytics.
         /// </summary>
         public virtual ICollection<QuestionExam> QuestionExams { get; set; } = new List<QuestionExam>();
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public bool IsDeleted { get; set; } = false;
+
     }
 }

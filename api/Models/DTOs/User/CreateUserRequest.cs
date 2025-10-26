@@ -31,12 +31,12 @@ namespace Api.Models.DTOs.User
         /// Optional full name.  Useful for teachers and admins.
         /// </summary>
         public string? FullName { get; set; }
-;
+
         /// <summary>
         /// The role assigned to the user (Admin, Teacher or Student).
         /// </summary>
         [Required]
         public Role Role { get; set; }
-;
+
     }
 }

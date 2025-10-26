@@ -18,18 +18,18 @@ namespace Api.Models.Entities
         /// Null if it is a class or global announcement.
         /// </summary>
         public int? ExamId { get; set; }
-;
+
         /// <summary>
         /// Foreign key to the class if the announcement is class specific.
         /// Null if exam specific or global.
         /// </summary>
         public int? ClassId { get; set; }
-;
+
         /// <summary>
         /// Foreign key to the user who posted the announcement.
         /// </summary>
         public int CreatedById { get; set; }
-;
+
         /// <summary>
         /// Announcement message text.  May include Markdown or plain
         /// text; clients should sanitize as necessary.
@@ -41,7 +41,7 @@ namespace Api.Models.Entities
         /// "error") used by the UI to style the banner.
         /// </summary>
         public string? Severity { get; set; }
-;
+
         /// <summary>
         /// Timestamp when the announcement was created (UTC).
         /// </summary>
@@ -51,12 +51,12 @@ namespace Api.Models.Entities
         /// Navigation to the exam.
         /// </summary>
         public virtual Exam? Exam { get; set; }
-;
+
         /// <summary>
         /// Navigation to the class.
         /// </summary>
         public virtual Class? Class { get; set; }
-;
+
         /// <summary>
         /// Navigation to the user who created the announcement.
         /// </summary>

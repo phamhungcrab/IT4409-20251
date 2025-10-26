@@ -15,13 +15,13 @@ namespace Api.Models.DTOs.ExamSession
         /// </summary>
         [Required]
         public int ExamId { get; set; }
-;
+
         /// <summary>
         /// Optional field to support rejoining an existing session
         /// after a reconnect.  Pass the ExamStudentId if the
         /// session was previously started.
         /// </summary>
         public int? ExamStudentId { get; set; }
-;
+
     }
 }

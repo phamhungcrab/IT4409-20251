@@ -37,25 +37,25 @@ namespace Api.Models.DTOs.Result
             public string Text { get; set; } = string.Empty;
             public string Type { get; set; } = string.Empty;
             public string? Explanation { get; set; }
-;
+
             public decimal? Score { get; set; }
             public bool? IsCorrect { get; set; }
-;
+
             /// <summary>
             /// Selected option IDs as provided by the student.
             /// </summary>
             public List<int>? SelectedOptionIds { get; set; }
-;
+
             /// <summary>
             /// Student’s essay answer, if applicable.
             /// </summary>
             public string? EssayAnswer { get; set; }
-;
+
             /// <summary>
             /// Optional feedback or comment from the grader.
             /// </summary>
             public string? Comment { get; set; }
-;
+
             /// <summary>
             /// For teacher/admin viewers: the correct answer(s) for
             /// this question.  Use the same structure as in

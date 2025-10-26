@@ -10,9 +10,12 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import './i18n/i18n';   // ✅ khởi tạo i18next
 
-// Import global CSS or Tailwind styles here if applicable
-// import './index.css';
+// Import global CSS including Tailwind directives.  This file
+// includes `@tailwind base`, `@tailwind components` and
+// `@tailwind utilities` to enable Tailwind in the application.
+import './index.css';
 
 // Locate the root container in the HTML document
 const container = document.getElementById('root');

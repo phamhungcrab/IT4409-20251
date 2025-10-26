@@ -18,15 +18,15 @@ namespace Api.Models.DTOs.Exam
         public int Id { get; set; }
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
-;
+
         public DateTime StartTimeUtc { get; set; }
-;
+
         public DateTime EndTimeUtc { get; set; }
-;
+
         public bool IsPublished { get; set; }
-;
+
         public DateTime? PublishedAtUtc { get; set; }
-;
+
         public UserResponse Author { get; set; } = new UserResponse();
 
         /// <summary>
@@ -37,12 +37,12 @@ namespace Api.Models.DTOs.Exam
         /// separately.
         /// </summary>
         public List<QuestionResponse>? Questions { get; set; }
-;
+
         /// <summary>
         /// Count of questions in the exam.  Useful when the
         /// Questions list is not populated.
         /// </summary>
         public int QuestionCount { get; set; }
-;
+
     }
 }
