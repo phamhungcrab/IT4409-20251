@@ -15,6 +15,9 @@ namespace OnlineExam.Application.Services
         public UserService(IRepository<User> repository) : base(repository) { }
 
         //Các phương thức của User
+<<<<<<< HEAD
 
+=======
+>>>>>>> main
     }
 }
