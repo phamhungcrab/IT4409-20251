@@ -212,3 +212,4 @@ D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\
 D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\OnlineExam.Infrastructure.pdb
 D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\OnlineExam.Domain.pdb
 D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExamBe\OnlineExam\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\appsettings.json
