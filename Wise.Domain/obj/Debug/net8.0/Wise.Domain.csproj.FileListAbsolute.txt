@@ -1,0 +1,15 @@
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\Wise.Domain\bin\Debug\net8.0\Wise.Domain.deps.json
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\Wise.Domain\bin\Debug\net8.0\Wise.Domain.runtimeconfig.json
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\Wise.Domain\bin\Debug\net8.0\Wise.Domain.dll
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\Wise.Domain\bin\Debug\net8.0\Wise.Domain.pdb
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\Wise.Domain\obj\Debug\net8.0\Wise.Domain.csproj.AssemblyReference.cache
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\Wise.Domain\obj\Debug\net8.0\Wise.Domain.GeneratedMSBuildEditorConfig.editorconfig
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\Wise.Domain\obj\Debug\net8.0\Wise.Domain.AssemblyInfoInputs.cache
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\Wise.Domain\obj\Debug\net8.0\Wise.Domain.AssemblyInfo.cs
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\Wise.Domain\obj\Debug\net8.0\Wise.Domain.csproj.CoreCompileInputs.cache
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\Wise.Domain\obj\Debug\net8.0\Wise.Domain.sourcelink.json
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\Wise.Domain\obj\Debug\net8.0\Wise.Domain.dll
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\Wise.Domain\obj\Debug\net8.0\refint\Wise.Domain.dll
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\Wise.Domain\obj\Debug\net8.0\Wise.Domain.pdb
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\Wise.Domain\obj\Debug\net8.0\Wise.Domain.genruntimeconfig.cache
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\Wise.Domain\obj\Debug\net8.0\ref\Wise.Domain.dll
