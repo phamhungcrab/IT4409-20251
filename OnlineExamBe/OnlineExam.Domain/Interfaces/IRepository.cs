@@ -13,8 +13,8 @@ namespace OnlineExam.Domain.Interfaces
         Task<T?> GetByIdAsync(int id);
         Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate);
         Task AddAsync(T entity);
-        void DeleteAsync(T entity);
-        void UpdateAsync(T entity);
+        void Delete(T entity);
+        void Update(T entity);
         Task SaveChangesAsync();
     }
 }
