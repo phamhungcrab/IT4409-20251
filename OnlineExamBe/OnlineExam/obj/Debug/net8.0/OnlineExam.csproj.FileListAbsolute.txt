@@ -35,7 +35,6 @@ D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExam\obj\Debug\net8.0\Online
 D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExam\obj\Debug\net8.0\OnlineExam.genruntimeconfig.cache
 D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExam\obj\Debug\net8.0\ref\OnlineExam.dll
 D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\appsettings.Development.json
-D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\appsettings.json
 D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\OnlineExam.staticwebassets.endpoints.json
 D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\OnlineExam.exe
 D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\OnlineExam.deps.json
@@ -212,6 +211,7 @@ D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\
 D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\OnlineExam.Application.pdb
 D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\OnlineExam.Infrastructure.pdb
 D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\OnlineExam.Domain.pdb
+<<<<<<< HEAD
 D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\obj\Debug\net8.0\OnlineExam.dll
 D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\obj\Debug\net8.0\refint\OnlineExam.dll
 D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\obj\Debug\net8.0\OnlineExam.pdb
@@ -390,3 +390,6 @@ D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\obj\Debug\net8.0\staticw
 D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\obj\Debug\net8.0\OnlineExam.csproj.Up2Date
 D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\obj\Debug\net8.0\OnlineExam.genruntimeconfig.cache
 D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\obj\Debug\net8.0\ref\OnlineExam.dll
+=======
+D:\Danh_sach_mon_hoc\Web_dich_vu\IT4409-20251\OnlineExamBe\OnlineExam\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
+>>>>>>> origin/huyhuyqazwsx
