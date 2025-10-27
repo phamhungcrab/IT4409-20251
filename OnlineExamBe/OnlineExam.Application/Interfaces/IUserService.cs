@@ -11,5 +11,9 @@ namespace OnlineExam.Application.Interfaces
     {
         //Kế thừa các phương thức chung 
         //Phuong thuc riêng đối với user
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
     }
 }
