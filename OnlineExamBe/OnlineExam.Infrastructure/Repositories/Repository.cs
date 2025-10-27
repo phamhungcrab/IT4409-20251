@@ -33,10 +33,10 @@ namespace OnlineExam.Infrastructure.Repositories
         public async Task AddAsync(T entity)
             => await _dbSet.AddAsync(entity);
 
-        void DeleteAsync(T entity)
+        public void DeleteAsync(T entity)
             => _dbSet.Remove(entity);
 
-        void UpdateAsync(T entity)
+        public void UpdateAsync(T entity)
             => _dbSet.Update(entity);
 
         public async Task SaveChangesAsync()
