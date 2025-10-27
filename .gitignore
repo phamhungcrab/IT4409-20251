@@ -5,9 +5,3 @@
 /OnlineExamBe/OnlineExam/.vs
 /OnlineExamBe/OnlineExam/appsettings.json
 /Wise/.vs
-/Wise/bin/Debug/net8.0/cs
-/Wise/bin/Debug/net8.0
-*.json
-/OnlineExamBe/OnlineExam.Infrastructure/obj/Debug/net8.0/OnlineExam.Infrastructure.AssemblyInfo.cs
-/OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0/OnlineExam.Application.AssemblyInfo.cs
-/OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0/OnlineExam.Application.csproj.AssemblyReference.cache
