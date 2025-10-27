@@ -4,3 +4,7 @@
 
 /OnlineExamBe/OnlineExam/.vs
 /OnlineExamBe/OnlineExam/appsettings.json
+/Wise/.vs
+/Wise/bin/Debug/net8.0/cs
+/Wise/bin/Debug/net8.0
+*.json

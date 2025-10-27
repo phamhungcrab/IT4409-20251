@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OnlineExam.Domain.Interfaces;
 using OnlineExam.Infrastructure.Data;
+using OnlineExam.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +16,7 @@ builder.Services.AddDbContext<ExamSystemDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection")
     ));
 
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
 var app = builder.Build();
 
