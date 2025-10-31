@@ -1,0 +1,21 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/OnlineExamBe/OnlineExam/.vs/OnlineExam/v17
+/OnlineExamBe/OnlineExam/.vs/OnlineExam/FileContentIndex
+/OnlineExamBe/OnlineExam/.vs/OnlineExam/DesignTimeBuild
+/OnlineExamBe/OnlineExam/.vs/OnlineExam/config
+/OnlineExamBe/OnlineExam/.vs/OnlineExam/CopilotIndices/17.14.1231.31060
+/OnlineExamBe/OnlineExam/.vs/ProjectEvaluation
+/OnlineExamBe/OnlineExam/bin/Debug/net8.0
+/OnlineExamBe/OnlineExam/obj
+*.json
+/OnlineExamBe/OnlineExam.Application/bin/Debug/net8.0
+/OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0/ref
+/OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0/refint
+/OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0
+/OnlineExamBe/OnlineExam.Domain
+/OnlineExamBe/OnlineExam.Infrastructure
+/.vs/IT4409-20251
+/.vs
