@@ -8,10 +8,97 @@
     ".NETCoreApp,Version=v8.0": {
       "OnlineExam.Application/1.0.0": {
         "dependencies": {
-          "OnlineExam.Domain": "1.0.0"
+          "Microsoft.Extensions.Configuration": "9.0.10",
+          "Microsoft.IdentityModel.Tokens": "7.0.3",
+          "OnlineExam.Domain": "1.0.0",
+          "System.IdentityModel.Tokens.Jwt": "7.0.3"
         },
         "runtime": {
           "OnlineExam.Application.dll": {}
+        }
+      },
+      "Microsoft.Extensions.Configuration/9.0.10": {
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "9.0.10",
+          "Microsoft.Extensions.Primitives": "9.0.10"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.Extensions.Configuration.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.1025.47515"
+          }
+        }
+      },
+      "Microsoft.Extensions.Configuration.Abstractions/9.0.10": {
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "9.0.10"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.Extensions.Configuration.Abstractions.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.1025.47515"
+          }
+        }
+      },
+      "Microsoft.Extensions.Primitives/9.0.10": {
+        "runtime": {
+          "lib/net8.0/Microsoft.Extensions.Primitives.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.1025.47515"
+          }
+        }
+      },
+      "Microsoft.IdentityModel.Abstractions/7.0.3": {
+        "runtime": {
+          "lib/net8.0/Microsoft.IdentityModel.Abstractions.dll": {
+            "assemblyVersion": "7.0.3.0",
+            "fileVersion": "7.0.3.41017"
+          }
+        }
+      },
+      "Microsoft.IdentityModel.JsonWebTokens/7.0.3": {
+        "dependencies": {
+          "Microsoft.IdentityModel.Tokens": "7.0.3"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.IdentityModel.JsonWebTokens.dll": {
+            "assemblyVersion": "7.0.3.0",
+            "fileVersion": "7.0.3.41017"
+          }
+        }
+      },
+      "Microsoft.IdentityModel.Logging/7.0.3": {
+        "dependencies": {
+          "Microsoft.IdentityModel.Abstractions": "7.0.3"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.IdentityModel.Logging.dll": {
+            "assemblyVersion": "7.0.3.0",
+            "fileVersion": "7.0.3.41017"
+          }
+        }
+      },
+      "Microsoft.IdentityModel.Tokens/7.0.3": {
+        "dependencies": {
+          "Microsoft.IdentityModel.Logging": "7.0.3"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.IdentityModel.Tokens.dll": {
+            "assemblyVersion": "7.0.3.0",
+            "fileVersion": "7.0.3.41017"
+          }
+        }
+      },
+      "System.IdentityModel.Tokens.Jwt/7.0.3": {
+        "dependencies": {
+          "Microsoft.IdentityModel.JsonWebTokens": "7.0.3",
+          "Microsoft.IdentityModel.Tokens": "7.0.3"
+        },
+        "runtime": {
+          "lib/net8.0/System.IdentityModel.Tokens.Jwt.dll": {
+            "assemblyVersion": "7.0.3.0",
+            "fileVersion": "7.0.3.41017"
+          }
         }
       },
       "OnlineExam.Domain/1.0.0": {
@@ -29,6 +116,62 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "Microsoft.Extensions.Configuration/9.0.10": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-UAm3SLGAMlJdowbN+/xnh2UGJkdJoXVm4MsdhZ60dAMS8jteoyCx5WfIab5DKv0TCYpdhVecLJVUjEO3abs9UQ==",
+      "path": "microsoft.extensions.configuration/9.0.10",
+      "hashPath": "microsoft.extensions.configuration.9.0.10.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Configuration.Abstractions/9.0.10": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-ad3JxmFj0uxuFa1CT6oxTCC1lQ0xeRuOvzBRFT/I/ofIXVOnNsH/v2GZkAJWhlpZqKUvSexQZzp3EEAB2CdtJg==",
+      "path": "microsoft.extensions.configuration.abstractions/9.0.10",
+      "hashPath": "microsoft.extensions.configuration.abstractions.9.0.10.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Primitives/9.0.10": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-3pl8D1O5ZwMpDkZAT2uXrhQ6NipkwEgDLMFuURiHTf72TvkoMP61QYH3Vk1yrzVHnHBdNZk3cQACz8Zc7YGNhQ==",
+      "path": "microsoft.extensions.primitives/9.0.10",
+      "hashPath": "microsoft.extensions.primitives.9.0.10.nupkg.sha512"
+    },
+    "Microsoft.IdentityModel.Abstractions/7.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-cfPUWdjigLIRIJSKz3uaZxShgf86RVDXHC1VEEchj1gnY25akwPYpbrfSoIGDCqA9UmOMdlctq411+2pAViFow==",
+      "path": "microsoft.identitymodel.abstractions/7.0.3",
+      "hashPath": "microsoft.identitymodel.abstractions.7.0.3.nupkg.sha512"
+    },
+    "Microsoft.IdentityModel.JsonWebTokens/7.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-vxjHVZbMKD3rVdbvKhzAW+7UiFrYToUVm3AGmYfKSOAwyhdLl/ELX1KZr+FaLyyS5VReIzWRWJfbOuHM9i6ywg==",
+      "path": "microsoft.identitymodel.jsonwebtokens/7.0.3",
+      "hashPath": "microsoft.identitymodel.jsonwebtokens.7.0.3.nupkg.sha512"
+    },
+    "Microsoft.IdentityModel.Logging/7.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-b6GbGO+2LOTBEccHhqoJsOsmemG4A/MY+8H0wK/ewRhiG+DCYwEnucog1cSArPIY55zcn+XdZl0YEiUHkpDISQ==",
+      "path": "microsoft.identitymodel.logging/7.0.3",
+      "hashPath": "microsoft.identitymodel.logging.7.0.3.nupkg.sha512"
+    },
+    "Microsoft.IdentityModel.Tokens/7.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-wB+LlbDjhnJ98DULjmFepqf9eEMh/sDs6S6hFh68iNRHmwollwhxk+nbSSfpA5+j+FbRyNskoaY4JsY1iCOKCg==",
+      "path": "microsoft.identitymodel.tokens/7.0.3",
+      "hashPath": "microsoft.identitymodel.tokens.7.0.3.nupkg.sha512"
+    },
+    "System.IdentityModel.Tokens.Jwt/7.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-caEe+OpQNYNiyZb+DJpUVROXoVySWBahko2ooNfUcllxa9ZQUM8CgM/mDjP6AoFn6cQU9xMmG+jivXWub8cbGg==",
+      "path": "system.identitymodel.tokens.jwt/7.0.3",
+      "hashPath": "system.identitymodel.tokens.jwt.7.0.3.nupkg.sha512"
     },
     "OnlineExam.Domain/1.0.0": {
       "type": "project",

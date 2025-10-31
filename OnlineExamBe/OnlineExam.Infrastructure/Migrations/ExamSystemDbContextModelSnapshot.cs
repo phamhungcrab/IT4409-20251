@@ -160,6 +160,49 @@ namespace OnlineExam.Infrastructure.Migrations
                     b.ToTable("QuestionExams");
                 });
 
+            modelBuilder.Entity("OnlineExam.Domain.Entities.RefreshToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsExpired")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("IssuedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserAgent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Token");
+                });
+
             modelBuilder.Entity("OnlineExam.Domain.Entities.StudentClass", b =>
                 {
                     b.Property<int>("StudentId")
@@ -324,6 +367,17 @@ namespace OnlineExam.Infrastructure.Migrations
                     b.Navigation("Question");
                 });
 
+            modelBuilder.Entity("OnlineExam.Domain.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("OnlineExam.Domain.Entities.User", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("OnlineExam.Domain.Entities.StudentClass", b =>
                 {
                     b.HasOne("OnlineExam.Domain.Entities.Class", "Class")
@@ -393,6 +447,8 @@ namespace OnlineExam.Infrastructure.Migrations
 
             modelBuilder.Entity("OnlineExam.Domain.Entities.User", b =>
                 {
+                    b.Navigation("RefreshTokens");
+
                     b.Navigation("StudentClasses");
 
                     b.Navigation("TaughtClasses");
