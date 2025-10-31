@@ -1,4 +1,5 @@
-﻿using OnlineExam.Domain.Entities;
+﻿
+using OnlineExam.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +11,6 @@ namespace OnlineExam.Application.Interfaces
     public interface IUserService : ICrudService<User>
     {
         //Kế thừa các phương thức chung 
-        //Phuong thuc riêng đối với user
+        //Phuong thuc riêng đối với user Task<IEnumerable<T>> GetAllAsync();
     }
 }

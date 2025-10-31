@@ -173,3 +173,14 @@ D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\obj\Debug\net8.0\refint\
 D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\obj\Debug\net8.0\OnlineExam.pdb
 D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\obj\Debug\net8.0\OnlineExam.genruntimeconfig.cache
 D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\obj\Debug\net8.0\ref\OnlineExam.dll
+D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\BCrypt.Net-Next.dll
+D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\Microsoft.Extensions.Configuration.dll
+D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\Microsoft.Extensions.Configuration.FileExtensions.dll
+D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\Microsoft.Extensions.Configuration.Json.dll
+D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\Microsoft.Extensions.FileProviders.Abstractions.dll
+D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\Microsoft.Extensions.FileProviders.Physical.dll
+D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\Microsoft.Extensions.FileSystemGlobbing.dll
+D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\Microsoft.Extensions.Caching.StackExchangeRedis.dll
+D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\Pipelines.Sockets.Unofficial.dll
+D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam\bin\Debug\net8.0\StackExchange.Redis.dll

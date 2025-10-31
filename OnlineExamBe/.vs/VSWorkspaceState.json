@@ -2,10 +2,10 @@
   "ExpandedNodes": [
     "",
     "\\OnlineExam",
-    "\\OnlineExam.Application\\obj",
     "\\OnlineExam.Domain",
-    "\\OnlineExam.Infrastructure"
+    "\\OnlineExam.Infrastructure",
+    "\\OnlineExam.Infrastructure\\Migrations"
   ],
-  "SelectedNode": "\\OnlineExam\\OnlineExam.sln",
+  "SelectedNode": "\\OnlineExam.Infrastructure\\OnlineExam.Infrastructure.csproj",
   "PreviewInSolutionExplorer": false
 }
