@@ -15,6 +15,7 @@ builder.Services.AddControllers();
 // settings as necessary.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<PasswordHasher>();
 
 // Register business services for dependency injection
 builder.Services.AddScoped<IAuthService, AuthService>();

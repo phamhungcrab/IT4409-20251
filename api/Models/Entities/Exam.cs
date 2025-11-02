@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using Api.Models.Enumerations;
 
 namespace Api.Models.Entities
@@ -83,11 +84,13 @@ namespace Api.Models.Entities
         public DateTime StartTimeUtc { get; internal set; }
         public DateTime EndTimeUtc { get; internal set; }
         public DateTime? PublishedAtUtc { get; internal set; }
+        [NotMapped]
         public int AuthorId { get; internal set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public bool IsDeleted { get; set; } = false;
         public ExamStatus Status { get; set; }
+        [NotMapped]
         public User? Author { get; set; }
 
     }

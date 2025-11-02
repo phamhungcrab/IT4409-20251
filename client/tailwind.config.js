@@ -21,9 +21,9 @@ module.exports = {
       colors: {
         // Define a primary colour palette for consistent branding
         primary: {
-          light: '#60a5fa',
-          DEFAULT: '#3b82f6',
-          dark: '#2563eb',
+          light: '#fa6060ff',
+          DEFAULT: '#5af63bff',
+          dark: '#cad71dff',
         },
         secondary: {
           light: '#fbbf24',

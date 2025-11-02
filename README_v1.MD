@@ -350,3 +350,9 @@ note:
 - npm run build
 - npm install i18next react-i18next
 - dotnet tool install --global dotnet-ef
+- dotnet ef migrations add InitialCreate
+- dotnet ef database update
+- https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-8.0.21-windows-x64-installer?cid=getdotnetcore
+- dotnet tool uninstall -g dotnet-ef
+- dotnet tool install -g dotnet-ef --version 9.0.10
+- https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-aspnetcore-8.0.21-windows-x64-installer?cid=getdotnetcore
