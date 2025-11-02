@@ -19,6 +19,7 @@ namespace OnlineExam.Infrastructure.Data
         public DbSet<QuestionExam> QuestionExams { get; set; }
         public DbSet<ExamStudent> ExamStudents { get; set; }
         public DbSet<StudentQuestion> StudentQuestions { get; set; }
+        public DbSet<RefreshToken> RefreshToken { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -90,6 +91,17 @@ namespace OnlineExam.Infrastructure.Data
             modelBuilder.Entity<StudentQuestion>(entity =>
             {
                 entity.HasKey(e => new { e.StudentId, e.QuestionExamId });
+            });
+
+            //RefreshExam
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasOne(e => e.User)
+                      .WithMany(u => u.RefreshTokens)
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                 
             });
         }
     } 

@@ -1,0 +1,11 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\OnlineExam",
+    "\\OnlineExam.Domain",
+    "\\OnlineExam.Infrastructure",
+    "\\OnlineExam.Infrastructure\\Migrations"
+  ],
+  "SelectedNode": "\\OnlineExam.Infrastructure\\OnlineExam.Infrastructure.csproj",
+  "PreviewInSolutionExplorer": false
+}
