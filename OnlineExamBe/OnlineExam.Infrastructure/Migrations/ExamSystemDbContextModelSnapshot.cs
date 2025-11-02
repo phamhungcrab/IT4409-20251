@@ -200,7 +200,7 @@ namespace OnlineExam.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Token");
+                    b.ToTable("RefreshToken");
                 });
 
             modelBuilder.Entity("OnlineExam.Domain.Entities.StudentClass", b =>

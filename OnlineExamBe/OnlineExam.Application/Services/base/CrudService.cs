@@ -36,7 +36,7 @@ namespace OnlineExam.Application.Services.Base
         public virtual async Task<bool> UpdateAsync(T entity)
         {
             var checkExis = await _repository.GetByIdAsync(GetEntityId(entity));
-            if (checkExis != null) return true;
+            if (checkExis == null) return false;
             _repository.UpdateAsync(entity);
             await _repository.SaveChangesAsync();
 

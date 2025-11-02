@@ -32,7 +32,8 @@ namespace OnlineExam.Infrastructure.Repositories
 
         public async Task AddAsync(T entity)
             => await _dbSet.AddAsync(entity);
-
+        public async Task AddRangeAsync (IEnumerable<T> entitie)
+            => await _dbSet.AddRangeAsync(entitie);
         public void DeleteAsync(T entity)
             => _dbSet.Remove(entity);
 

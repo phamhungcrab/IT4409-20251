@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace OnlineExam.Application.Dtos.RequestDtos.Auth
 {
-    internal class RegisterDto
+    public class RegisterDto
     {
         [EmailAddress]
         public string Email {  get; set; }

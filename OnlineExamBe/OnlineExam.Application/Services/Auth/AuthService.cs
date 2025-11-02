@@ -18,23 +18,28 @@ using System.Threading.Tasks;
 
 namespace OnlineExam.Application.Services.Auth
 {
-    internal class AuthService : CrudService<User>,IAuthService
+    public class AuthService : CrudService<User>,IAuthService
     {
-        private readonly JwtService _jwtService;
-        private readonly UserService _userService;
-        private readonly CrudService<RefreshToken> _refreshTokenService;
-        private readonly EmailService _emailService;
+        private readonly IJwtService _jwtService;
+        private readonly IUserService _userService;
+        private readonly IRefreshTokenService _refreshTokenService;
+        private readonly IEmailService _emailService;
+        private readonly IRepository<RefreshToken> _refreshTokenRepository;
         public AuthService(IRepository<User> userRepository,
-                           CrudService<RefreshToken> refreshTokenService,
-                           JwtService jwtService,
-                           EmailService emailService,
-                           UserService userService) : base(userRepository)
+                           IRefreshTokenService refreshTokenService,
+                           IJwtService jwtService,
+                           IEmailService emailService,
+                           IRepository<RefreshToken> refreshTokenRepository,
+                           IUserService userService) : base(userRepository)
         {
             _jwtService = jwtService;
             _userService = userService;
             _emailService = emailService;
+            _refreshTokenRepository = refreshTokenRepository;
             _refreshTokenService = refreshTokenService;
         }
+
+ 
         /// <summary>
         /// Dang ki tai khoan
         /// </summary>
@@ -55,8 +60,9 @@ namespace OnlineExam.Application.Services.Auth
             }
             else
             {
+
                 var checkMail = await _repository.FindAsync(x => x.Email.ToLower().Equals(register.Email.ToLower()));
-                if (checkMail != null)
+                if (checkMail.Any())
                 {
                     return new ResultApiModel()
                     {
@@ -65,6 +71,7 @@ namespace OnlineExam.Application.Services.Auth
                         Data = "Email da ton tai"
                     };
                 }
+
                 var user = new User
                 {
                     Email = register.Email,
@@ -134,18 +141,18 @@ namespace OnlineExam.Application.Services.Auth
                 };
             }
             // tim token cu va kiem tra
-            var refreshToken = (await _refreshTokenService._repository.FindAsync(t => t.UserId.Equals(user.Id) && t.DeviceId.Equals(login.DeviceId) 
-                                                                          && t.IpAddress.Equals(login.IpAdress) && t.UserAgent.Equals(login.UserAgent) && !t.IsExpired)).First();
+            var refreshToken = (await _refreshTokenRepository.FindAsync(t => t.UserId.Equals(user.Id) && t.DeviceId.Equals(login.DeviceId) 
+                                                                          && t.IpAddress.Equals(login.IpAdress) && t.UserAgent.Equals(login.UserAgent) && !t.IsExpired));
 
-            if(refreshToken != null) { 
-                refreshToken.IsExpired = true;
-                _refreshTokenService.UpdateAsync(refreshToken);
+            if(refreshToken.Any()) { 
+                refreshToken.First().IsExpired = true;
+                await _refreshTokenService.UpdateAsync(refreshToken.First());
             }
                 // tao token moi
-                var newAccessToken = _jwtService.GenerateAccessToken(user, 15, login.DeviceId, login.IpAdress, login.UserAgent);
+                var newAccessToken = _jwtService.GenerateAccessToken(user, 150000, login.DeviceId, login.IpAdress, login.UserAgent);
                 var newRefreshToken = await _jwtService.generateRefreshToken(user, 15, login.DeviceId, login.IpAdress, login.UserAgent);
                 
-                _refreshTokenService.CreateAsync(newRefreshToken);
+                await _refreshTokenService.CreateAsync(newRefreshToken);
             
             // Tra ve access token va refresh token
             return new ResultApiModel()
@@ -161,15 +168,15 @@ namespace OnlineExam.Application.Services.Auth
 
         }
 
-        public async Task<ResultApiModel> Logout(int userId, string deviceId, string ipAddress, string userAgent)
+        public async Task<ResultApiModel> Logout(LogoutDto logout)
         {
-            var refreshToken = (await _refreshTokenService._repository.FindAsync(t => t.UserId.Equals(userId) && t.DeviceId.Equals(deviceId)
-                                                                         && t.IpAddress.Equals(ipAddress) && t.UserAgent.Equals(userAgent) && !t.IsExpired)).First();
+            var refreshToken = (await _refreshTokenRepository.FindAsync(t => t.UserId.Equals(logout.UserId) && t.DeviceId.Equals(logout.DeviceId)
+                                                                         && t.IpAddress.Equals(logout.IpAddress) && t.UserAgent.Equals(logout.UserAgent) && !t.IsExpired));
 
-            if (refreshToken != null)
+            if (refreshToken.Any())
             {
-                refreshToken.IsExpired = true;
-                await _refreshTokenService.UpdateAsync(refreshToken);
+                refreshToken.First().IsExpired = true;
+                await _refreshTokenService.UpdateAsync(refreshToken.First());
             }
 
             return new ResultApiModel()

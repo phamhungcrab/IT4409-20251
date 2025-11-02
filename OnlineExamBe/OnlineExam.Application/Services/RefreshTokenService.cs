@@ -11,14 +11,14 @@ using System.Threading.Tasks;
 
 namespace OnlineExam.Application.Services
 {
-    internal class RefreshTokenService : CrudService<RefreshToken>,IRefreshTokenService
+    public class RefreshTokenService : CrudService<RefreshToken>,IRefreshTokenService
     {
-        private readonly IRepository<User> _userRepository;
+        //private readonly IRepository<User> _userRepository;
         public RefreshTokenService(IRepository<RefreshToken> repository
                                 , IRepository<User> userRepository
                                    ) : base(repository)
         {
-            _userRepository = userRepository;
+           // _userRepository = userRepository;
         }
        
     }

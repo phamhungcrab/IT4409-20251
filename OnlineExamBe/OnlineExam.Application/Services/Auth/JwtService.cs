@@ -13,7 +13,7 @@ using OnlineExam.Application.Interfaces.Auth;
 namespace OnlineExam.Application.Services.Auth
 {
     
-    internal class JwtService : IJwtService
+    public class JwtService : IJwtService
     {
         private readonly IConfiguration _config;
         public JwtService(IConfiguration config)
@@ -34,9 +34,9 @@ namespace OnlineExam.Application.Services.Auth
             var cred = new SigningCredentials(key,SecurityAlgorithms.HmacSha256);
             var claims = new Claim[]
             {
-                new Claim("UserId", user.Id.ToString()),
-                new Claim("Email", user.Email),
-                new Claim("Role",user.Role.ToString()),
+                new Claim(ClaimTypes.Sid, user.Id.ToString()),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role,user.Role.ToString()),
                 new Claim("DeviceId", deviceId),
                 new Claim("IpAddress",ipAddress),
                 new Claim("UserAgent", userAgent),
