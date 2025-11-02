@@ -48,7 +48,7 @@ namespace OnlineExam.Application.Services.Base
             var checkExis = await _repository.GetByIdAsync(id);
             if (checkExis == null) return false;
 
-            _repository.DeleteAsync(checkExis);
+            _repository.Delete(checkExis);
             await _repository.SaveChangesAsync();
             return true;
         }
