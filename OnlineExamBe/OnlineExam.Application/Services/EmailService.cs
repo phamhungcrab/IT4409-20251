@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace OnlineExam.Application.Services
 {
-    internal class EmailService : IEmailService
+    public class EmailService : IEmailService
     {
         /// <summary>
         /// Tam thoi chua trie khai

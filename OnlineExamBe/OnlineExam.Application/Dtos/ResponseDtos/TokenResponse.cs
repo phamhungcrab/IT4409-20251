@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace OnlineExam.Application.Dtos.ReponseDtos
 {
-    internal class TokenResponse
+    public class TokenResponse
     {
         public string AccessToken { get; set; }
         public string RefreshToken { get; set; }

@@ -19,7 +19,7 @@ namespace OnlineExam.Infrastructure.Data
         public DbSet<QuestionExam> QuestionExams { get; set; }
         public DbSet<ExamStudent> ExamStudents { get; set; }
         public DbSet<StudentQuestion> StudentQuestions { get; set; }
-        public DbSet<RefreshToken> Token { get; set; }
+        public DbSet<RefreshToken> RefreshToken { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

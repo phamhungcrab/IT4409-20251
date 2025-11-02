@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using OnlineExam.Domain.Enums;
 namespace OnlineExam.Application.Dtos.ResponseDtos
 {
-    internal class ResultApiModel
+    public class ResultApiModel
     {
         public object? Data { get; set; }
         public int? MessageCode { get; set; }

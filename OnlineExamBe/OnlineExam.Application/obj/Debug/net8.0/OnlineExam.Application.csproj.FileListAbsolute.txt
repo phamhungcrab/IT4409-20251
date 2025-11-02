@@ -30,3 +30,5 @@ D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam.Application\obj\Debug\ne
 D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam.Application\obj\Debug\net8.0\refint\OnlineExam.Application.dll
 D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam.Application\obj\Debug\net8.0\OnlineExam.Application.pdb
 D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam.Application\obj\Debug\net8.0\ref\OnlineExam.Application.dll
+D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam.Application\bin\Debug\net8.0\OnlineExam.Infrastructure.dll
+D:\Documents\cnweb\IT4409-20251\OnlineExamBe\OnlineExam.Application\bin\Debug\net8.0\OnlineExam.Infrastructure.pdb

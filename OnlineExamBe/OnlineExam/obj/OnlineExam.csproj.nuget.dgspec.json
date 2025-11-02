@@ -34,6 +34,9 @@
             "projectReferences": {
               "D:\\Documents\\cnweb\\IT4409-20251\\OnlineExamBe\\OnlineExam.Domain\\OnlineExam.Domain.csproj": {
                 "projectPath": "D:\\Documents\\cnweb\\IT4409-20251\\OnlineExamBe\\OnlineExam.Domain\\OnlineExam.Domain.csproj"
+              },
+              "D:\\Documents\\cnweb\\IT4409-20251\\OnlineExamBe\\OnlineExam.Infrastructure\\OnlineExam.Infrastructure.csproj": {
+                "projectPath": "D:\\Documents\\cnweb\\IT4409-20251\\OnlineExamBe\\OnlineExam.Infrastructure\\OnlineExam.Infrastructure.csproj"
               }
             }
           }
@@ -319,6 +322,10 @@
             "Microsoft.Extensions.Configuration.Json": {
               "target": "Package",
               "version": "[9.0.10, )"
+            },
+            "Microsoft.VisualStudio.Web.CodeGeneration.Design": {
+              "target": "Package",
+              "version": "[8.0.7, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
