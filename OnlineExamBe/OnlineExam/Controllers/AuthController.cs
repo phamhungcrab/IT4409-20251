@@ -42,6 +42,24 @@ namespace OnlineExam.Controllers
             return Ok(apiResultModel);
         }
 
+        [HttpPost]
+        [Route("send-otp")]
+        public async Task<IActionResult> SendOtp(SendOtpDto dto)
+        {
+            ResultApiModel apiResultModel = new ResultApiModel();
+            apiResultModel = await _authservice.SendOtp(dto);
+            return Ok(apiResultModel);
+        }
+
+        [HttpPost]
+        [Route("check-otp")]
+        public async Task<IActionResult> CheckOtp(CheckOtpDto dto)
+        {
+            ResultApiModel apiResultModel = new ResultApiModel();
+            apiResultModel = await _authservice.CheckOtp(dto);
+            if (apiResultModel.IsStatus == true) return Ok(apiResultModel);
+            else return BadRequest(apiResultModel);
+        }
     }
 
 }
