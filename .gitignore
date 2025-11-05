@@ -5,3 +5,8 @@
 /OnlineExamBe/OnlineExam/.vs
 /OnlineExamBe/OnlineExam/appsettings.json
 /Wise/.vs
+*.config
+*.db
+*.vsidx
+/OnlineExamBe/OnlineExam/obj/Debug/net8.0/OnlineExam.AssemblyInfo.cs
+/OnlineExamBe/OnlineExam.Application/obj/Release/net8.0
