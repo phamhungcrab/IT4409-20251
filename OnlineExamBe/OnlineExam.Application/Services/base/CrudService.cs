@@ -10,7 +10,7 @@ namespace OnlineExam.Application.Services.Base
 {
     public class CrudService<T> : ICrudService<T> where T : class
     {
-        protected readonly IRepository<T> _repository;
+        public readonly IRepository<T> _repository;
 
         public CrudService(IRepository<T> repository)
         {
@@ -36,9 +36,8 @@ namespace OnlineExam.Application.Services.Base
         public virtual async Task<bool> UpdateAsync(T entity)
         {
             var checkExis = await _repository.GetByIdAsync(GetEntityId(entity));
-            if (checkExis != null) return true;
-
-            _repository.Update(entity);
+            if (checkExis == null) return false;
+            _repository.UpdateAsync(entity);
             await _repository.SaveChangesAsync();
 
             return true;
@@ -49,7 +48,7 @@ namespace OnlineExam.Application.Services.Base
             var checkExis = await _repository.GetByIdAsync(id);
             if (checkExis == null) return false;
 
-            _repository.Delete(checkExis);
+            _repository.DeleteAsync(checkExis);
             await _repository.SaveChangesAsync();
             return true;
         }
