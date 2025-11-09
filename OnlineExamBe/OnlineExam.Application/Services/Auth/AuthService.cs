@@ -1,10 +1,13 @@
-﻿using Microsoft.Win32;
+﻿using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
+using Microsoft.Win32;
 using OnlineExam.Application.Dtos.ReponseDtos;
 using OnlineExam.Application.Dtos.RequestDtos.Auth;
 using OnlineExam.Application.Dtos.ResponseDtos;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Auth;
 using OnlineExam.Application.Services.Base;
+using OnlineExam.Application.Settings;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
@@ -13,8 +16,10 @@ using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace OnlineExam.Application.Services.Auth
 {
@@ -25,11 +30,16 @@ namespace OnlineExam.Application.Services.Auth
         private readonly IRefreshTokenService _refreshTokenService;
         private readonly IEmailService _emailService;
         private readonly IRepository<RefreshToken> _refreshTokenRepository;
+        private readonly IMemoryCache _cache;
+        private readonly SmtpSettings _smtp;
+        private readonly Random _random = new();
         public AuthService(IRepository<User> userRepository,
                            IRefreshTokenService refreshTokenService,
                            IJwtService jwtService,
                            IEmailService emailService,
                            IRepository<RefreshToken> refreshTokenRepository,
+                           IMemoryCache cache, 
+                           IOptions<SmtpSettings> smtp,
                            IUserService userService) : base(userRepository)
         {
             _jwtService = jwtService;
@@ -37,6 +47,8 @@ namespace OnlineExam.Application.Services.Auth
             _emailService = emailService;
             _refreshTokenRepository = refreshTokenRepository;
             _refreshTokenService = refreshTokenService;
+            _cache = cache;
+            _smtp = smtp.Value;
         }
 
  
@@ -239,25 +251,45 @@ namespace OnlineExam.Application.Services.Auth
         /// <param name="otp"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        public async Task<ResultApiModel> CheckOtp(OtpDto otp)
+        public async Task<ResultApiModel> CheckOtp(CheckOtpDto dto)
         {
-            //lay otp trong cache roi so sanh voi thoi gian het han
-            throw new NotImplementedException();
+            string cacheKey = $"otp:{dto.Email}";
+            if (_cache.TryGetValue(cacheKey, out string? storedCode) && storedCode == dto.Otp)
+            {
+                _cache.Remove(cacheKey);
+                return new ResultApiModel(){
+                    IsStatus = true,
+                    MessageCode = ResponseCode.Success,
+                    Data = "Xac thuc otp thanh cong"
+                };
+            }
+            return new ResultApiModel()
+            {
+                IsStatus = false,
+                MessageCode = ResponseCode.BadRequest,
+                Data = "Mã OTP không đúng hoặc đã hết hạn"
+            };
         }
         /// <summary>
         /// Chua trien khai SendEmail
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
-        public bool SendOtp(User user)
+        public async Task<ResultApiModel> SendOtp(SendOtpDto dto)
         {
-            var otp = new Random().Next(100000, 1000000).ToString();
-            var to = new[] { user.Email };
-            string subject ="";
-            string body="" ;
+            string code = _random.Next(100000, 999999).ToString();
+            string cacheKey = $"otp:{dto.Email}";
+            _cache.Set(cacheKey, code, TimeSpan.FromMinutes(3));
+
+            var to = new[] { dto.Email };
             
-            var kq =_emailService.SendMail(to,subject,body);
-            return kq;
+            await _emailService.SendMail(dto.Email, code);
+            return new ResultApiModel()
+            {
+                IsStatus = true,
+                MessageCode = ResponseCode.Success,
+                Data = "Gửi OTP thành công"
+            };
         }
     }
 

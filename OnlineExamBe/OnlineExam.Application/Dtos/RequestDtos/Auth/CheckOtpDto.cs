@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace OnlineExam.Application.Dtos.RequestDtos.Auth
 {
-    public class ResetPasswordDto
+    public class CheckOtpDto
     {
+        public required string Otp {  get; set; }
         [EmailAddress]
-        public required string Email {  get; set; }
-        public required string NewPassword { get; set; }
-        public int Otp { get; set; }
+        public required string Email { get; set; }
+   
     }
 }
