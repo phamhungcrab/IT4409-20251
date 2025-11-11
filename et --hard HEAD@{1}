@@ -1,0 +1,37 @@
+[33mec0ed5d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{0}: pull --progress --no-edit --no-stat --recurse-submodules=no origin: Merge made by the 'ort' strategy.
+[33m283d93e[m HEAD@{1}: commit (amend): remove folder obj
+[33me6ff594[m HEAD@{2}: commit: .
+[33mc3b6b71[m HEAD@{3}: checkout: moving from huong to main
+[33m452f6cf[m[33m ([m[1;32mhuong[m[33m)[m HEAD@{4}: commit: .
+[33mb1843a9[m HEAD@{5}: commit (merge): .
+[33m3a00bd1[m HEAD@{6}: commit: remove obj
+[33m60d7540[m[33m ([m[1;31morigin/huong[m[33m)[m HEAD@{7}: checkout: moving from main to huong
+[33mc3b6b71[m HEAD@{8}: reset: moving to HEAD^1
+[33mf74769a[m HEAD@{9}: pull --progress --no-edit --no-stat --recurse-submodules=no origin: Fast-forward
+[33madfa7f0[m HEAD@{10}: commit: .
+[33m07d9dba[m HEAD@{11}: commit: .
+[33mb04fd70[m HEAD@{12}: commit (merge): Merge branch 'main' of https://github.com/phamhungcrab/IT4409-20251
+[33mecce883[m HEAD@{13}: commit (merge): Merge branch 'huong'
+[33md2ba949[m HEAD@{14}: commit: .
+[33ma2e63a8[m HEAD@{15}: checkout: moving from main to main
+[33ma2e63a8[m HEAD@{16}: reset: moving to HEAD
+[33ma2e63a8[m HEAD@{17}: checkout: moving from 5acb6892b83cd9d979fa5ce23e60f71fbdd4a251 to main
+[33m5acb689[m HEAD@{18}: checkout: moving from huong to origin/main
+[33m60d7540[m[33m ([m[1;31morigin/huong[m[33m)[m HEAD@{19}: reset: moving to HEAD
+[33m60d7540[m[33m ([m[1;31morigin/huong[m[33m)[m HEAD@{20}: commit: add controller
+[33m2bb7e3b[m HEAD@{21}: commit: Authentication
+[33mafd8af9[m HEAD@{22}: commit: .
+[33m17825e9[m HEAD@{23}: commit: .
+[33m1ca9138[m HEAD@{24}: commit (merge): Merge remote-tracking branch 'origin/huyhuyqazwsx' into huong
+[33me9df7d4[m HEAD@{25}: commit: .
+[33m9f90292[m HEAD@{26}: reset: moving to HEAD~1
+[33me262e4b[m HEAD@{27}: commit (merge): Merge remote-tracking branch 'origin/huyhuyqazwsx' into huong
+[33m9f90292[m HEAD@{28}: reset: moving to HEAD
+[33m9f90292[m HEAD@{29}: merge origin/huyhuyqazwsx: updating HEAD
+[33m9f90292[m HEAD@{30}: merge origin/huyhuyqazwsx: updating HEAD
+[33m9f90292[m HEAD@{31}: checkout: moving from MaiHuong_20225134 to huong
+[33m67711af[m[33m ([m[1;32mMaiHuong_20225134[m[33m)[m HEAD@{32}: checkout: moving from huong to MaiHuong_20225134
+[33m9f90292[m HEAD@{33}: reset: moving to HEAD
+[33m9f90292[m HEAD@{34}: commit: first commit
+[33ma2e63a8[m HEAD@{35}: checkout: moving from main to huong
+[33ma2e63a8[m HEAD@{36}: clone: from https://github.com/phamhungcrab/IT4409-20251.git

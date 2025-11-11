@@ -12,6 +12,6 @@ namespace OnlineExam.Application.Dtos.RequestDtos.Auth
         [EmailAddress]
         public required string Email {  get; set; }
         public required string NewPassword { get; set; }
-        public int Otp { get; set; }
+        public string ResetCode { get; set; }
     }
 }

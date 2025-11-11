@@ -61,7 +61,7 @@ namespace OnlineExam.Application.Services
 
                     else
                     {
-                        item.PasswordHash = (new Random()).Next(100000, 1000000).ToString();
+                        item.PasswordHash = item.PasswordHash == null ? HashPasswordHelper.HashPassword("") : HashPasswordHelper.HashPassword(item.PasswordHash);
                         validUserList.Add(item: new User()
                         {
                             Id = item.Id,
@@ -126,7 +126,7 @@ namespace OnlineExam.Application.Services
                 DateOfBirth = user.DateOfBirth,
                 FullName = user.FullName,
                 Email = user.Email,
-                PasswordHash = user.PasswordHash!,
+                PasswordHash = HashPasswordHelper.HashPassword(user.PasswordHash!),
                 Role = user.Role,
 
             };

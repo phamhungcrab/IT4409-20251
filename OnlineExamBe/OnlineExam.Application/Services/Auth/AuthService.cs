@@ -4,6 +4,7 @@ using Microsoft.Win32;
 using OnlineExam.Application.Dtos.ReponseDtos;
 using OnlineExam.Application.Dtos.RequestDtos.Auth;
 using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Helpers;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Auth;
 using OnlineExam.Application.Services.Base;
@@ -89,7 +90,7 @@ namespace OnlineExam.Application.Services.Auth
                     Email = register.Email,
                     DateOfBirth = register.DateOfBirth,
                     FullName = register.FullName,
-                    PasswordHash = register.Password,
+                    PasswordHash = HashPasswordHelper.HashPassword(register.Password),
                     Role = register.Role
                 };
                 await base.CreateAsync(user);
@@ -141,7 +142,7 @@ namespace OnlineExam.Application.Services.Auth
 
             }
             //hash password de so sanh
-            var passwordHash = login.Password;
+            var passwordHash = HashPasswordHelper.HashPassword(login.Password);
 
             if (!passwordHash.Equals(user.PasswordHash))
             {
@@ -213,9 +214,9 @@ namespace OnlineExam.Application.Services.Auth
                 };
             }
             // hask mkhau
-            var newPasswordHash = changePassword.OldPassword;
+            var oldPasswordHash = HashPasswordHelper.HashPassword(changePassword.OldPassword);
 
-            if (!newPasswordHash.Equals(user.PasswordHash))
+            if (!oldPasswordHash.Equals(user.PasswordHash))
             {
                 return new ResultApiModel()
                 {
@@ -224,8 +225,8 @@ namespace OnlineExam.Application.Services.Auth
                     Data = "Sai mat khau"
                 };
             }
-            
-            user.PasswordHash = newPasswordHash;
+
+            user.PasswordHash = HashPasswordHelper.HashPassword(changePassword.NewPassword);
             await _userService.UpdateAsync(user);
             return new ResultApiModel()
             {
@@ -236,17 +237,52 @@ namespace OnlineExam.Application.Services.Auth
         }
         
         /// <summary>
-        /// chua trien khai, chua co otp
+        /// Quen mat khau
         /// </summary>
         /// <param name="resetPassword"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
         public async Task<ResultApiModel> ResetPassword(ResetPasswordDto resetPassword)
         {
-            throw new NotImplementedException();
+
+            User user = await _userService.GetUserByEmail(resetPassword.Email);
+            if (user == null)
+            {
+                return new ResultApiModel()
+                {
+                    IsStatus = false,
+                    MessageCode = ResponseCode.NotFound,
+                    Data = "Khong ton tai email nay"
+                };
+            }
+
+            string resetKey = $"reset:{resetPassword.Email}";
+            if (_cache.TryGetValue(resetKey, out string? storedCode) && storedCode == resetPassword.ResetCode)
+            {
+                _cache.Remove(resetKey);
+                user.PasswordHash = HashPasswordHelper.HashPassword(resetPassword.NewPassword);
+                await _userService.UpdateAsync(user);
+                return new ResultApiModel
+                {
+                    
+                    IsStatus = true,
+                    MessageCode = ResponseCode.Success,
+                    Data = "Cập nhật mật khẩu thành công"
+                };
+            }
+            else
+            {
+                return new ResultApiModel
+                {
+                    IsStatus = false,
+                    MessageCode = ResponseCode.BadRequest,
+                    Data = "Mã OTP đã hết hạn"
+                };
+            }
+            
         }
         /// <summary>
-        /// chua trien khai
+        /// check OTP
         /// </summary>
         /// <param name="otp"></param>
         /// <returns></returns>
@@ -254,24 +290,29 @@ namespace OnlineExam.Application.Services.Auth
         public async Task<ResultApiModel> CheckOtp(CheckOtpDto dto)
         {
             string cacheKey = $"otp:{dto.Email}";
-            if (_cache.TryGetValue(cacheKey, out string? storedCode) && storedCode == dto.Otp)
+            var otp = _cache.TryGetValue(cacheKey, out string? storedCode);
+            if (otp && storedCode == dto.Otp)
             {
                 _cache.Remove(cacheKey);
-                return new ResultApiModel(){
+                string resetToken = Guid.NewGuid().ToString();
+                string resetKey = $"reset:{dto.Email}";
+                _cache.Set(resetKey, resetToken, TimeSpan.FromMinutes(5));
+                return new ResultApiModel()
+                {
                     IsStatus = true,
                     MessageCode = ResponseCode.Success,
-                    Data = "Xac thuc otp thanh cong"
+                    Data = resetToken
                 };
             }
-            return new ResultApiModel()
-            {
-                IsStatus = false,
-                MessageCode = ResponseCode.BadRequest,
-                Data = "Mã OTP không đúng hoặc đã hết hạn"
-            };
+                return new ResultApiModel()
+                {
+                    IsStatus = false,
+                    MessageCode = ResponseCode.BadRequest,
+                    Data = "Mã OTP không đúng hoặc đã hết hạn"
+                };
         }
         /// <summary>
-        /// Chua trien khai SendEmail
+        /// Gui OTP
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
