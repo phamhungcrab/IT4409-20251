@@ -85,6 +85,56 @@ namespace OnlineExam.Application.Services
                 Data = invalidUserList
             };
         }
+
+        public async Task<ResultApiModel> UpdateAsync(CreateUserAdminDto user)
+        {
+
+            if (user.Email == null)
+            {
+                return new ResultApiModel()
+                {
+                    IsStatus = false,
+                    MessageCode = ResponseCode.BadRequest,
+                    Data = "Thieu Email"
+                };
+            }
+
+            if (!CheckValidHelper.IsValiddMail(user.Email))
+            {
+                return new ResultApiModel()
+                {
+                    IsStatus = false,
+                    MessageCode = ResponseCode.BadRequest,
+                    Data = "Sai dinh dang email"
+                };
+            }
+            var checkMail = await _repository.FindAsync(x => x.Email.ToLower().Equals(user.Email.ToLower()));
+            if (!checkMail.Any())
+            {
+                return new ResultApiModel()
+                {
+                    IsStatus = false,
+                    MessageCode = ResponseCode.Conflict,
+                    Data = "Khong ton tai"
+                };
+            }
+
+            var update = checkMail.First();
+            update.FullName = user.FullName;
+            update.DateOfBirth = user.DateOfBirth;
+            update.PasswordHash = user.PasswordHash!;
+            update.Role = user.Role;
+            update.Email = user.Email;
+            
+            await base.UpdateAsync(update);
+            return new ResultApiModel()
+            {
+                IsStatus = true,
+                MessageCode = ResponseCode.Success,
+                Data = "Cap nhat user thanh cong"
+            };
+
+        }
         #endregion
 
         #region User
@@ -140,10 +190,14 @@ namespace OnlineExam.Application.Services
                 };
             
         }
-        public async Task<ResultApiModel> UpdateAsync(CreateUserAdminDto user)
+        /// <summary>
+        /// Phuong thuc update thong tin ca nhan cho user
+        /// </summary>
+        /// <param name="userUpdate"></param>
+        /// <returns></returns>
+        public async Task<ResultApiModel> UserUpdateAsync(UserUpdateDto userUpdate)
         {
-
-            if (user.Email == null)
+            if (userUpdate.Email == null)
             {
                 return new ResultApiModel()
                 {
@@ -153,16 +207,16 @@ namespace OnlineExam.Application.Services
                 };
             }
 
-            if (!CheckValidHelper.IsValiddMail(user.Email))
+            if (!CheckValidHelper.IsValiddMail(userUpdate.Email))
+            {
+                return new ResultApiModel()
                 {
-                    return new ResultApiModel()
-                    {
-                        IsStatus = false,
-                        MessageCode = ResponseCode.BadRequest,
-                        Data = "Sai dinh dang email"
-                    };
-                }
-            var checkMail = await _repository.FindAsync(x => x.Email.ToLower().Equals(user.Email.ToLower()));
+                    IsStatus = false,
+                    MessageCode = ResponseCode.BadRequest,
+                    Data = "Sai dinh dang email"
+                };
+            }
+            var checkMail = await _repository.FindAsync(x => x.Email.ToLower().Equals(userUpdate.Email.ToLower()));
             if (!checkMail.Any())
             {
                 return new ResultApiModel()
@@ -172,25 +226,23 @@ namespace OnlineExam.Application.Services
                     Data = "Khong ton tai"
                 };
             }
-            
-            var newUser = new User()
-            {
-                DateOfBirth = user.DateOfBirth,
-                FullName = user.FullName,
-                Email = user.Email,
-                PasswordHash = user.PasswordHash!,
-                Role = user.Role,
 
+            var user = checkMail.First();
+            user.Email = userUpdate.Email;
+            user.FullName = userUpdate.FullName;
+            user.DateOfBirth = userUpdate.DateOfBirth;  
+
+            await base.UpdateAsync(user);
+            return new ResultApiModel()
+            {
+                IsStatus = true,
+                MessageCode = ResponseCode.Success,
+                Data = "Cap nhat user thanh cong"
             };
-            await base.UpdateAsync(newUser);
-                return new ResultApiModel()
-                {
-                    IsStatus = true,
-                    MessageCode = ResponseCode.Success,
-                    Data = "Cap nhat user thanh cong"
-                };
-            
+
         }
+        
+
         public async Task<User> GetUserByEmail(string email)
         {
             var user = await _repository.FindAsync(u => u.Email.Equals(email));
