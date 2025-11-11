@@ -66,6 +66,15 @@ namespace OnlineExam.Controllers
             return Ok(apiResultModel);
         }
 
+        [HttpPut]
+        [Route("update-for-user")]
+
+        public async Task<IActionResult> UserUpdate(UserUpdateDto user)
+        {
+            ResultApiModel apiResultModel = new ResultApiModel();
+            apiResultModel = await _userService.UserUpdateAsync(user);
+            return Ok(apiResultModel);
+        }
         [HttpDelete]
         [Route("delete")]
 
