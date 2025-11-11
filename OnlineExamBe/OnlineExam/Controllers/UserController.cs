@@ -12,7 +12,7 @@ namespace OnlineExam.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-   // [Authorize]
+    [Authorize]
     public class UserController : Controller
     {
         private readonly IUserService _userService;
@@ -24,7 +24,7 @@ namespace OnlineExam.Controllers
 
         [HttpGet]
         [Route("get-all")]
-       // [Authorize(Roles = "ADMIN")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> GetAll() 
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -38,7 +38,7 @@ namespace OnlineExam.Controllers
         /// <returns></returns>
         [HttpPost]
         [Route("create-users")]
-      //  [Authorize(Roles ="ADMIN")]
+        [Authorize(Roles ="ADMIN")]
         public async Task<IActionResult> RegisterForUser(CreateUserAdminDto[] listUser)
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -48,7 +48,7 @@ namespace OnlineExam.Controllers
 
         [HttpPost]
         [Route("create")]
-       // [Authorize(Roles ="ADMIN")]
+        [Authorize(Roles ="ADMIN")]
         public async Task<IActionResult> Create(CreateUserAdminDto user)
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -77,11 +77,11 @@ namespace OnlineExam.Controllers
             apiResultModel.Data = success;
             if (success)
             {
-                apiResultModel.MessageCode = ResponseCode.Success;
+                apiResultModel.MessageCode = ResponseCode.NotFound;
             }
             else
             {
-                apiResultModel.MessageCode = ResponseCode.NotFound;
+                apiResultModel.MessageCode = ResponseCode.Success;
             }
             return Ok(apiResultModel);  
         }
