@@ -8,6 +8,6 @@ namespace OnlineExam.Application.Interfaces
 {
     public interface IEmailService
     {
-        public bool SendMail(string[] toMails, string subject, string body);
+        Task SendMail(string email, string code);
     }
 }

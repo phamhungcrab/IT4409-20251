@@ -8,6 +8,7 @@ using OnlineExam.Application.Interfaces.Auth;
 using OnlineExam.Application.Services;
 using OnlineExam.Application.Services.Auth;
 using OnlineExam.Application.Services.Base;
+using OnlineExam.Application.Settings;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Interfaces;
 using OnlineExam.Infrastructure.Data;
@@ -25,6 +26,10 @@ builder.Services.AddDbContext<ExamSystemDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")
     ));
+
+//Gui email
+builder.Services.AddMemoryCache();
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
 
 var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]);
 builder.Services.AddAuthentication(x =>
@@ -74,6 +79,7 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped(typeof(ICrudService<>), typeof(CrudService<>));
