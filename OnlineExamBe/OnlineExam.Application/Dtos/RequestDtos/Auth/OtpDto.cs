@@ -7,9 +7,12 @@ using System.Threading.Tasks;
 
 namespace OnlineExam.Application.Dtos.RequestDtos.Auth
 {
-    public class SendOtpDto
+    public class OtpDto
     {
+        public int Otp {  get; set; }
         [EmailAddress]
-        public required string Email { get; set; }
+        public string Email { get; set; }
+        
+
     }
 }

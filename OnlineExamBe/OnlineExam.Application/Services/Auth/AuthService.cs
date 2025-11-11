@@ -1,14 +1,10 @@
-﻿using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Options;
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using OnlineExam.Application.Dtos.ReponseDtos;
 using OnlineExam.Application.Dtos.RequestDtos.Auth;
 using OnlineExam.Application.Dtos.ResponseDtos;
-using OnlineExam.Application.Helpers;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Auth;
 using OnlineExam.Application.Services.Base;
-using OnlineExam.Application.Settings;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
@@ -17,10 +13,8 @@ using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Linq;
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace OnlineExam.Application.Services.Auth
 {
@@ -31,16 +25,11 @@ namespace OnlineExam.Application.Services.Auth
         private readonly IRefreshTokenService _refreshTokenService;
         private readonly IEmailService _emailService;
         private readonly IRepository<RefreshToken> _refreshTokenRepository;
-        private readonly IMemoryCache _cache;
-        private readonly SmtpSettings _smtp;
-        private readonly Random _random = new();
         public AuthService(IRepository<User> userRepository,
                            IRefreshTokenService refreshTokenService,
                            IJwtService jwtService,
                            IEmailService emailService,
                            IRepository<RefreshToken> refreshTokenRepository,
-                           IMemoryCache cache, 
-                           IOptions<SmtpSettings> smtp,
                            IUserService userService) : base(userRepository)
         {
             _jwtService = jwtService;
@@ -48,8 +37,6 @@ namespace OnlineExam.Application.Services.Auth
             _emailService = emailService;
             _refreshTokenRepository = refreshTokenRepository;
             _refreshTokenService = refreshTokenService;
-            _cache = cache;
-            _smtp = smtp.Value;
         }
 
  
@@ -90,7 +77,7 @@ namespace OnlineExam.Application.Services.Auth
                     Email = register.Email,
                     DateOfBirth = register.DateOfBirth,
                     FullName = register.FullName,
-                    PasswordHash = HashPasswordHelper.HashPassword(register.Password),
+                    PasswordHash = register.Password,
                     Role = register.Role
                 };
                 await base.CreateAsync(user);
@@ -142,7 +129,7 @@ namespace OnlineExam.Application.Services.Auth
 
             }
             //hash password de so sanh
-            var passwordHash = HashPasswordHelper.HashPassword(login.Password);
+            var passwordHash = login.Password;
 
             if (!passwordHash.Equals(user.PasswordHash))
             {
@@ -214,9 +201,9 @@ namespace OnlineExam.Application.Services.Auth
                 };
             }
             // hask mkhau
-            var oldPasswordHash = HashPasswordHelper.HashPassword(changePassword.OldPassword);
+            var newPasswordHash = changePassword.OldPassword;
 
-            if (!oldPasswordHash.Equals(user.PasswordHash))
+            if (!newPasswordHash.Equals(user.PasswordHash))
             {
                 return new ResultApiModel()
                 {
@@ -225,8 +212,8 @@ namespace OnlineExam.Application.Services.Auth
                     Data = "Sai mat khau"
                 };
             }
-
-            user.PasswordHash = HashPasswordHelper.HashPassword(changePassword.NewPassword);
+            
+            user.PasswordHash = newPasswordHash;
             await _userService.UpdateAsync(user);
             return new ResultApiModel()
             {
@@ -237,100 +224,40 @@ namespace OnlineExam.Application.Services.Auth
         }
         
         /// <summary>
-        /// Quen mat khau
+        /// chua trien khai, chua co otp
         /// </summary>
         /// <param name="resetPassword"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
         public async Task<ResultApiModel> ResetPassword(ResetPasswordDto resetPassword)
         {
-
-            User user = await _userService.GetUserByEmail(resetPassword.Email);
-            if (user == null)
-            {
-                return new ResultApiModel()
-                {
-                    IsStatus = false,
-                    MessageCode = ResponseCode.NotFound,
-                    Data = "Khong ton tai email nay"
-                };
-            }
-
-            string resetKey = $"reset:{resetPassword.Email}";
-            if (_cache.TryGetValue(resetKey, out string? storedCode) && storedCode == resetPassword.ResetCode)
-            {
-                _cache.Remove(resetKey);
-                user.PasswordHash = HashPasswordHelper.HashPassword(resetPassword.NewPassword);
-                await _userService.UpdateAsync(user);
-                return new ResultApiModel
-                {
-                    
-                    IsStatus = true,
-                    MessageCode = ResponseCode.Success,
-                    Data = "Cập nhật mật khẩu thành công"
-                };
-            }
-            else
-            {
-                return new ResultApiModel
-                {
-                    IsStatus = false,
-                    MessageCode = ResponseCode.BadRequest,
-                    Data = "Mã OTP đã hết hạn"
-                };
-            }
-            
+            throw new NotImplementedException();
         }
         /// <summary>
-        /// check OTP
+        /// chua trien khai
         /// </summary>
         /// <param name="otp"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        public async Task<ResultApiModel> CheckOtp(CheckOtpDto dto)
+        public async Task<ResultApiModel> CheckOtp(OtpDto otp)
         {
-            string cacheKey = $"otp:{dto.Email}";
-            var otp = _cache.TryGetValue(cacheKey, out string? storedCode);
-            if (otp && storedCode == dto.Otp)
-            {
-                _cache.Remove(cacheKey);
-                string resetToken = Guid.NewGuid().ToString();
-                string resetKey = $"reset:{dto.Email}";
-                _cache.Set(resetKey, resetToken, TimeSpan.FromMinutes(5));
-                return new ResultApiModel()
-                {
-                    IsStatus = true,
-                    MessageCode = ResponseCode.Success,
-                    Data = resetToken
-                };
-            }
-                return new ResultApiModel()
-                {
-                    IsStatus = false,
-                    MessageCode = ResponseCode.BadRequest,
-                    Data = "Mã OTP không đúng hoặc đã hết hạn"
-                };
+            //lay otp trong cache roi so sanh voi thoi gian het han
+            throw new NotImplementedException();
         }
         /// <summary>
-        /// Gui OTP
+        /// Chua trien khai SendEmail
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
-        public async Task<ResultApiModel> SendOtp(SendOtpDto dto)
+        public bool SendOtp(User user)
         {
-            string code = _random.Next(100000, 999999).ToString();
-            string cacheKey = $"otp:{dto.Email}";
-            _cache.Set(cacheKey, code, TimeSpan.FromMinutes(3));
-
-            var to = new[] { dto.Email };
+            var otp = new Random().Next(100000, 1000000).ToString();
+            var to = new[] { user.Email };
+            string subject ="";
+            string body="" ;
             
-            await _emailService.SendMail(dto.Email, code);
-            return new ResultApiModel()
-            {
-                IsStatus = true,
-                MessageCode = ResponseCode.Success,
-                Data = "Gửi OTP thành công"
-            };
+            var kq =_emailService.SendMail(to,subject,body);
+            return kq;
         }
     }
 
