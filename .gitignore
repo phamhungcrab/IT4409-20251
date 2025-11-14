@@ -2,6 +2,7 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
+<<<<<<< HEAD
 /OnlineExamBe/OnlineExam/.vs/OnlineExam/v17
 /OnlineExamBe/OnlineExam/.vs/OnlineExam/FileContentIndex
 /OnlineExamBe/OnlineExam/.vs/OnlineExam/DesignTimeBuild
@@ -19,3 +20,50 @@
 /OnlineExamBe/OnlineExam.Infrastructure
 /.vs/IT4409-20251
 /.vs
+=======
+/OnlineExamBe/OnlineExam/.vs
+/OnlineExamBe/OnlineExam/appsettings.json
+/Wise/.vs
+/.vs/IT4409-20251
+/OnlineExamBe/OnlineExam/obj/Debug/net8.0/OnlineExam.AssemblyInfo.cs
+/OnlineExamBe/OnlineExam/obj/Debug/net8.0/OnlineExam.AssemblyInfoInputs.cache
+/OnlineExamBe/OnlineExam/obj/Debug/net8.0/OnlineExam.csproj.AssemblyReference.cache
+/OnlineExamBe/OnlineExam/obj/Debug/net8.0/rpswa.dswa.cache.json
+/OnlineExamBe/OnlineExam/obj/OnlineExam.csproj.nuget.dgspec.json
+/OnlineExamBe/OnlineExam/obj/project.assets.json
+/OnlineExamBe/OnlineExam/obj/project.nuget.cache
+/OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0/OnlineExam.Application.AssemblyInfo.cs
+/OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0/OnlineExam.Application.AssemblyInfoInputs.cache
+/OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0/OnlineExam.Application.csproj.AssemblyReference.cache
+*.cache
+/OnlineExamBe/OnlineExam.Domain/obj/Debug/net8.0/OnlineExam.Domain.AssemblyInfo.cs
+/OnlineExamBe/OnlineExam.Domain/obj/Debug/net8.0/OnlineExam.Domain.AssemblyInfoInputs.cache
+/OnlineExamBe/OnlineExam.Infrastructure/obj/Debug/net8.0/OnlineExam.Infrastructure.AssemblyInfo.cs
+/OnlineExamBe/OnlineExam.Infrastructure/obj/Debug/net8.0/OnlineExam.Infrastructure.AssemblyInfoInputs.cache
+/OnlineExamBe/OnlineExam.Infrastructure/obj/Debug/net8.0/OnlineExam.Infrastructure.csproj.AssemblyReference.cache
+/OnlineExamBe/OnlineExam.Infrastructure/obj/OnlineExam.Infrastructure.csproj.nuget.dgspec.json
+/OnlineExamBe/OnlineExam.Infrastructure/obj/OnlineExam.Infrastructure.csproj.nuget.g.props
+/OnlineExamBe/OnlineExam.Infrastructure/obj/project.assets.json
+/OnlineExamBe/OnlineExam.Infrastructure/obj/project.nuget.cache
+/OnlineExamBe/OnlineExam/obj/Debug/net8.0/OnlineExam.GeneratedMSBuildEditorConfig.editorconfig
+/OnlineExamBe/OnlineExam/obj/Debug/net8.0/OnlineExam.assets.cache
+*.txt
+/OnlineExamBe/OnlineExam/obj/OnlineExam.csproj.nuget.g.props
+/OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0/OnlineExam.Application.AssemblyInfo.cs
+/OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0/OnlineExam.Application.AssemblyInfoInputs.cache
+/OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0/OnlineExam.Application.GeneratedMSBuildEditorConfig.editorconfig
+/OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0/OnlineExam.Application.assets.cache
+/OnlineExamBe/OnlineExam.Application/obj/OnlineExam.Application.csproj.nuget.dgspec.json
+/OnlineExamBe/OnlineExam.Application/obj/OnlineExam.Application.csproj.nuget.g.props
+/OnlineExamBe/OnlineExam.Application/obj/project.assets.json
+/OnlineExamBe/OnlineExam.Application/obj/project.nuget.cache
+/OnlineExamBe/OnlineExam.Domain/obj/Debug/net8.0/OnlineExam.Domain.assets.cache
+/OnlineExamBe/OnlineExam.Domain/obj/Debug/net8.0/OnlineExam.Domain.GeneratedMSBuildEditorConfig.editorconfig
+/OnlineExamBe/OnlineExam.Domain/obj/OnlineExam.Domain.csproj.nuget.dgspec.json
+/OnlineExamBe/OnlineExam.Domain/obj/OnlineExam.Domain.csproj.nuget.g.props
+/OnlineExamBe/OnlineExam.Domain/obj/project.assets.json
+/OnlineExamBe/OnlineExam.Domain/obj/project.nuget.cache
+/OnlineExamBe/OnlineExam.Infrastructure/obj/Debug/net8.0/OnlineExam.Infrastructure.assets.cache
+/OnlineExamBe/OnlineExam.Infrastructure/obj/Debug/net8.0/OnlineExam.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+/OnlineExamBe/OnlineExam/obj/Debug/net8.0
+>>>>>>> f74769a4c5022133dab81f6400a9641cb7753869

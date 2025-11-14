@@ -11,6 +11,7 @@ import { CMSQuestions } from './pages/(admin)/CMSQuestion';
 import { CMSResults } from './pages/(admin)/CMSResult';
 import { Layout } from './layouts/(admin)/Layout';
 import { CMSAccounts } from './pages/(admin)/CMSAccount';
+import { CMSSubject } from './pages/(admin)/CMSSubject';
 
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
           <Route path="exam" element={<CMSExam />} />
           <Route path="questions" element={<CMSQuestions />} />
           <Route path="results" element={<CMSResults />} />
+          <Route path="subject" element={<CMSSubject />} />
         </Route>
       </Routes>
     </BrowserRouter>
