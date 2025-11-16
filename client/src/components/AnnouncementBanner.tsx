@@ -10,7 +10,7 @@
  * application, you may hook this up to a real-time announcement feed via
  * SignalR.
  */
-
+// dùng cho thông báo tới học sinh
 import React, { useState } from 'react';
 
 /**
