@@ -16,8 +16,7 @@ namespace OnlineExam.Domain.Entities
         public float Point { get; set; }
         public required string Answer { get; set; }
         public int SubjectId { get; set; }
-
-        public required Subject Subject { get; set; }
+        public Subject? Subject { get; set; }
         public ICollection<QuestionExam> QuestionExams { get; set; } = new List<QuestionExam>();
     }
 }

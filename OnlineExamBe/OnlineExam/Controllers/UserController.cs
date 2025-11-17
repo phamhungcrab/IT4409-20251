@@ -25,7 +25,8 @@ namespace OnlineExam.Controllers
 
         [HttpGet]
         [Route("get-all")]
-        [Authorize(Roles = "ADMIN")]
+        //[Authorize(Roles = "ADMIN")]
+        //[Authorize]
         public async Task<IActionResult> GetAll() 
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -61,7 +62,7 @@ namespace OnlineExam.Controllers
 
         [HttpPost]
         [Route("create")]
-        [Authorize(Roles ="ADMIN")]
+        //[Authorize(Roles ="ADMIN")]
         public async Task<IActionResult> Create(CreateUserAdminDto user)
         {
             ResultApiModel apiResultModel = new ResultApiModel();

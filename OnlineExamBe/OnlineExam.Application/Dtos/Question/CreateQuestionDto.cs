@@ -12,7 +12,7 @@ namespace OnlineExam.Application.Dtos.Question
         public string Content { get; set; }
         public string Answer { get; set; }
         public float Point { get; set; }
-        public QuestionDifficulty Difficulty { get; set; }
+        public QuestionDifficulty Difficulty { get; set; } = QuestionDifficulty.Easy;
         public QuestionType Type { get; set; }
         public int SubjectId { get; set; }
     }
@@ -27,4 +27,16 @@ namespace OnlineExam.Application.Dtos.Question
         public QuestionType Type { get; set; }
         public int SubjectId { get; set; }
     }
+
+    public class UpdateQuestionDto
+    {
+        public int Id { get; set; }
+        public QuestionType Type { get; set; }
+        public QuestionDifficulty Difficulty { get; set; }
+        public string Content { get; set; }
+        public float Point { get; set; }
+        public string Answer { get; set; }
+        public int SubjectId { get; set; }
+    }
+
 }

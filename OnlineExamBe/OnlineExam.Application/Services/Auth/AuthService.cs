@@ -17,6 +17,7 @@ using System.ComponentModel.Design;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -142,7 +143,7 @@ namespace OnlineExam.Application.Services.Auth
 
             }
             //hash password de so sanh
-            var passwordHash = login.Password;
+            var passwordHash = HashPassword(login.Password);
 
             if (!passwordHash.Equals(user.PasswordHash))
             {
@@ -203,7 +204,7 @@ namespace OnlineExam.Application.Services.Auth
 
         public async Task<ResultApiModel> ChangePassword(ChangePasswordDto changePassword)
         {
-            User user = await _userService.GetUserByEmail(changePassword.Email);
+            User? user = await _userService.GetUserByEmail(changePassword.Email);
             if(user == null)
             {
                 return new ResultApiModel()
@@ -252,24 +253,24 @@ namespace OnlineExam.Application.Services.Auth
         /// <param name="otp"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        public async Task<ResultApiModel> CheckOtp(CheckOtpDto dto)
+        public Task<ResultApiModel> CheckOtp(CheckOtpDto dto)
         {
             string cacheKey = $"otp:{dto.Email}";
             if (_cache.TryGetValue(cacheKey, out string? storedCode) && storedCode == dto.Otp)
             {
                 _cache.Remove(cacheKey);
-                return new ResultApiModel(){
+                return Task.FromResult(new ResultApiModel(){
                     IsStatus = true,
                     MessageCode = ResponseCode.Success,
                     Data = "Xac thuc otp thanh cong"
-                };
+                });
             }
-            return new ResultApiModel()
+            return Task.FromResult(new ResultApiModel()
             {
                 IsStatus = false,
                 MessageCode = ResponseCode.BadRequest,
                 Data = "Mã OTP không đúng hoặc đã hết hạn"
-            };
+            });
         }
         /// <summary>
         /// Chua trien khai SendEmail
@@ -291,6 +292,13 @@ namespace OnlineExam.Application.Services.Auth
                 MessageCode = ResponseCode.Success,
                 Data = "Gửi OTP thành công"
             };
+        }
+
+        private static string HashPassword(string password)
+        {
+            using var sha256 = SHA256.Create();
+            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            return Convert.ToHexString(bytes);
         }
     }
 

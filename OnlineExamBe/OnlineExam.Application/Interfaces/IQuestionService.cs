@@ -11,5 +11,7 @@ namespace OnlineExam.Application.Interfaces
     public interface IQuestionService : ICrudService<Question>
     {
         //Phuong thuc rieng cua question
+        Task<bool> AddListQuestion(CreateQuestionDto[] questionDtos);
     }
+
 }

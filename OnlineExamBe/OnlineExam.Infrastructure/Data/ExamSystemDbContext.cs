@@ -82,6 +82,10 @@ namespace OnlineExam.Infrastructure.Data
                 entity.Property(e => e.Type).HasConversion<string>();
             });
 
+            modelBuilder.Entity<Question>()
+                .Property(q => q.Difficulty)
+                .HasConversion<string>();
+
             // QuestionExam
             modelBuilder.Entity<QuestionExam>(entity =>
             {

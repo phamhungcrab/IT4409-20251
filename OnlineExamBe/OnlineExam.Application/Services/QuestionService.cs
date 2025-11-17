@@ -1,4 +1,5 @@
-﻿using OnlineExam.Application.Interfaces;
+﻿using OnlineExam.Application.Dtos.Question;
+using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services.Base;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Interfaces;
@@ -15,6 +16,23 @@ namespace OnlineExam.Application.Services
         public QuestionService(IRepository<Question> repo)
         : base(repo)
         {
+        }
+
+        public async Task<bool> AddListQuestion(CreateQuestionDto[] questionDtos)
+        {
+            var entities = questionDtos.Select(dto => new Question
+            {
+                Content = dto.Content,
+                Answer = dto.Answer,
+                Point = dto.Point,
+                Difficulty = dto.Difficulty,
+                Type = dto.Type,
+                SubjectId = dto.SubjectId
+            }).ToList();
+
+            await _repository.AddRangeAsync(entities);
+            await _repository.SaveChangesAsync();
+            return true;
         }
     }
 }
