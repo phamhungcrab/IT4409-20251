@@ -10,13 +10,13 @@ namespace OnlineExam.Application.Dtos.RequestDtos.User
 {
     public class CreateUserAdminDto
     {
-        public int Id { get; set; }
-        public string FullName { get; set; }
+        public required string FullName { get; set; }
         public  DateTime DateOfBirth { get; set; }
+        public required string MSSV { get; set; }
         [EmailAddress]
-        public string Email { get; set; }
-        public string? PasswordHash { get; set; }
-        public  UserRole Role { get; set; }
+        public required string Email { get; set; }
+        public required string Password { get; set; }
+        public UserRole Role { get; set; } = UserRole.STUDENT;
 
     }
 }

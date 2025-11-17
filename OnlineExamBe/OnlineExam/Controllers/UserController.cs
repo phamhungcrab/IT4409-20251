@@ -6,13 +6,14 @@ using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
+using System.Text.Json;
 
 namespace OnlineExam.Controllers
  
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    //[Authorize]
     public class UserController : Controller
     {
         private readonly IUserService _userService;
@@ -38,12 +39,24 @@ namespace OnlineExam.Controllers
         /// <returns></returns>
         [HttpPost]
         [Route("create-users")]
-        [Authorize(Roles ="ADMIN")]
-        public async Task<IActionResult> RegisterForUser(CreateUserAdminDto[] listUser)
+        //[Authorize(Roles ="ADMIN")]
+        public async Task<IActionResult> RegisterForUser(IFormFile file)
         {
-            ResultApiModel apiResultModel = new ResultApiModel();
-            apiResultModel =  await _userService.CreateUsersAsync(listUser);
-            return Ok(apiResultModel);
+            if (file == null || file.Length == 0)
+                return BadRequest("File is empty");
+
+            using var stream = file.OpenReadStream();
+            using var reader = new StreamReader(stream);
+            string json = await reader.ReadToEndAsync();
+
+            var listUser = JsonSerializer.Deserialize<CreateUserAdminDto[]>(json);
+
+            if (listUser == null)
+                return BadRequest("Invalid JSON file");
+
+            var result = await _userService.CreateUsersAsync(listUser);
+
+            return Ok(result);
         }
 
         [HttpPost]

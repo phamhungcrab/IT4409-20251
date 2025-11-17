@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -42,39 +43,32 @@ namespace OnlineExam.Application.Services
                 if (item.Email == null) invalidUserList.Append(item);
                 else {
                     var checkMail = await _repository.FindAsync(x => x.Email.ToLower().Equals(item.Email.ToLower()));
-                    var checkId = await this.GetByIdAsync(item.Id);
 
+                    if (checkMail.Any())
+                        {
+                            invalidUserList.Add(item);
+                        }
 
-                if (checkMail.Any())
-                    {
-                        invalidUserList.Add(item);
-                    }
+            
+                        if (!CheckValidHelper.IsValiddMail(item.Email))
+                        {
+                            invalidUserList.Add(item);
+                        }
 
-                    else if (checkId != null)
-                    {
-                        invalidUserList.Add(item);
-                    }
-                    else if (!CheckValidHelper.IsValiddMail(item.Email))
-                    {
-                        invalidUserList.Add(item);
-                    }
-
-                    else
-                    {
-                        item.PasswordHash = (new Random()).Next(100000, 1000000).ToString();
+                        else
+                        {
+                        var PasswordHashed = HashPassword(item.Password);
                         validUserList.Add(item: new User()
                         {
-                            Id = item.Id,
                             Email = item.Email,
-                            PasswordHash = item.PasswordHash,
+                            MSSV = item.MSSV,
+                            PasswordHash = PasswordHashed,
                             FullName = item.FullName,
                             DateOfBirth = item.DateOfBirth,
                             Role = item.Role,
                         });
+                        }
                     }
-
-
-                }
             }
             await _repository.AddRangeAsync(validUserList);
             await _repository.SaveChangesAsync();
@@ -119,10 +113,12 @@ namespace OnlineExam.Application.Services
                 };
             }
 
+            var PasswordHashed = HashPassword(user.Password);
+
             var update = checkMail.First();
             update.FullName = user.FullName;
             update.DateOfBirth = user.DateOfBirth;
-            update.PasswordHash = user.PasswordHash!;
+            update.PasswordHash = PasswordHashed;
             update.Role = user.Role;
             update.Email = user.Email;
             
@@ -171,12 +167,15 @@ namespace OnlineExam.Application.Services
                     Data = "Sai dinh dang email"
                 };
             }
+
+            var PasswordHashed = HashPassword(user.Password);
             var newUser = new User()
             {
                 DateOfBirth = user.DateOfBirth,
+                MSSV = user.MSSV,
                 FullName = user.FullName,
                 Email = user.Email,
-                PasswordHash = user.PasswordHash!,
+                PasswordHash = PasswordHashed,
                 Role = user.Role,
 
             };
@@ -243,14 +242,20 @@ namespace OnlineExam.Application.Services
         }
         
 
-        public async Task<User> GetUserByEmail(string email)
+        public async Task<User?> GetUserByEmail(string email)
         {
             var user = await _repository.FindAsync(u => u.Email.Equals(email));
             if (!user.Any()) return null;
             else return user.First();
         }
 
-       
+
+        private static string HashPassword(string password)
+        {
+            using var sha256 = SHA256.Create();
+            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            return Convert.ToHexString(bytes);
+        }
         #endregion
     }
 }

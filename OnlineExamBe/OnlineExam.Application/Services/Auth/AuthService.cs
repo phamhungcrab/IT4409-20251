@@ -87,6 +87,7 @@ namespace OnlineExam.Application.Services.Auth
                 var user = new User
                 {
                     Email = register.Email,
+                    MSSV = register.MSSV,
                     DateOfBirth = register.DateOfBirth,
                     FullName = register.FullName,
                     PasswordHash = register.Password,

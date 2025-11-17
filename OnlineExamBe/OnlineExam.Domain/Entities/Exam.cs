@@ -12,8 +12,10 @@ namespace OnlineExam.Domain.Entities
         public required string Name { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
+        public int ClassId { get; set; }
+        public Class? Class { get; set; }
 
-        public ICollection<QuestionExam> QuestionExams { get; set; }
-        public ICollection<ExamStudent> ExamStudents { get; set; }
+        public ICollection<QuestionExam> QuestionExams { get; set; } = new List<QuestionExam>();
+        public ICollection<ExamStudent> ExamStudents { get; set; } = new List<ExamStudent>();
     }
 }

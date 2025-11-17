@@ -67,6 +67,14 @@ namespace OnlineExam.Infrastructure.Data
                 entity.HasKey(e => e.Id);
             });
 
+            modelBuilder.Entity<Exam>(entity =>
+            {
+                entity.HasOne(e => e.Class)
+                      .WithMany(c => c.Exams)      
+                      .HasForeignKey(e => e.ClassId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
             // Question
             modelBuilder.Entity<Question>(entity =>
             {

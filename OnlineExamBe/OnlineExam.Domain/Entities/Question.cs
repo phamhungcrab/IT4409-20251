@@ -11,12 +11,13 @@ namespace OnlineExam.Domain.Entities
     {
         public int Id { get; set; }
         public QuestionType Type { get; set; }
+        public QuestionDifficulty Difficulty { get; set; } = QuestionDifficulty.Easy;
         public required string Content { get; set; }
         public float Point { get; set; }
         public required string Answer { get; set; }
         public int SubjectId { get; set; }
 
         public required Subject Subject { get; set; }
-        public ICollection<QuestionExam> QuestionExams { get; set; }
+        public ICollection<QuestionExam> QuestionExams { get; set; } = new List<QuestionExam>();
     }
 }

@@ -13,7 +13,7 @@ namespace OnlineExam.Domain.Entities
         public required string SubjectCode { get; set; }
 
 
-        public ICollection<Class> Classes { get; set; }
-        public ICollection<Question> Questions { get; set; }
+        public ICollection<Class> Classes { get; set; } = new List<Class>();
+        public ICollection<Question> Questions { get; set; } = new List<Question>();
     }
 }

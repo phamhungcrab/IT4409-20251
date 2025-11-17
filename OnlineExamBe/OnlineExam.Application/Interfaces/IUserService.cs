@@ -17,7 +17,7 @@ namespace OnlineExam.Application.Interfaces
         public Task<ResultApiModel>  CreateUsersAsync (CreateUserAdminDto[] user);
         public Task<ResultApiModel> CreateAsync(CreateUserAdminDto user);
         public Task<ResultApiModel> UpdateAsync(CreateUserAdminDto user);
-        public Task<User> GetUserByEmail(string email); 
+        public Task<User?> GetUserByEmail(string email); 
         public Task<ResultApiModel> UserUpdateAsync(UserUpdateDto userUpdate);
     }
 }

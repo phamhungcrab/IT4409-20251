@@ -12,6 +12,8 @@ namespace OnlineExam.Domain.Entities
         public int QuestionExamId { get; set; }
         public required string Answer { get; set; }
         public float? Result { get; set; }
+        public int TimeSpent { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public User Student { get; set; }
         public QuestionExam QuestionExam { get; set; }

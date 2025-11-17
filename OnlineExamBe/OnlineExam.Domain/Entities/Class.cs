@@ -15,6 +15,7 @@ namespace OnlineExam.Domain.Entities
 
         public required User Teacher { get; set; }
         public required Subject Subject { get; set; }
-        public ICollection<StudentClass> StudentClasses { get; set; }
+        public ICollection<StudentClass> StudentClasses { get; set; } = new List<StudentClass>();
+        public ICollection<Exam> Exams { get; set; } = new List<Exam>();
     }
 }

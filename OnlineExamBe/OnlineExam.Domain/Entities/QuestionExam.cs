@@ -15,6 +15,6 @@ namespace OnlineExam.Domain.Entities
 
         public required Exam Exam { get; set; }
         public Question Question { get; set; }
-        public ICollection<StudentQuestion> StudentQuestions { get; set; }
+        public ICollection<StudentQuestion> StudentQuestions { get; set; } = new List<StudentQuestion>();
     }
 }
