@@ -17,6 +17,7 @@ namespace OnlineExam.Domain.Interfaces
         Task AddRangeAsync(IEnumerable<T> entities); 
         void DeleteAsync(T entity);
         void UpdateAsync(T entity);
+        public IQueryable<T> Query();
         Task SaveChangesAsync();
     }
 }

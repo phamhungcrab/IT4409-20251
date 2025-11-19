@@ -18,7 +18,8 @@ namespace OnlineExam.Infrastructure.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    SubjectCode = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    SubjectCode = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    TotalChapters = table.Column<int>(type: "int", nullable: false, defaultValue: 1)
                 },
                 constraints: table =>
                 {
@@ -44,16 +45,37 @@ namespace OnlineExam.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ExamBlueprints",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    SubjectId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ExamBlueprints", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ExamBlueprints_Subjects_SubjectId",
+                        column: x => x.SubjectId,
+                        principalTable: "Subjects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Questions",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Difficulty = table.Column<int>(type: "int", nullable: false),
+                    Difficulty = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Point = table.Column<float>(type: "real", nullable: false),
                     Answer = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Chapter = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
                     SubjectId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -121,6 +143,30 @@ namespace OnlineExam.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ExamBlueprintChapters",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    BlueprintId = table.Column<int>(type: "int", nullable: false),
+                    Chapter = table.Column<int>(type: "int", nullable: false),
+                    EasyCount = table.Column<int>(type: "int", nullable: false),
+                    MediumCount = table.Column<int>(type: "int", nullable: false),
+                    HardCount = table.Column<int>(type: "int", nullable: false),
+                    VeryHardCount = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ExamBlueprintChapters", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ExamBlueprintChapters_ExamBlueprints_BlueprintId",
+                        column: x => x.BlueprintId,
+                        principalTable: "ExamBlueprints",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Exams",
                 columns: table => new
                 {
@@ -129,6 +175,8 @@ namespace OnlineExam.Infrastructure.Migrations
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     StartTime = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EndTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    DurationMinutes = table.Column<int>(type: "int", nullable: false),
+                    BlueprintId = table.Column<int>(type: "int", nullable: true),
                     ClassId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -138,6 +186,12 @@ namespace OnlineExam.Infrastructure.Migrations
                         name: "FK_Exams_Classes_ClassId",
                         column: x => x.ClassId,
                         principalTable: "Classes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Exams_ExamBlueprints_BlueprintId",
+                        column: x => x.BlueprintId,
+                        principalTable: "ExamBlueprints",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -260,6 +314,21 @@ namespace OnlineExam.Infrastructure.Migrations
                 column: "TeacherId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ExamBlueprintChapters_BlueprintId",
+                table: "ExamBlueprintChapters",
+                column: "BlueprintId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ExamBlueprints_SubjectId",
+                table: "ExamBlueprints",
+                column: "SubjectId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Exams_BlueprintId",
+                table: "Exams",
+                column: "BlueprintId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Exams_ClassId",
                 table: "Exams",
                 column: "ClassId");
@@ -316,6 +385,9 @@ namespace OnlineExam.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "ExamBlueprintChapters");
+
+            migrationBuilder.DropTable(
                 name: "ExamStudents");
 
             migrationBuilder.DropTable(
@@ -340,10 +412,13 @@ namespace OnlineExam.Infrastructure.Migrations
                 name: "Classes");
 
             migrationBuilder.DropTable(
-                name: "Subjects");
+                name: "ExamBlueprints");
 
             migrationBuilder.DropTable(
                 name: "Users");
+
+            migrationBuilder.DropTable(
+                name: "Subjects");
         }
     }
 }

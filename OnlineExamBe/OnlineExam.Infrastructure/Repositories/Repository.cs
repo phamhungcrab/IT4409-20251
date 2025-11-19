@@ -40,6 +40,7 @@ namespace OnlineExam.Infrastructure.Repositories
         public void UpdateAsync(T entity)
             => _dbSet.Update(entity);
 
+        public IQueryable<T> Query() => _dbSet.AsQueryable();
         public async Task SaveChangesAsync()
         {
             await _dbcontext.SaveChangesAsync();

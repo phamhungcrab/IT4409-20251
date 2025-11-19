@@ -5,30 +5,25 @@
 namespace OnlineExam.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class UpdateField : Migration
+    public partial class UpdateFieldQuestion : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<string>(
-                name: "Difficulty",
+            migrationBuilder.AddColumn<string>(
+                name: "ImageUrl",
                 table: "Questions",
                 type: "nvarchar(max)",
                 nullable: false,
-                oldClrType: typeof(int),
-                oldType: "int");
+                defaultValue: "");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<int>(
-                name: "Difficulty",
-                table: "Questions",
-                type: "int",
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "nvarchar(max)");
+            migrationBuilder.DropColumn(
+                name: "ImageUrl",
+                table: "Questions");
         }
     }
 }

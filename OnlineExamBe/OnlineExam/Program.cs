@@ -94,7 +94,8 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IQuestionService, QuestionService>();
-
+builder.Services.AddScoped<IExamBlueprintService, ExamBlueprintService>();
+builder.Services.AddScoped<IExamService, ExamService>();
 
 var app = builder.Build();
 

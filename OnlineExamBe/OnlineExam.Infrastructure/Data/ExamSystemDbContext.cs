@@ -20,7 +20,9 @@ namespace OnlineExam.Infrastructure.Data
         public DbSet<ExamStudent> ExamStudents { get; set; }
         public DbSet<StudentQuestion> StudentQuestions { get; set; }
         public DbSet<RefreshToken> RefreshToken { get; set; }
+        public DbSet<ExamBlueprint> ExamBlueprints { get; set; }
 
+        public DbSet<ExamBlueprintChapter> ExamBlueprintChapters { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -40,6 +42,10 @@ namespace OnlineExam.Infrastructure.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.SubjectCode).IsUnique();
             });
+
+            modelBuilder.Entity<Subject>()
+                .Property(s => s.TotalChapters)
+                .HasDefaultValue(1);
 
             // Class
             modelBuilder.Entity<Class>(entity =>
@@ -65,15 +71,18 @@ namespace OnlineExam.Infrastructure.Data
             modelBuilder.Entity<Exam>(entity =>
             {
                 entity.HasKey(e => e.Id);
-            });
 
-            modelBuilder.Entity<Exam>(entity =>
-            {
                 entity.HasOne(e => e.Class)
-                      .WithMany(c => c.Exams)      
+                      .WithMany(c => c.Exams)
                       .HasForeignKey(e => e.ClassId)
                       .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Blueprint)
+                      .WithMany()
+                      .HasForeignKey(e => e.BlueprintId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
+
 
             // Question
             modelBuilder.Entity<Question>(entity =>
@@ -86,6 +95,11 @@ namespace OnlineExam.Infrastructure.Data
                 .Property(q => q.Difficulty)
                 .HasConversion<string>();
 
+
+            modelBuilder.Entity<Question>()
+                .Property(q => q.Chapter)
+                .HasDefaultValue(1)
+                .IsRequired();
             // QuestionExam
             modelBuilder.Entity<QuestionExam>(entity =>
             {
@@ -114,6 +128,22 @@ namespace OnlineExam.Infrastructure.Data
                       .HasForeignKey(e => e.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
                  
+            });
+
+            //ExamBlueprint
+            modelBuilder.Entity<ExamBlueprint>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasMany(e => e.Chapters)
+                      .WithOne(c => c.Blueprint)
+                      .HasForeignKey(c => c.BlueprintId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ExamBlueprintChapter>(entity =>
+            {
+                entity.ToTable("ExamBlueprintChapters"); 
+                entity.HasKey(e => e.Id);
             });
         }
     } 

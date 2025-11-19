@@ -57,7 +57,13 @@ namespace OnlineExam.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("BlueprintId")
+                        .HasColumnType("int");
+
                     b.Property<int>("ClassId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DurationMinutes")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("EndTime")
@@ -72,9 +78,65 @@ namespace OnlineExam.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BlueprintId");
+
                     b.HasIndex("ClassId");
 
                     b.ToTable("Exams");
+                });
+
+            modelBuilder.Entity("OnlineExam.Domain.Entities.ExamBlueprint", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("SubjectId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubjectId");
+
+                    b.ToTable("ExamBlueprints");
+                });
+
+            modelBuilder.Entity("OnlineExam.Domain.Entities.ExamBlueprintChapter", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BlueprintId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Chapter")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EasyCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("HardCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MediumCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("VeryHardCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BlueprintId");
+
+                    b.ToTable("ExamBlueprintChapters", (string)null);
                 });
 
             modelBuilder.Entity("OnlineExam.Domain.Entities.ExamStudent", b =>
@@ -117,11 +179,20 @@ namespace OnlineExam.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("Chapter")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Difficulty")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ImageUrl")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -271,6 +342,11 @@ namespace OnlineExam.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<int>("TotalChapters")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.HasKey("Id");
 
                     b.HasIndex("SubjectCode")
@@ -339,13 +415,42 @@ namespace OnlineExam.Infrastructure.Migrations
 
             modelBuilder.Entity("OnlineExam.Domain.Entities.Exam", b =>
                 {
+                    b.HasOne("OnlineExam.Domain.Entities.ExamBlueprint", "Blueprint")
+                        .WithMany()
+                        .HasForeignKey("BlueprintId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("OnlineExam.Domain.Entities.Class", "Class")
                         .WithMany("Exams")
                         .HasForeignKey("ClassId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("Blueprint");
+
                     b.Navigation("Class");
+                });
+
+            modelBuilder.Entity("OnlineExam.Domain.Entities.ExamBlueprint", b =>
+                {
+                    b.HasOne("OnlineExam.Domain.Entities.Subject", "Subject")
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Subject");
+                });
+
+            modelBuilder.Entity("OnlineExam.Domain.Entities.ExamBlueprintChapter", b =>
+                {
+                    b.HasOne("OnlineExam.Domain.Entities.ExamBlueprint", "Blueprint")
+                        .WithMany("Chapters")
+                        .HasForeignKey("BlueprintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Blueprint");
                 });
 
             modelBuilder.Entity("OnlineExam.Domain.Entities.ExamStudent", b =>
@@ -458,6 +563,11 @@ namespace OnlineExam.Infrastructure.Migrations
                     b.Navigation("ExamStudents");
 
                     b.Navigation("QuestionExams");
+                });
+
+            modelBuilder.Entity("OnlineExam.Domain.Entities.ExamBlueprint", b =>
+                {
+                    b.Navigation("Chapters");
                 });
 
             modelBuilder.Entity("OnlineExam.Domain.Entities.Question", b =>
