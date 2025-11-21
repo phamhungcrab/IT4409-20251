@@ -100,10 +100,31 @@ namespace OnlineExam.Infrastructure.Data
                 .Property(q => q.Chapter)
                 .HasDefaultValue(1)
                 .IsRequired();
+
             // QuestionExam
             modelBuilder.Entity<QuestionExam>(entity =>
             {
-                entity.HasKey(e => e.Id);
+                entity.HasKey(qe => new { qe.ExamId, qe.StudentId, qe.QuestionId });
+
+                entity.HasOne(qe => qe.Student)
+                    .WithMany(u => u.QuestionExams)
+                    .HasForeignKey(qe => qe.StudentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(qe => qe.Exam)
+                    .WithMany(e => e.QuestionExams)
+                    .HasForeignKey(qe => qe.ExamId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // FK → Question
+                entity.HasOne(qe => qe.Question)
+                    .WithMany(q => q.QuestionExams)
+                    .HasForeignKey(qe => qe.QuestionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Index tối ưu hóa truy vấn
+                entity.HasIndex(qe => new { qe.ExamId, qe.StudentId })
+                    .HasDatabaseName("IX_QuestionExam_Exam_Student");
             });
 
             // ExamStudent
@@ -116,7 +137,20 @@ namespace OnlineExam.Infrastructure.Data
             // StudentQuestion
             modelBuilder.Entity<StudentQuestion>(entity =>
             {
-                entity.HasKey(e => new { e.StudentId, e.QuestionExamId });
+                // Composite key matching QuestionExam
+                entity.HasKey(sq => new { sq.ExamId, sq.StudentId, sq.QuestionId });
+
+                // FK → QuestionExam (full composite match)
+                entity.HasOne(sq => sq.QuestionExam)
+                    .WithMany(qe => qe.StudentQuestions)
+                    .HasForeignKey(sq => new { sq.ExamId, sq.StudentId, sq.QuestionId })
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // FK → Student
+                entity.HasOne(sq => sq.Student)
+                    .WithMany(u => u.StudentQuestions)
+                    .HasForeignKey(sq => sq.StudentId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             //RefreshExam

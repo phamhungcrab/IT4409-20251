@@ -22,7 +22,8 @@ namespace OnlineExam.Controllers
                 var exam = await _examService.GenerateExamAsync(dto);
                 return Ok(new
                 {
-                    message = "Generated OK"
+                    message = "Generated OK",
+                    exam = exam
                 });
             }
             catch (Exception ex)

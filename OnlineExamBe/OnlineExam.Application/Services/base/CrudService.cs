@@ -30,7 +30,7 @@ namespace OnlineExam.Application.Services.Base
         public virtual async Task CreateAsync(T enity)
         {
             await _repository.AddAsync(enity);
-            await _repository.SaveChangesAsync();
+            await _repository.SaveChangesAsync();     
         }
 
         public virtual async Task<bool> UpdateAsync(T entity)

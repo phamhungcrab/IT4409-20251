@@ -27,7 +27,8 @@ namespace OnlineExam.Application.Services
                 Point = dto.Point,
                 Difficulty = dto.Difficulty,
                 Type = dto.Type,
-                SubjectId = dto.SubjectId
+                SubjectId = dto.SubjectId,
+                Chapter = dto.Chapter
             }).ToList();
 
             await _repository.AddRangeAsync(entities);

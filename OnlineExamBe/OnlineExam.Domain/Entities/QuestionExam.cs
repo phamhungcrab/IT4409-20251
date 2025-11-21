@@ -8,10 +8,13 @@ namespace OnlineExam.Domain.Entities
 {
     public class QuestionExam
     {
-        public int Id { get; set; }
         public int ExamId { get; set; }
         public Exam? Exam { get; set; }
-        
+
+
+        public int StudentId { get; set; }
+        public User? Student { get; set; }
+
         public int QuestionId { get; set; }
         public Question? Question { get; set; }
         public required string CorrectAnswer { get; set; }

@@ -96,6 +96,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IQuestionService, QuestionService>();
 builder.Services.AddScoped<IExamBlueprintService, ExamBlueprintService>();
 builder.Services.AddScoped<IExamService, ExamService>();
+builder.Services.AddScoped<ISubjectService, SubjectService>();
 
 var app = builder.Build();
 

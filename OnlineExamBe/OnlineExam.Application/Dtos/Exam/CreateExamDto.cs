@@ -10,6 +10,7 @@ namespace OnlineExam.Application.Dtos.Exam
     {
         public required string Name { get; set; }
         public int ClassId { get; set; }
+        public int StudentId { get; set; }
         public int BlueprintId { get; set; }
         public int DurationMinutes { get; set; } = 30;
         public DateTime StartTime { get; set; }

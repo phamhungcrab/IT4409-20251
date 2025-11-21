@@ -33,7 +33,7 @@ namespace OnlineExam.Application.Services
         }
 
 
-        public async Task<Exam?> GenerateExamAsync(CreateExamDto dto)
+        public async Task<ExamGenerateResultDto> GenerateExamAsync(CreateExamDto dto)
         {
             var checkBlue = await _blueprintRepo
                 .Query()
@@ -60,6 +60,7 @@ namespace OnlineExam.Application.Services
             await base.CreateAsync(exam);
 
             var questionExams = new List<QuestionExam>();
+            var allQuestions = new List<Question>();
 
             foreach (var ch in chapters)
             {
@@ -68,18 +69,48 @@ namespace OnlineExam.Application.Services
                 var hard = await GetQuestions(checkBlue.SubjectId, ch.Chapter, (int)QuestionDifficulty.Hard, ch.HardCount);
                 var veryhard = await GetQuestions(checkBlue.SubjectId, ch.Chapter, (int)QuestionDifficulty.VeryHard, ch.VeryHardCount);
 
-                BuildQuestionExam(questionExams, exam, easy);
-                BuildQuestionExam(questionExams, exam, medium);
-                BuildQuestionExam(questionExams, exam, hard);
-                BuildQuestionExam(questionExams, exam, veryhard);
+                //Lấy danh sách question
+                allQuestions.AddRange(easy);
+                allQuestions.AddRange(medium);
+                allQuestions.AddRange(hard);
+                allQuestions.AddRange(veryhard);
 
             }
+
+            //Xáo trộn câu hỏi
+            allQuestions = allQuestions.OrderBy(x => Guid.NewGuid()).ToList();
+
+            BuildQuestionExam(questionExams, exam, allQuestions, dto.StudentId);
+            
 
             await _questionExamRepo.AddRangeAsync(questionExams);
             await _questionExamRepo.SaveChangesAsync();
 
-            return exam;
+            var result = new ExamGenerateResultDto
+            {
+                ExamId = exam.Id,
+                Name = exam.Name,
+                TotalQuestions = questionExams.Count,
+                ClassId = exam.ClassId,
+                StartTime = exam.StartTime,
+                EndTime = exam.EndTime,
+                DurationMinutes = exam.DurationMinutes,
+                BlueprintId = exam.BlueprintId,
 
+                Questions = allQuestions.Select(q => new GeneratedQuestionDto
+                {
+                    Id = q.Id,
+                    Type = q.Type,
+                    Difficulty = q.Difficulty,
+                    Content = q.Content,
+                    ImageUrl = q.ImageUrl,
+                    Point = q.Point,
+                    Chapter = q.Chapter,
+                    CleanAnswer = CleanAnswer(q.Answer)
+                }).ToList()
+            };
+
+            return result;
         }
 
         private async Task<List<Question>> GetQuestions(
@@ -101,7 +132,7 @@ namespace OnlineExam.Application.Services
                 .ToList();
         }
 
-        private void BuildQuestionExam(List<QuestionExam> list, Exam exam, List<Question> questions)
+        private void BuildQuestionExam(List<QuestionExam> list, Exam exam, List<Question> questions, int StudentId)
         {
             foreach (var q in questions)
             {
@@ -109,6 +140,7 @@ namespace OnlineExam.Application.Services
                 {
                     ExamId = exam.Id,
                     QuestionId = q.Id,
+                    StudentId = StudentId,
                     CorrectAnswer = GetCorrectAnswer(q.Answer) // Lấy correct từ chuỗi
                 });
             }
@@ -118,5 +150,11 @@ namespace OnlineExam.Application.Services
         {
             return "";
         }
+
+        private string CleanAnswer(string raw)
+        {
+            return "";
+        }
+
     }
 }
