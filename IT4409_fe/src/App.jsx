@@ -12,6 +12,7 @@ import { CMSResults } from './pages/(admin)/CMSResult';
 import { Layout } from './layouts/(admin)/Layout';
 import { CMSAccounts } from './pages/(admin)/CMSAccount';
 import { CMSSubject } from './pages/(admin)/CMSSubject';
+import { CMSSignup } from './pages/(admin)/CMSSignup';
 
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/admin/login" element={<CMSLogin />} />
+        <Route path="/admin/signup" element={<CMSSignup />} />
 
         <Route
           path="/admin"

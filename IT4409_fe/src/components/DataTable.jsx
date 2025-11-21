@@ -3,7 +3,7 @@ import React from "react";
 export const DataTable = ({ columns, data, actions }) => {
     return (
         <div className="overflow-x-auto bg-white rounded-lg shadow">
-            <table className="min-w-full border-collapse">
+            <table className="min-w border-collapse">
                 <thead className="bg-gray-100 text-gray-700 uppercase text-sm">
                     <tr>
                         {columns.map((col) => (
@@ -19,7 +19,7 @@ export const DataTable = ({ columns, data, actions }) => {
                     {data.map((row, rowIndex) => (
                         <tr key={row.id || rowIndex} className="hover:bg-indigo-50 transition-colors">
                             {columns.map((col) => (
-                                <td key={col.accessor} className="px-6 py-4">
+                                <td key={col.accessor} className="px-6 py-4 max-h-32 overflow-y-auto">
                                     {col.render ? col.render(row) : row[col.accessor]}
                                 </td>
                             ))}
