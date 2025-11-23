@@ -86,6 +86,8 @@ namespace OnlineExam.Application.Services
             await _questionExamRepo.AddRangeAsync(questionExams);
             await _questionExamRepo.SaveChangesAsync();
 
+            int order = 1;
+
             var result = new ExamGenerateResultDto
             {
                 ExamId = exam.Id,
@@ -102,6 +104,7 @@ namespace OnlineExam.Application.Services
                     Id = q.Id,
                     Type = q.Type,
                     Difficulty = q.Difficulty,
+                    Order = order++,
                     Content = q.Content,
                     ImageUrl = q.ImageUrl,
                     Point = q.Point,

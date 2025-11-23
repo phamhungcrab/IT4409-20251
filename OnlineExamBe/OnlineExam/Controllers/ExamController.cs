@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.Exam;
 using OnlineExam.Application.Interfaces;
+using OnlineExam.Domain.Enums;
 
 namespace OnlineExam.Controllers
 {
@@ -14,7 +15,33 @@ namespace OnlineExam.Controllers
             _examService = examService;
         }
 
-        [HttpPost("generate")]
+        [HttpPost("start-exam")]
+        public async Task<IActionResult> StartExam([FromBody] ExamStartRequest dto)
+        {
+            var state = await _examService.GetExamStudentState(dto.ExamId, dto.StudentId);
+
+            if (state != null) {
+                if(state == ExamStatus.IN_PROGRESS)
+                {
+
+                }
+                else if(state == ExamStatus.COMPLETED)
+                {
+
+                }
+                else if(state == ExamStatus.EXPIRED)
+                {
+
+                }
+            }
+
+            var exam = await _examService.GenerateExamAsync(new CreateExamDto
+            {
+
+            });
+
+
+            [HttpPost("generate")]
         public async Task<IActionResult> Generate([FromBody] CreateExamDto dto)
         {
             try

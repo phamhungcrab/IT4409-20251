@@ -26,6 +26,7 @@ namespace OnlineExam.Application.Dtos.Exam
         public int Id { get; set; }
         public QuestionType Type { get; set; }
         public QuestionDifficulty Difficulty { get; set; } = QuestionDifficulty.Easy;
+        public int Order { get; set; } // Thứ tứ sau khi gen đề
         public required string Content { get; set; }
         public string ImageUrl { get; set; } = String.Empty;
         public float Point { get; set; }
