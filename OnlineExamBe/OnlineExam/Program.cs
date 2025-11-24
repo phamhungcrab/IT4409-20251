@@ -5,14 +5,17 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Auth;
+using OnlineExam.Application.Interfaces.Websocket;
 using OnlineExam.Application.Services;
 using OnlineExam.Application.Services.Auth;
 using OnlineExam.Application.Services.Base;
+using OnlineExam.Application.Services.Websocket;
 using OnlineExam.Application.Settings;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Interfaces;
 using OnlineExam.Infrastructure.Data;
 using OnlineExam.Infrastructure.Repositories;
+using OnlineExam.Middleware;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -97,6 +100,8 @@ builder.Services.AddScoped<IQuestionService, QuestionService>();
 builder.Services.AddScoped<IExamBlueprintService, ExamBlueprintService>();
 builder.Services.AddScoped<IExamService, ExamService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
+builder.Services.AddScoped<IExamGradingService, ExamGradingService>();
+builder.Services.AddSingleton<IExamAnswerCache, ExamAnswerCache>();
 
 var app = builder.Build();
 
@@ -109,7 +114,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseRouting();
+
+app.UseAuthentication();
+
 app.UseAuthorization();
+
+app.UseWebSockets();
+
+app.UseMiddleware<ExamWebSocketMiddleware>();
 
 app.MapControllers();
 
