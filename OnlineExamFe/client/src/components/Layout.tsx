@@ -1,12 +1,15 @@
 import React from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useAuth from '../hooks/useAuth';
 import Sidebar, { SidebarLink } from './Sidebar';
+import AnnouncementBanner from './AnnouncementBanner';
+import { useAnnouncements } from '../hooks/useAnnouncements';
 
 const Layout: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
+  const { announcements } = useAnnouncements();
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
@@ -71,6 +74,11 @@ const Layout: React.FC = () => {
 
         {/* Page Content */}
         <main className="flex-1 p-6 overflow-auto">
+          {user && announcements.length > 0 && (
+             <div className="mb-4">
+               <AnnouncementBanner announcements={announcements} />
+             </div>
+          )}
           <Outlet />
         </main>
       </div>

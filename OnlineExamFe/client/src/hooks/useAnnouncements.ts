@@ -10,17 +10,18 @@ export const useAnnouncements = () => {
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
-        // Mock implementation for now as backend might not have this endpoint yet
-        // In real app: const response = await apiClient.get<Announcement[]>('/api/Announcements');
-        // setAnnouncements(response.data);
+        // apiClient interceptor returns the data directly
+        const response = await apiClient.get<any[]>('/api/Announcements') as unknown as any[];
 
-        // Simulating fetch delay
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Map backend response to frontend Announcement interface
+        // Backend returns: { id, title, content, type, date }
+        const mapped: Announcement[] = response.map((item: any) => ({
+          id: item.id,
+          message: `${item.title}: ${item.content}`,
+          type: item.type || 'info'
+        }));
 
-        setAnnouncements([
-          { id: 1, message: 'Welcome to the Online Exam System!', type: 'info' },
-          { id: 2, message: 'System maintenance scheduled for Sunday.', type: 'warning' }
-        ]);
+        setAnnouncements(mapped);
         setLoading(false);
       } catch (err) {
         console.error('Failed to fetch announcements', err);
