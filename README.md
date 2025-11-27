@@ -145,6 +145,3 @@ Mặc định, `appsettings.Development.json` có thể đang trỏ đến một
 - **Thống kê chi tiết**: Biểu đồ phân tích phổ điểm, đánh giá năng lực học sinh.
 - **Chat thời gian thực**: Hỗ trợ trực tuyến giữa giám thị và thí sinh.
 - **Mobile App**: Phiên bản ứng dụng cho điện thoại.
-
----
-*Tài liệu được tạo tự động bởi trợ lý AI.*
