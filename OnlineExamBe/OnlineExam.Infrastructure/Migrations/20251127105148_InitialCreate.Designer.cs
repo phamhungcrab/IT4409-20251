@@ -12,8 +12,8 @@ using OnlineExam.Infrastructure.Data;
 namespace OnlineExam.Infrastructure.Migrations
 {
     [DbContext(typeof(ExamSystemDbContext))]
-    [Migration("20251121080626_Initial")]
-    partial class Initial
+    [Migration("20251127105148_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -231,6 +231,9 @@ namespace OnlineExam.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<float>("Point")
+                        .HasColumnType("real");
+
                     b.HasKey("ExamId", "StudentId", "QuestionId");
 
                     b.HasIndex("QuestionId");
@@ -243,7 +246,7 @@ namespace OnlineExam.Infrastructure.Migrations
                     b.ToTable("QuestionExams");
                 });
 
-            modelBuilder.Entity("OnlineExam.Domain.Entities.RefreshToken", b =>
+            modelBuilder.Entity("OnlineExam.Domain.Entities.Session", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -251,39 +254,27 @@ namespace OnlineExam.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("DeviceId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("IpAddress")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsExpired")
-                        .HasColumnType("bit");
 
                     b.Property<DateTime>("IssuedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UserAgent")
+                    b.Property<string>("SessionString")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
+                    b.Property<int>("UserRole")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshToken");
+                    b.ToTable("Session");
                 });
 
             modelBuilder.Entity("OnlineExam.Domain.Entities.StudentClass", b =>
@@ -390,7 +381,7 @@ namespace OnlineExam.Infrastructure.Migrations
                     b.Property<float?>("Result")
                         .HasColumnType("real");
 
-                    b.Property<int>("TimeSpent")
+                    b.Property<int?>("TimeSpent")
                         .HasColumnType("int");
 
                     b.HasKey("ExamId", "StudentId", "QuestionId");
@@ -516,10 +507,10 @@ namespace OnlineExam.Infrastructure.Migrations
                     b.Navigation("Student");
                 });
 
-            modelBuilder.Entity("OnlineExam.Domain.Entities.RefreshToken", b =>
+            modelBuilder.Entity("OnlineExam.Domain.Entities.Session", b =>
                 {
                     b.HasOne("OnlineExam.Domain.Entities.User", "User")
-                        .WithMany("RefreshTokens")
+                        .WithMany("Session")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -605,7 +596,7 @@ namespace OnlineExam.Infrastructure.Migrations
                 {
                     b.Navigation("QuestionExams");
 
-                    b.Navigation("RefreshTokens");
+                    b.Navigation("Session");
 
                     b.Navigation("StudentClasses");
 

@@ -1,8 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.DotNet.Scaffolding.Shared.Messaging;
-using Microsoft.Extensions.Options;
 using OnlineExam.Application.Dtos.Question;
-using OnlineExam.Application.Dtos.RequestDtos.User;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services;
 using OnlineExam.Domain.Entities;

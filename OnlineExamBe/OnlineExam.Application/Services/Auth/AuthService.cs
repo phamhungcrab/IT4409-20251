@@ -59,8 +59,7 @@ namespace OnlineExam.Application.Services.Auth
         /// <exception cref = "ArgumentNullException" ></ exception >
         public async Task<ResultApiModel> Register(RegisterDto register)
         {
-            if (register == null || register.Email == null || register.Password == null ||
-                register.DeviceId == null || register.IpAdress == null || register.UserAgent == null)
+            if (register == null || register.Email == null || register.Password == null)
             {
                 return new ResultApiModel()
                 {
@@ -109,8 +108,7 @@ namespace OnlineExam.Application.Services.Auth
 
         public async Task<ResultApiModel> Login(LoginDto login)
         {
-            if (login == null || login.Email == null || login.Password == null ||
-                login.DeviceId == null || login.IpAdress == null || login.UserAgent == null)
+            if (login == null || login.Email == null || login.Password == null)
             {
                 return new ResultApiModel()
                 {

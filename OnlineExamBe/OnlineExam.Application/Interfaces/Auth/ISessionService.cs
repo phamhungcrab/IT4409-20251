@@ -16,7 +16,7 @@ namespace OnlineExam.Application.Interfaces.Auth
         public Task<Session> CreateAsync(User user, int expireAfter);
         public Task<bool> DeleteByUserIdAsync(int userId);
         public Task<bool> DeleteAsync(string sessionString);
-        public Task<bool> ValidateSession(string sessionString, UserRole? userRole = null, int? userId = null);
+        public Task<Session?> ValidateSession(string sessionString, UserRole[]? userRoles = null);
 
     }
 }

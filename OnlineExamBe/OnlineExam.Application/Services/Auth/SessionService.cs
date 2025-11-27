@@ -1,10 +1,10 @@
 ﻿using OnlineExam.Domain.Entities;
 using OnlineExam.Application.Interfaces.Auth;
-using Microsoft.AspNetCore.Http;
 using OnlineExam.Application.Services.Base;
 using OnlineExam.Domain.Interfaces;
 using OnlineExam.Application.Helper;
 using OnlineExam.Domain.Enums;
+using Microsoft.IdentityModel.Tokens;
 namespace OnlineExam.Application.Services.Auth
 {
     
@@ -16,6 +16,7 @@ namespace OnlineExam.Application.Services.Auth
         }
         public async Task<Session?> GetBySessionStringAsync(string sessionString)
         {
+            
             var session = await _repository.FindAsync(c => c.SessionString == sessionString);
             return session.FirstOrDefault();
         }
@@ -32,8 +33,8 @@ namespace OnlineExam.Application.Services.Auth
                 SessionString = RanNumGenHelper.generateRandomString(256),
                 UserId = user.Id,
                 UserRole = user.Role,
-                IssuedAt = DateTime.Now,
-                ExpiresAt = DateTime.Now.AddMinutes(expiresAfter)
+                IssuedAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(expiresAfter)
             };
 
             var oldSession = await _repository.FindAsync(c => c.UserId == user.Id);
@@ -73,29 +74,26 @@ namespace OnlineExam.Application.Services.Auth
             return false;
         }
 
-        public async Task<bool> ValidateSession(string sessionString,UserRole? userRole = null,int? userId = null) 
+        public async Task<Session?> ValidateSession(string sessionString, UserRole[]? userRoles = null )
         {
             var sessions = await _repository.FindAsync(c => c.SessionString == sessionString);
 
             if (!sessions.Any())
             {
-                return false;
+                return null;
             }
             var session = sessions.First(); 
-            if(userId!=null && session.UserId != userId)
+
+            if(!userRoles.IsNullOrEmpty() && !userRoles.Contains(session.UserRole))
             {
-                return false;
-            }
-            if(userRole != null && session.UserRole != userRole)
-            {
-                return false;
+                return null;
             }
 
-            if (session.ExpiresAt < DateTime.Now) 
+            if (session.ExpiresAt < DateTime.UtcNow) 
             { 
-                return false;   
+                return null;   
             }
-            return true;
+            return session;
         }
 
     }

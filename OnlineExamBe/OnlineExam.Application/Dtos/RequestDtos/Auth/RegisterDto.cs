@@ -17,8 +17,8 @@ namespace OnlineExam.Application.Dtos.RequestDtos.Auth
         public UserRole Role { get; set; }
         public required string FullName { get; set; }
         public required DateTime DateOfBirth { get; set; }
-        public string IpAdress { get; set; }
-        public string UserAgent { get; set; }
-        public string DeviceId { get; set; }
+        public string? IpAdress { get; set; }
+        public string? UserAgent { get; set; }
+        public string? DeviceId { get; set; }
     }
 }

@@ -28,27 +28,6 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-// Đăng ký DbContext
-builder.Services.AddDbContext<ExamSystemDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    ));
-
-//Gui email
-builder.Services.AddMemoryCache();
-builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
-
-//session
-builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession(option =>
-{
-    option.IdleTimeout = TimeSpan.FromMinutes(30);
-    option.Cookie.IsEssential = true;
-});
-builder.Services.AddHttpContextAccessor();
-
-
 builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Session", new OpenApiSecurityScheme
@@ -73,6 +52,27 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+
+// Đăng ký DbContext
+builder.Services.AddDbContext<ExamSystemDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")
+    ));
+
+//Gui email
+builder.Services.AddMemoryCache();
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
+
+//session
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(option =>
+{
+    option.IdleTimeout = TimeSpan.FromMinutes(30);
+    option.Cookie.IsEssential = true;
+});
+builder.Services.AddHttpContextAccessor();
+
+
 
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -99,9 +99,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseRouting();
+app.UseWebSockets();
 
-
+app.UseMiddleware<SessionMiddleware>();
 
 app.UseSession();
 
@@ -109,9 +109,9 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
-app.UseWebSockets();
-
 app.UseMiddleware<ExamWebSocketMiddleware>();
+
+app.UseRouting();
 
 app.MapControllers();
 

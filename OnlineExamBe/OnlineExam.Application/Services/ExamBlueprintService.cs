@@ -30,7 +30,7 @@ namespace OnlineExam.Application.Services
             var blueprint = new ExamBlueprint
             {
                 SubjectId = dto.SubjectId,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             };
 
             await base.CreateAsync(blueprint);
