@@ -18,6 +18,7 @@ namespace OnlineExam.Domain.Entities
         public int QuestionId { get; set; }
         public Question? Question { get; set; }
         public required string CorrectAnswer { get; set; }
+        public float Point { get; set; }
 
         
         public ICollection<StudentQuestion> StudentQuestions { get; set; } = new List<StudentQuestion>();

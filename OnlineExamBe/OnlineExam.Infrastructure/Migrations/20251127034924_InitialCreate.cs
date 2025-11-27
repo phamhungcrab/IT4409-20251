@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace OnlineExam.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -118,25 +118,22 @@ namespace OnlineExam.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "RefreshToken",
+                name: "Session",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
-                    Token = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UserRole = table.Column<int>(type: "int", nullable: false),
+                    SessionString = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IssuedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsExpired = table.Column<bool>(type: "bit", nullable: false),
-                    DeviceId = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    UserAgent = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    IpAddress = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_RefreshToken", x => x.Id);
+                    table.PrimaryKey("PK_Session", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_RefreshToken_Users_UserId",
+                        name: "FK_Session_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -256,7 +253,8 @@ namespace OnlineExam.Infrastructure.Migrations
                     ExamId = table.Column<int>(type: "int", nullable: false),
                     StudentId = table.Column<int>(type: "int", nullable: false),
                     QuestionId = table.Column<int>(type: "int", nullable: false),
-                    CorrectAnswer = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    CorrectAnswer = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Point = table.Column<float>(type: "real", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -290,7 +288,7 @@ namespace OnlineExam.Infrastructure.Migrations
                     QuestionId = table.Column<int>(type: "int", nullable: false),
                     Answer = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Result = table.Column<float>(type: "real", nullable: true),
-                    TimeSpent = table.Column<int>(type: "int", nullable: false),
+                    TimeSpent = table.Column<int>(type: "int", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -366,8 +364,8 @@ namespace OnlineExam.Infrastructure.Migrations
                 column: "SubjectId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_RefreshToken_UserId",
-                table: "RefreshToken",
+                name: "IX_Session_UserId",
+                table: "Session",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
@@ -403,7 +401,7 @@ namespace OnlineExam.Infrastructure.Migrations
                 name: "ExamStudents");
 
             migrationBuilder.DropTable(
-                name: "RefreshToken");
+                name: "Session");
 
             migrationBuilder.DropTable(
                 name: "StudentClasses");

@@ -19,26 +19,41 @@ namespace OnlineExam.Application.Services
         private readonly IRepository<Question> _questionRepo;
         private readonly IRepository<ExamBlueprint> _blueprintRepo;
         private readonly IRepository<QuestionExam> _questionExamRepo;
+        private readonly IRepository<ExamStudent> _examStudentRepo;
 
         public ExamService(
             IRepository<Exam> examRepo,
             IRepository<Question> questionRepo,
             IRepository<ExamBlueprint> blueprintRepo,
-            IRepository<QuestionExam> questionExamRepo
+            IRepository<QuestionExam> questionExamRepo,
+            IRepository<ExamStudent> examStudentRepo
+
             ) : base(examRepo)
         {
             _questionRepo = questionRepo;
             _blueprintRepo = blueprintRepo;
             _questionExamRepo = questionExamRepo;
+            _examStudentRepo = examStudentRepo;
         }
 
-
-        public async Task<ExamGenerateResultDto> GenerateExamAsync(CreateExamDto dto)
+        public async Task<ExamStudent?> GetExamStudent(int examId, int studentId)
         {
+            var exis = await _examStudentRepo
+                .Query()
+                .FirstOrDefaultAsync(x => x.StudentId == studentId && x.ExamId == examId);
+            return exis;
+        }
+
+        public async Task<ExamGenerateResultDto> GenerateExamAsync(CreateExamForStudentDto dto)
+        {
+            var exam = await base.GetByIdAsync(dto.ExamId);
+
+            if (exam == null) throw new Exception("Không tồn tại bài thi này");
+
             var checkBlue = await _blueprintRepo
                 .Query()
                 .Include(x => x.Chapters)
-                .FirstOrDefaultAsync(x => x.Id == dto.BlueprintId);
+                .FirstOrDefaultAsync(x => x.Id == exam.BlueprintId);
 
             if (checkBlue == null)
                 throw new Exception("Blueprint not found!");
@@ -47,18 +62,7 @@ namespace OnlineExam.Application.Services
 
             var chapters = checkBlue.Chapters!.ToList();
 
-            var exam = new Exam
-            {
-                Name = dto.Name,
-                BlueprintId = dto.BlueprintId,
-                ClassId = dto.ClassId,
-                DurationMinutes = dto.DurationMinutes,
-                StartTime = dto.StartTime,
-                EndTime = dto.EndTime
-            };
-
-            await base.CreateAsync(exam);
-
+            //Lưu danh sách câu hỏi + bảng kết quả
             var questionExams = new List<QuestionExam>();
             var allQuestions = new List<Question>();
 
@@ -86,6 +90,8 @@ namespace OnlineExam.Application.Services
             await _questionExamRepo.AddRangeAsync(questionExams);
             await _questionExamRepo.SaveChangesAsync();
 
+            int order = 1;
+
             var result = new ExamGenerateResultDto
             {
                 ExamId = exam.Id,
@@ -102,6 +108,7 @@ namespace OnlineExam.Application.Services
                     Id = q.Id,
                     Type = q.Type,
                     Difficulty = q.Difficulty,
+                    Order = order++,
                     Content = q.Content,
                     ImageUrl = q.ImageUrl,
                     Point = q.Point,
@@ -132,8 +139,9 @@ namespace OnlineExam.Application.Services
                 .ToList();
         }
 
-        private void BuildQuestionExam(List<QuestionExam> list, Exam exam, List<Question> questions, int StudentId)
+        private void BuildQuestionExam(List<QuestionExam> list, Exam? exam, List<Question> questions, int StudentId)
         {
+            if (exam == null) throw new Exception("Không tìm thấy bài thi from build");
             foreach (var q in questions)
             {
                 list.Add(new QuestionExam

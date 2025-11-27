@@ -12,8 +12,8 @@ using OnlineExam.Infrastructure.Data;
 namespace OnlineExam.Infrastructure.Migrations
 {
     [DbContext(typeof(ExamSystemDbContext))]
-    [Migration("20251121080626_Initial")]
-    partial class Initial
+    [Migration("20251124043948_UpdateFieldForExam")]
+    partial class UpdateFieldForExam
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -231,6 +231,9 @@ namespace OnlineExam.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<float>("Point")
+                        .HasColumnType("real");
+
                     b.HasKey("ExamId", "StudentId", "QuestionId");
 
                     b.HasIndex("QuestionId");
@@ -390,7 +393,7 @@ namespace OnlineExam.Infrastructure.Migrations
                     b.Property<float?>("Result")
                         .HasColumnType("real");
 
-                    b.Property<int>("TimeSpent")
+                    b.Property<int?>("TimeSpent")
                         .HasColumnType("int");
 
                     b.HasKey("ExamId", "StudentId", "QuestionId");

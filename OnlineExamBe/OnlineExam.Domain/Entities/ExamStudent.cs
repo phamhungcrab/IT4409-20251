@@ -16,7 +16,7 @@ namespace OnlineExam.Domain.Entities
         public float? Points { get; set; }
         public ExamStatus Status { get; set; }
 
-        public Exam Exam { get; set; }
-        public User Student { get; set; }
+        public Exam? Exam { get; set; }
+        public User? Student { get; set; }
     }
 }

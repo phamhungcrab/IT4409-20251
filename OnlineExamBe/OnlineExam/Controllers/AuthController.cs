@@ -43,6 +43,24 @@ namespace OnlineExam.Controllers
         }
 
         [HttpPost]
+        [Route("change-password")]
+        public async Task<IActionResult> ChangePassword(ChangePasswordDto changePassword)
+        {
+            ResultApiModel apiResultModel = new ResultApiModel();
+            apiResultModel = await _authservice.ChangePassword(changePassword);
+            return Ok(apiResultModel);
+        }
+
+        [HttpPost]
+        [Route("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordDto resetPassword)
+        {
+            ResultApiModel apiResultModel = new ResultApiModel();
+            apiResultModel = await _authservice.ResetPassword(resetPassword);
+            return Ok(apiResultModel);
+        }
+
+        [HttpPost]
         [Route("send-otp")]
         public async Task<IActionResult> SendOtp(SendOtpDto dto)
         {

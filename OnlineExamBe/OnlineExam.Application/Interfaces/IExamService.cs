@@ -12,6 +12,7 @@ namespace OnlineExam.Application.Interfaces
 {
     public interface IExamService : ICrudService<Exam>
     {
-        Task<ExamGenerateResultDto> GenerateExamAsync(CreateExamDto dto);
+        Task<ExamGenerateResultDto> GenerateExamAsync(CreateExamForStudentDto dto);
+        Task<ExamStudent?> GetExamStudent(int examId, int studentId);
     }
 }

@@ -10,7 +10,7 @@ public class StudentQuestion
     // Student answer
     public string Answer { get; set; } = "";
     public float? Result { get; set; }
-    public int TimeSpent { get; set; }
+    public int? TimeSpent { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     // Navigation properties

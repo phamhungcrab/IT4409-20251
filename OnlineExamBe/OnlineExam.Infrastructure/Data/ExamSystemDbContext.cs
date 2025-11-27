@@ -19,7 +19,7 @@ namespace OnlineExam.Infrastructure.Data
         public DbSet<QuestionExam> QuestionExams { get; set; }
         public DbSet<ExamStudent> ExamStudents { get; set; }
         public DbSet<StudentQuestion> StudentQuestions { get; set; }
-        public DbSet<RefreshToken> RefreshToken { get; set; }
+        public DbSet<Session> Session { get; set; }
         public DbSet<ExamBlueprint> ExamBlueprints { get; set; }
 
         public DbSet<ExamBlueprintChapter> ExamBlueprintChapters { get; set; }
@@ -154,11 +154,11 @@ namespace OnlineExam.Infrastructure.Data
             });
 
             //RefreshExam
-            modelBuilder.Entity<RefreshToken>(entity =>
+            modelBuilder.Entity<Session>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.HasOne(e => e.User)
-                      .WithMany(u => u.RefreshTokens)
+                      .WithMany(u => u.Session)
                       .HasForeignKey(e => e.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
                  
