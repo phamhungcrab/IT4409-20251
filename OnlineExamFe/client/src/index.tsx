@@ -10,6 +10,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import { AuthProvider } from './hooks/useAuth';
 import './i18n/i18n';   // ✅ khởi tạo i18next
 
 // Import global CSS including Tailwind directives.  This file
@@ -29,7 +30,9 @@ root.render(
   <React.StrictMode>
     {/* BrowserRouter provides routing context to the application. */}
     <BrowserRouter>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
 );
