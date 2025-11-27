@@ -10,8 +10,8 @@ namespace OnlineExam.Application.Dtos.RequestDtos.Auth
     public class ResetPasswordDto
     {
         [EmailAddress]
-        public required string Email {  get; set; }
+        public required string Email { get; set; }
         public required string NewPassword { get; set; }
-        public int Otp { get; set; }
+        public string ResetCode { get; set; }
     }
 }

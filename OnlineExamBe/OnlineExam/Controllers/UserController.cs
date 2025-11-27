@@ -4,6 +4,7 @@ using OnlineExam.Application.Dtos.RequestDtos.User;
 using OnlineExam.Application.Dtos.ResponseDtos;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services;
+using OnlineExam.Attributes;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using System.Text.Json;
@@ -14,6 +15,7 @@ namespace OnlineExam.Controllers
     [ApiController]
     [Route("api/[controller]")]
     //[Authorize]
+    [SessionAuthorize]
     public class UserController : Controller
     {
         private readonly IUserService _userService;
