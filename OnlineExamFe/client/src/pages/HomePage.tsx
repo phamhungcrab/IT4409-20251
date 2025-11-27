@@ -77,44 +77,83 @@ const HomePage: React.FC = () => {
   }, []);
 
   return (
-    <div className="max-w-5xl mx-auto p-4 space-y-6">
-      {/* Announcements banner at the top */}
+    <div className="max-w-6xl mx-auto p-6 space-y-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-sm uppercase tracking-[0.35em] text-sky-200/70">Welcome back</p>
+          <h1 className="text-3xl font-semibold text-white mt-1">Your exam cockpit</h1>
+          <p className="text-sm text-slate-300 mt-2">
+            Track announcements, upcoming exams, and results in a single, calm space.
+          </p>
+        </div>
+        <div className="glass-card px-4 py-3 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-200 font-semibold">
+            {upcomingExams.length}
+          </div>
+          <div>
+            <p className="text-xs text-slate-300">Upcoming exams</p>
+            <p className="text-lg font-semibold text-white">{upcomingExams.length > 0 ? 'Ready to go' : 'All clear'}</p>
+          </div>
+        </div>
+      </div>
+
       <AnnouncementBanner announcements={announcements} />
 
-      {/* Upcoming exams section */}
-      <section>
-        <h2 className="text-xl font-semibold mb-3">Upcoming Exams</h2>
-        {upcomingExams.length > 0 ? (
-          <ul className="divide-y divide-gray-200">
-            {upcomingExams.map((exam) => (
-              <li key={exam.id} className="py-2 flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium text-gray-900">
-                    {exam.title}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {/* Convert UTC to local timezone for display */}
-                    Starts: {exam.startTime.toLocaleString()} | Ends: {exam.endTime.toLocaleString()}
-                  </p>
-                </div>
-                <Link
-                  to={`/exams/${exam.id}`}
-                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+      <section className="grid gap-6 lg:grid-cols-2">
+        <div className="glass-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm text-slate-300">Schedule</p>
+              <h2 className="text-xl font-semibold text-white">Upcoming Exams</h2>
+            </div>
+            <span className="tag">
+              <span className="h-2 w-2 rounded-full bg-sky-400" aria-hidden />
+              Live
+            </span>
+          </div>
+          {upcomingExams.length > 0 ? (
+            <ul className="space-y-3">
+              {upcomingExams.map((exam) => (
+                <li
+                  key={exam.id}
+                  className="panel p-4 flex items-start gap-3 hover:border-white/30"
                 >
-                  Enter
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-gray-500">You have no upcoming exams at this time.</p>
-        )}
-      </section>
+                  <div className="h-10 w-10 flex items-center justify-center rounded-full bg-sky-500/20 text-white font-semibold">
+                    {exam.title.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-white">{exam.title}</h3>
+                    <p className="text-sm text-slate-300">
+                      Starts: {exam.startTime.toLocaleString()}
+                    </p>
+                    <p className="text-sm text-slate-300">
+                      Ends: {exam.endTime.toLocaleString()}
+                    </p>
+                  </div>
+                  <Link to={`/exams/${exam.id}`} className="btn btn-primary text-sm">
+                    Enter
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-slate-300">You have no upcoming exams at this time.</p>
+          )}
+        </div>
 
-      {/* Recent results section */}
-      <section>
-        <h2 className="text-xl font-semibold mb-3">Recent Results</h2>
-        <ResultTable results={results} />
+        <div className="glass-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm text-slate-300">Performance</p>
+              <h2 className="text-xl font-semibold text-white">Recent Results</h2>
+            </div>
+            <span className="tag">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
+              Updated
+            </span>
+          </div>
+          <ResultTable results={results} />
+        </div>
       </section>
     </div>
   );

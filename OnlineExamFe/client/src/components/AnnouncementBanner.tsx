@@ -41,14 +41,14 @@ const AnnouncementBanner: React.FC<AnnouncementBannerProps> = ({ announcements }
   const typeToClass = (type: Announcement['type']) => {
     switch (type) {
       case 'success':
-        return 'bg-green-50 text-green-800 border-green-200';
+        return 'bg-emerald-500/10 text-emerald-100 border-emerald-400/30';
       case 'warning':
-        return 'bg-yellow-50 text-yellow-800 border-yellow-200';
+        return 'bg-amber-500/10 text-amber-100 border-amber-400/30';
       case 'error':
-        return 'bg-red-50 text-red-800 border-red-200';
+        return 'bg-rose-500/10 text-rose-100 border-rose-400/30';
       case 'info':
       default:
-        return 'bg-blue-50 text-blue-800 border-blue-200';
+        return 'bg-sky-500/10 text-sky-100 border-sky-400/30';
     }
   };
 
@@ -61,24 +61,27 @@ const AnnouncementBanner: React.FC<AnnouncementBannerProps> = ({ announcements }
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {visible.map((ann) => (
         <div
           key={ann.id}
           className={
-            'flex items-start justify-between p-3 rounded border ' + typeToClass(ann.type)
+            'glass-card flex items-start gap-3 p-4 border ' + typeToClass(ann.type)
           }
         >
-          <span className="flex-1 pr-4">
-            {ann.message}
-          </span>
+          <div className="h-10 w-10 flex items-center justify-center rounded-full bg-white/10 text-lg font-bold text-white">
+            !
+          </div>
+          <div className="flex-1">
+            <p className="text-sm leading-relaxed">{ann.message}</p>
+          </div>
           <button
             type="button"
             onClick={() => handleClose(ann.id)}
-            className="text-lg leading-none focus:outline-none"
+            className="btn btn-ghost px-3 py-2 text-sm hover:-translate-y-0.5"
             aria-label={t('common.close')}
           >
-            &times;
+            ×
           </button>
         </div>
       ))}

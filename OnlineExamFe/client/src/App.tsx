@@ -15,7 +15,16 @@ const App: React.FC = () => {
 
   return (
     // Suspense displays a fallback UI while lazy-loaded components are loading
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100">
+          <div className="flex items-center gap-3">
+            <span className="h-3 w-3 animate-ping rounded-full bg-sky-400" />
+            <span className="text-lg font-semibold tracking-wide">Loading experience...</span>
+          </div>
+        </div>
+      }
+    >
       {element}
     </Suspense>
   );

@@ -117,6 +117,7 @@ Mặc định, `appsettings.Development.json` có thể đang trỏ đến một
 ### Bước 3: Chạy Backend
 1. Tại thư mục `OnlineExamBe/OnlineExam`, chạy lệnh:
    ```bash
+   cd OnlineExamBe/OnlineExam
    dotnet run
    ```
 2. Nếu thành công, bạn sẽ thấy thông báo server đang lắng nghe (thường là `http://localhost:5000` hoặc `https://localhost:7000`).

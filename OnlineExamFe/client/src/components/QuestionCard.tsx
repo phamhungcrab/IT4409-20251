@@ -50,27 +50,28 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   };
 
   return (
-    <article className="p-4 border rounded-md bg-white shadow-sm space-y-4">
-      {/* Display question index if provided */}
+    <article className="glass-card p-6 space-y-4">
       {orderIndex !== undefined && (
-        <div className="text-sm text-gray-500">Question {orderIndex}</div>
+        <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sky-100">
+          <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
+          Question {orderIndex}
+        </div>
       )}
-      <h2 className="font-medium text-gray-800">{text}</h2>
+      <h2 className="text-lg font-semibold text-white leading-relaxed">{text}</h2>
       {questionType === 3 ? (
-        // Essay question: show a textarea for free-form input
         <textarea
-          className="w-full border rounded-md p-2 resize-y"
-          rows={4}
+          className="w-full border rounded-xl p-3 resize-y bg-white/5 placeholder:text-slate-400 text-slate-100"
+          rows={5}
           onChange={handleEssayChange}
           placeholder="Type your answer here..."
         />
       ) : (
-        // Objective question: render the list of options
         <OptionList
           options={options}
           questionType={questionType}
           selected={selectedOptions}
           onChange={handleOptionChange}
+          groupName={`question-${questionId}`}
         />
       )}
     </article>

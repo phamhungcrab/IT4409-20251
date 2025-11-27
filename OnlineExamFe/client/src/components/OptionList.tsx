@@ -36,9 +36,11 @@ export interface OptionListProps {
    * accordingly.
    */
   onChange: (selected: number[]) => void;
+  /** Optional name for the radio/checkbox group to improve accessibility. */
+  groupName?: string;
 }
 
-const OptionList: React.FC<OptionListProps> = ({ options, questionType, selected, onChange }) => {
+const OptionList: React.FC<OptionListProps> = ({ options, questionType, selected, onChange, groupName }) => {
   const handleSelect = (id: number, checked: boolean) => {
     if (questionType === 1) {
       // SINGLE_CHOICE: replace selection with the clicked option
@@ -53,20 +55,40 @@ const OptionList: React.FC<OptionListProps> = ({ options, questionType, selected
   };
 
   return (
-    <ul className="space-y-2">
+    <ul className="space-y-3" role="list">
       {options.map((opt) => {
         const isSelected = selected.includes(opt.id);
+        const isSingle = questionType === 1;
         return (
-          <li key={opt.id} className="flex items-start space-x-2">
-            <input
-              type={questionType === 1 ? 'radio' : 'checkbox'}
-              name={`question-option-${opt.id}`}
-              id={`option-${opt.id}`}
-              checked={isSelected}
-              onChange={(e) => handleSelect(opt.id, e.target.checked)}
-            />
-            <label htmlFor={`option-${opt.id}`} className="flex-1 cursor-pointer">
-              {opt.text}
+          <li key={opt.id}>
+            <label
+              htmlFor={`option-${opt.id}`}
+              className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition
+                ${isSelected ? 'border-sky-400/70 bg-white/5 shadow-lg shadow-sky-500/10' : 'border-white/10 bg-white/0 hover:border-white/25'}`}
+            >
+              <input
+                type={isSingle ? 'radio' : 'checkbox'}
+                name={groupName || 'option-group'}
+                id={`option-${opt.id}`}
+                className="sr-only"
+                checked={isSelected}
+                onChange={(e) => handleSelect(opt.id, e.target.checked)}
+              />
+              <span
+                className={`mt-1 flex h-5 w-5 items-center justify-center rounded-full border transition
+                  ${isSelected ? 'border-sky-300 bg-sky-500/30' : 'border-white/20 bg-white/5'}`}
+                role="presentation"
+              >
+                {!isSingle && (
+                  <span
+                    className={`h-2.5 w-2.5 rounded-sm ${isSelected ? 'bg-white' : 'bg-transparent'}`}
+                  />
+                )}
+                {isSingle && (
+                  <span className={`h-2.5 w-2.5 rounded-full ${isSelected ? 'bg-white' : 'bg-transparent'}`} />
+                )}
+              </span>
+              <span className="flex-1 text-sm leading-relaxed text-slate-100">{opt.text}</span>
             </label>
           </li>
         );

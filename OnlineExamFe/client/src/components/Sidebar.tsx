@@ -22,7 +22,18 @@ export interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ links }) => {
   return (
-    <aside className="w-64 bg-white border-r p-4">
+    <aside className="hidden lg:flex w-72 flex-col border-r border-white/5 bg-slate-950/60 backdrop-blur-xl px-6 py-8 text-slate-100 shadow-xl">
+      <div className="mb-8 space-y-2">
+        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-sky-100">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_0_6px_rgba(16,185,129,0.2)]" aria-hidden />
+          Live
+        </div>
+        <div>
+          <p className="text-sm text-slate-300">Online Examination System</p>
+          <p className="text-xl font-semibold text-white">Dashboard</p>
+        </div>
+      </div>
+
       <nav className="space-y-2">
         {links.map((link) => (
           <NavLink
@@ -30,16 +41,26 @@ const Sidebar: React.FC<SidebarProps> = ({ links }) => {
             to={link.path}
             className={({ isActive }) =>
               [
-                'block p-2 rounded-md transition-colors',
-                isActive ? 'bg-blue-100 text-blue-600 font-semibold' : 'text-gray-700 hover:bg-gray-100',
+                'flex items-center gap-3 rounded-xl px-4 py-3 font-semibold transition',
+                isActive
+                  ? 'bg-white text-slate-900 shadow-lg shadow-blue-500/20'
+                  : 'text-slate-200 hover:bg-white/10',
               ].join(' ')
             }
+            aria-label={link.label}
           >
-            {link.icon && <span className="inline-block mr-2">{link.icon}</span>}
-            {link.label}
+            {link.icon && <span className="inline-block">{link.icon}</span>}
+            <span className="truncate">{link.label}</span>
           </NavLink>
         ))}
       </nav>
+
+      <div className="mt-auto pt-8">
+        <div className="glass-card p-4">
+          <p className="text-xs uppercase tracking-[0.15em] text-slate-300">Need help?</p>
+          <p className="text-sm text-slate-200">Check announcements or contact your instructor.</p>
+        </div>
+      </div>
     </aside>
   );
 };

@@ -61,26 +61,39 @@ const ExamListPage: React.FC = () => {
   if (loading) return <div>{t('common.loading')}</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">{t('exam.listTitle')}</h1>
+    <div className="max-w-5xl mx-auto p-6 space-y-6">
+      <div className="flex flex-col gap-2">
+        <p className="text-sm text-slate-300">{t('exam.listTitle')}</p>
+        <h1 className="text-3xl font-semibold text-white">Available exams</h1>
+      </div>
 
       {exams.length === 0 ? (
-        <p className="text-gray-600">{t('exam.noExams')}</p>
+        <div className="glass-card p-6 text-slate-300">
+          {t('exam.noExams')}
+        </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           {exams.map((exam) => (
-            <div key={exam.id} className="bg-white p-4 rounded-lg shadow border border-gray-200 flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-semibold text-blue-700">{exam.name}</h3>
-                <div className="text-sm text-gray-500 mt-1">
+            <div
+              key={exam.id}
+              className="glass-card p-5 flex flex-col gap-4 justify-between"
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold text-white">{exam.name}</h3>
+                  <span className="tag">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
+                    {exam.status}
+                  </span>
+                </div>
+                <div className="text-sm text-slate-300 space-y-1">
                   <p>{t('exam.duration')}: {exam.durationMinutes} mins</p>
                   <p>{t('exam.startTime')}: {new Date(exam.startTime).toLocaleString()}</p>
-                  <p>{t('exam.status')}: <span className="font-medium text-gray-700">{exam.status}</span></p>
                 </div>
               </div>
               <button
                 onClick={() => handleStartExam(exam.id)}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+                className="btn btn-primary hover:-translate-y-0.5"
               >
                 {t('exam.startExam')}
               </button>

@@ -56,7 +56,7 @@ const Timer: React.FC<TimerProps> = ({ endTime, onExpire }) => {
   const format = (n: number) => n.toString().padStart(2, '0');
 
   return (
-    <span className="font-mono text-lg">
+    <span className="font-mono text-lg px-3 py-2 rounded-lg bg-white/10 border border-white/10 text-sky-100 shadow-sm">
       {format(minutes)}:{format(seconds)}
     </span>
   );

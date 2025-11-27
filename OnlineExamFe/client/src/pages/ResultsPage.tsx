@@ -29,8 +29,11 @@ const ResultsPage: React.FC = () => {
   if (loading) return <div>{t('common.loading')}</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">{t('nav.results')}</h1>
+    <div className="max-w-5xl mx-auto p-6 space-y-4">
+      <div>
+        <p className="text-sm text-slate-300">{t('nav.results')}</p>
+        <h1 className="text-3xl font-semibold text-white">Scoreboard</h1>
+      </div>
       <ResultTable results={results} />
     </div>
   );
