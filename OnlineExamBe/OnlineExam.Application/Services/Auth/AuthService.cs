@@ -63,7 +63,7 @@ namespace OnlineExam.Application.Services.Auth
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.BadRequest,
                     Data = "Thieu thong tin dang ky"
                 };
@@ -76,7 +76,7 @@ namespace OnlineExam.Application.Services.Auth
                 {
                     return new ResultApiModel()
                     {
-                        IsStatus = false,
+                        Status = false,
                         MessageCode = ResponseCode.Conflict,
                         Data = "Email da ton tai"
                     };
@@ -96,7 +96,7 @@ namespace OnlineExam.Application.Services.Auth
 
                 return new ResultApiModel()
                 {
-                    IsStatus = true,
+                    Status = true,
                     MessageCode = ResponseCode.Success,
                     Data = session.SessionString
                 };
@@ -112,7 +112,7 @@ namespace OnlineExam.Application.Services.Auth
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.BadRequest,
                     Data = "Thieu thong tin dang nhap"
                 };
@@ -122,7 +122,7 @@ namespace OnlineExam.Application.Services.Auth
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.NotFound,
                     Data = "Khong ton tai Email"
                 };
@@ -135,7 +135,7 @@ namespace OnlineExam.Application.Services.Auth
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.Unauthorized,
                     Data = "Sai mat khau"
                 };
@@ -146,7 +146,7 @@ namespace OnlineExam.Application.Services.Auth
             // Tra ve access token va refresh token
             return new ResultApiModel()
             {
-                IsStatus = true,
+                Status = true,
                 MessageCode = ResponseCode.Success,
                 Data = session.SessionString
             };
@@ -160,7 +160,7 @@ namespace OnlineExam.Application.Services.Auth
 
             return new ResultApiModel()
             {
-                IsStatus = true,
+                Status = true,
                 MessageCode = ResponseCode.Success,
                 Data = "Dang xuat thanh cong"
             };
@@ -174,7 +174,7 @@ namespace OnlineExam.Application.Services.Auth
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.NotFound,
                     Data = "Khong ton tai email nay"
                 };
@@ -186,7 +186,7 @@ namespace OnlineExam.Application.Services.Auth
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.BadRequest,
                     Data = "Sai mat khau"
                 };
@@ -196,7 +196,7 @@ namespace OnlineExam.Application.Services.Auth
             await _userService.UpdateAsync(user);
             return new ResultApiModel()
             {
-                IsStatus = true,
+                Status = true,
                 MessageCode = ResponseCode.Success,
                 Data = "Cap nhat mat khau thanh cong"
             };
@@ -216,7 +216,7 @@ namespace OnlineExam.Application.Services.Auth
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.NotFound,
                     Data = "Khong ton tai email nay"
                 };
@@ -231,7 +231,7 @@ namespace OnlineExam.Application.Services.Auth
                 return new ResultApiModel
                 {
 
-                    IsStatus = true,
+                    Status = true,
                     MessageCode = ResponseCode.Success,
                     Data = "Cập nhật mật khẩu thành công"
                 };
@@ -240,7 +240,7 @@ namespace OnlineExam.Application.Services.Auth
             {
                 return new ResultApiModel
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.BadRequest,
                     Data = "Mã OTP đã hết hạn"
                 };
@@ -265,14 +265,14 @@ namespace OnlineExam.Application.Services.Auth
                 _cache.Set(resetKey, resetToken, TimeSpan.FromMinutes(5));
                 return new ResultApiModel()
                 {
-                    IsStatus = true,
+                    Status = true,
                     MessageCode = ResponseCode.Success,
                     Data = resetToken
                 };
             }
             return new ResultApiModel()
             {
-                IsStatus = false,
+                Status = false,
                 MessageCode = ResponseCode.BadRequest,
                 Data = "Mã OTP không đúng hoặc đã hết hạn"
             };
@@ -293,7 +293,7 @@ namespace OnlineExam.Application.Services.Auth
             await _emailService.SendMail(dto.Email, code);
             return new ResultApiModel()
             {
-                IsStatus = true,
+                Status = true,
                 MessageCode = ResponseCode.Success,
                 Data = "Gửi OTP thành công"
             };

@@ -72,6 +72,11 @@ namespace OnlineExam.Controllers
             return Ok(apiResultModel);
         }
 
+        /// <summary>
+        /// update danh cho admin - tat ca thong tin
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
         [HttpPut]
         [Route("update")]
 
@@ -82,9 +87,14 @@ namespace OnlineExam.Controllers
             return Ok(apiResultModel);
         }
 
+        /// <summary>
+        /// update thong tin ca nhan cua user
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
         [HttpPut]
         [Route("update-for-user")]
-
+        
         public async Task<IActionResult> UserUpdate(UserUpdateDto user)
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -98,7 +108,7 @@ namespace OnlineExam.Controllers
         {
             ResultApiModel apiResultModel = new ResultApiModel();
             var success = await _userService.DeleteAsync(userId);
-            apiResultModel.IsStatus = success;
+            apiResultModel.Status = success;
             apiResultModel.Data = success;
             if (success)
             {

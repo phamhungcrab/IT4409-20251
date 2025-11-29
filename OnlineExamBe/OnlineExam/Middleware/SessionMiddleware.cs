@@ -43,7 +43,7 @@ namespace OnlineExam.Middleware
                 return;
             }
 
-            
+            await _sessionService.ExtendSessionAsync(sessionString);
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, session.UserId.ToString()),

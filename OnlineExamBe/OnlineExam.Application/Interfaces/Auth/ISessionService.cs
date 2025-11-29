@@ -17,6 +17,7 @@ namespace OnlineExam.Application.Interfaces.Auth
         public Task<bool> DeleteByUserIdAsync(int userId);
         public Task<bool> DeleteAsync(string sessionString);
         public Task<Session?> ValidateSession(string sessionString, UserRole[]? userRoles = null);
+        public Task ExtendSessionAsync(string sessionString, int addMinutes = 30);
 
     }
 }

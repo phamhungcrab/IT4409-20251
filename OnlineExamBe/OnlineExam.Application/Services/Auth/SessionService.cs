@@ -96,6 +96,17 @@ namespace OnlineExam.Application.Services.Auth
             return session;
         }
 
+        public async Task ExtendSessionAsync(string sessionString, int addMinutes = 30)
+        {
+            var sessions = await _repository.FindAsync(s => s.SessionString == sessionString);
+            if (!sessions.IsNullOrEmpty())
+            {
+                var session = sessions.FirstOrDefault();
+                if(session!.ExpiresAt > DateTime.UtcNow)
+                session!.ExpiresAt = DateTime.UtcNow.AddMinutes(addMinutes);
+                await UpdateAsync(session);
+            }
+        }
     }
         
 }

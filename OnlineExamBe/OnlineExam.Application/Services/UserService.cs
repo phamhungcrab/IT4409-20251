@@ -74,7 +74,7 @@ namespace OnlineExam.Application.Services
             await _repository.SaveChangesAsync();
             return new ResultApiModel()
             {
-                IsStatus = true,
+                Status = true,
                 MessageCode = ResponseCode.Success,
                 Data = invalidUserList
             };
@@ -87,7 +87,7 @@ namespace OnlineExam.Application.Services
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.BadRequest,
                     Data = "Thieu Email"
                 };
@@ -97,7 +97,7 @@ namespace OnlineExam.Application.Services
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.BadRequest,
                     Data = "Sai dinh dang email"
                 };
@@ -107,7 +107,7 @@ namespace OnlineExam.Application.Services
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.Conflict,
                     Data = "Khong ton tai"
                 };
@@ -125,7 +125,7 @@ namespace OnlineExam.Application.Services
             await base.UpdateAsync(update);
             return new ResultApiModel()
             {
-                IsStatus = true,
+                Status = true,
                 MessageCode = ResponseCode.Success,
                 Data = "Cap nhat user thanh cong"
             };
@@ -142,7 +142,7 @@ namespace OnlineExam.Application.Services
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.BadRequest,
                     Data = "Thieu Email"
                 };
@@ -152,7 +152,7 @@ namespace OnlineExam.Application.Services
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.Conflict,
                     Data = "Da ton tai email nay"
                 };
@@ -162,7 +162,7 @@ namespace OnlineExam.Application.Services
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.BadRequest,
                     Data = "Sai dinh dang email"
                 };
@@ -182,7 +182,7 @@ namespace OnlineExam.Application.Services
             await base.CreateAsync(newUser);
                 return new ResultApiModel()
                 {
-                    IsStatus = true,
+                    Status = true,
                     MessageCode = ResponseCode.Success,
                     Data = "Tao user thanh cong"
 
@@ -200,7 +200,7 @@ namespace OnlineExam.Application.Services
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.BadRequest,
                     Data = "Thieu Email"
                 };
@@ -210,7 +210,7 @@ namespace OnlineExam.Application.Services
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.BadRequest,
                     Data = "Sai dinh dang email"
                 };
@@ -220,7 +220,7 @@ namespace OnlineExam.Application.Services
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.Conflict,
                     Data = "Khong ton tai"
                 };
@@ -234,7 +234,7 @@ namespace OnlineExam.Application.Services
             await base.UpdateAsync(user);
             return new ResultApiModel()
             {
-                IsStatus = true,
+                Status = true,
                 MessageCode = ResponseCode.Success,
                 Data = "Cap nhat user thanh cong"
             };

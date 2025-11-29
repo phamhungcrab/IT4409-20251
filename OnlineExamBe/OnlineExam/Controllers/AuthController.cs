@@ -75,7 +75,7 @@ namespace OnlineExam.Controllers
         {
             ResultApiModel apiResultModel = new ResultApiModel();
             apiResultModel = await _authservice.CheckOtp(dto);
-            if (apiResultModel.IsStatus == true) return Ok(apiResultModel);
+            if (apiResultModel.Status == true) return Ok(apiResultModel);
             else return BadRequest(apiResultModel);
         }
     }

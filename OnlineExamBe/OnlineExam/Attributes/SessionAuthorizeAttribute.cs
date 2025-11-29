@@ -10,11 +10,12 @@ namespace OnlineExam.Attributes
 {
     public class SessionAuthorizeAttribute : Attribute, IAsyncAuthorizationFilter
     {
-        private readonly UserRole[] _roles = [UserRole.STUDENT, UserRole.ADMIN, UserRole.TEACHER];
+        private readonly UserRole[] _roles;
 
         public SessionAuthorizeAttribute(params UserRole[] roles )
         {
-            _roles = roles;
+            _roles = roles.Length > 0 ? roles : new[] { UserRole.STUDENT, UserRole.ADMIN, UserRole.TEACHER };
+
         }
 
         async Task IAsyncAuthorizationFilter.OnAuthorizationAsync(AuthorizationFilterContext context)
@@ -38,7 +39,7 @@ namespace OnlineExam.Attributes
                 context.Result = new UnauthorizedObjectResult("Session expired or invalid.");
                 return;
             }
-
+            await _sessionService.ExtendSessionAsync(sessionString);
             //var session = await _sessionService.GetBySessionStringAsync(sessionString);
             //var user = await _userService.GetByIdAsync(session!.UserId);
             //var claims = new List<Claim>
