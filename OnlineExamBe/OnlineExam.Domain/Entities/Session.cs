@@ -13,12 +13,12 @@ namespace OnlineExam.Domain.Entities
         public int Id { get; set; }
         public int UserId {  get; set; }
         public UserRole UserRole { get; set; }
-        public string SessionString {  get; set; }
+        public required string SessionString {  get; set; }
         public DateTime IssuedAt { get; set; }
         public DateTime ExpiresAt { get; set; }
 
         [JsonIgnore]
-        public User User { get; set; }
+        public User? User { get; set; }
 
     }
 }

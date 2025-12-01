@@ -85,6 +85,12 @@ namespace OnlineExam.Middleware
                     {
                         case WebsocketAction.SubmitAnswer:
                             cache.SaveAnswer(examId, studentId, msg.Order, msg.QuestionId, msg.Answer);
+
+                            var msgBytes = Encoding.UTF8.GetBytes(
+                                JsonSerializer.Serialize(new { status = "submitted answer id " + msg.QuestionId + " : " + msg.Answer})
+                            );
+
+                            await socket.SendAsync(msgBytes, WebSocketMessageType.Text, true, CancellationToken.None);
                             break;
 
                         case WebsocketAction.SubmitExam:
@@ -97,6 +103,11 @@ namespace OnlineExam.Middleware
                             break;
 
                         case WebsocketAction.Heartbeat:
+                            var ms = Encoding.UTF8.GetBytes(
+                                JsonSerializer.Serialize(new { status = "Heartbeat"})
+                            );
+
+                            await socket.SendAsync(ms, WebSocketMessageType.Text, true, CancellationToken.None);
                             break;
                     }
                 }

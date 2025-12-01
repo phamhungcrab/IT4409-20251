@@ -32,39 +32,39 @@ namespace OnlineExam.Application.Services.Websocket
 
         public async Task<float> GradeAndSaveAsync(int examId, int studentId)
         {
-            var answers = _cache.GetAnswers(examId, studentId);
+            var answers = _cache.GetAnswers(examId, studentId)
+                .ToDictionary(x => x.QuestionId, x => x.Answer ?? "");
 
             var correctList = await _questionExamRepo
                 .Query()
                 .Where(x => x.ExamId == examId && x.StudentId == studentId)
-                .Include(x => x.Question)
                 .ToListAsync();
 
             float totalScore = 0;
             var saveList = new List<StudentQuestion>();
 
-            foreach (var a in answers)
+            foreach (var qe in correctList)
             {
-                var qe = correctList.FirstOrDefault(x => x.QuestionId == a.QuestionId);
-                if (qe == null) continue;
-                else
+                answers.TryGetValue(qe.QuestionId, out string? studentAnswer);
+
+                studentAnswer = studentAnswer ?? "";
+
+                string normalizedStudentAnswer = NormalizeAnswer(studentAnswer);
+
+                bool isCorrect = CheckMultipleCorrect(qe.CorrectAnswer, normalizedStudentAnswer);
+
+                if (isCorrect)
+                    totalScore += qe.Point;
+
+                saveList.Add(new StudentQuestion
                 {
-                    bool isCorrect = string.Equals(
-                    qe.CorrectAnswer.Trim(),
-                    a.Answer.Trim(),
-                    StringComparison.OrdinalIgnoreCase);
-
-                    if (isCorrect) totalScore += qe.Point;
-
-                    saveList.Add(new StudentQuestion
-                    {
-                        ExamId = examId,
-                        StudentId = studentId,
-                        QuestionId = a.QuestionId,
-                        Answer = a.Answer,
-                        Result = isCorrect ? qe.Point : 0
-                    });
-                }
+                    ExamId = examId,
+                    StudentId = studentId,
+                    QuestionId = qe.QuestionId,
+                    Answer = normalizedStudentAnswer,      
+                    Result = isCorrect ? qe.Point : 0,
+                    CreatedAt = DateTime.Now
+                });
             }
 
             await _studentQuestionRepo.AddRangeAsync(saveList);
@@ -94,5 +94,28 @@ namespace OnlineExam.Application.Services.Websocket
 
             return totalScore;
         }
+
+        private bool CheckMultipleCorrect(string correct, string student)
+        {
+            return string.Equals(correct, student, StringComparison.Ordinal);
+        }
+
+        private string NormalizeAnswer(string answer)
+        {
+            if (string.IsNullOrWhiteSpace(answer))
+                return "";
+
+            var parts = answer
+                .Split('|', StringSplitOptions.RemoveEmptyEntries)
+                .Select(p => p.Trim())
+                .Where(p => p.Length > 0)
+                .Select(p => p.ToLowerInvariant())
+                .Distinct(StringComparer.InvariantCultureIgnoreCase)
+                .OrderBy(p => p, StringComparer.InvariantCultureIgnoreCase)
+                .ToList();
+
+            return string.Join("|", parts);
+        }
+
     }
 }
