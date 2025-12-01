@@ -47,7 +47,10 @@ namespace OnlineExam.Controllers
         [HttpPost("start-exam")]
         public async Task<IActionResult> StartExam([FromBody] ExamStartRequest dto)
         {
-            var websocketUrl = $"wss://localhost:7239/ws?examId={dto.ExamId}&studentId={dto.StudentId}";
+            var req = HttpContext.Request;
+            var wsScheme = req.Scheme == "https" ? "wss" : "ws";
+            var host = req.Host.Value;
+            var websocketUrl = $"{wsScheme}://{host}/ws?examId={dto.ExamId}&studentId={dto.StudentId}";
 
             var state = await _examService.GetExamStudent(dto.ExamId, dto.StudentId);
             var exam = await _examService.GetByIdAsync(dto.ExamId);

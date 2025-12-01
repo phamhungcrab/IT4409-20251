@@ -17,6 +17,7 @@ using OnlineExam.Infrastructure.Data;
 using OnlineExam.Infrastructure.Repositories;
 using OnlineExam.Middleware;
 using System.Text;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -91,6 +92,10 @@ builder.Services.AddSingleton<IExamAnswerCache, ExamAnswerCache>();
 
 var app = builder.Build();
 
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 app.UseSwagger();
 app.UseSwaggerUI();
