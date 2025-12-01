@@ -47,14 +47,43 @@ const ExamListPage: React.FC = () => {
           durationMinutes: 60 // Placeholder
       });
 
-      if (response.status === 'success' || response.wsUrl) {
-          navigate(`/exam/${examId}`, { state: { wsUrl: response.wsUrl } });
+      console.log('[ExamListPage] Start exam response:', response);
+
+      if (response.status === 'create' || response.status === 'in_progress') {
+        navigate(`/exam/${examId}`, {
+          state: {
+            wsUrl: response.wsUrl,
+            duration: response.examForStudent?.durationMinutes || 60,
+            questions: response.examForStudent?.questions || []
+          }
+        });
+      } else if (response.status === 'completed') {
+        alert('Bạn đã hoàn thành bài thi này rồi!');
+        navigate('/results');
+      } else if (response.status === 'expired') {
+        alert('Bài thi đã hết hạn!');
       } else {
-          alert('Could not start exam. Please try again.');
+        alert('Could not start exam. Please try again.');
       }
     } catch (error) {
       console.error('Error starting exam', error);
       alert('Error starting exam');
+    }
+  };
+
+  const handleResetExam = async (examId: number) => {
+    if (!user) return;
+    if (!confirm('Bạn có chắc muốn làm lại bài thi này? (CHỈ DÙNG ĐỂ TEST)')) return;
+
+    try {
+      await examService.resetExam(examId, user.id);
+      alert('Đã reset bài thi! Bạn có thể làm lại.');
+      // Refresh exam list
+      const data = await examService.getStudentExams(user.id);
+      setExams(data);
+    } catch (error) {
+      console.error('Error resetting exam', error);
+      alert('Lỗi khi reset bài thi');
     }
   };
 
@@ -91,12 +120,22 @@ const ExamListPage: React.FC = () => {
                   <p>{t('exam.startTime')}: {new Date(exam.startTime).toLocaleString()}</p>
                 </div>
               </div>
-              <button
-                onClick={() => handleStartExam(exam.id)}
-                className="btn btn-primary hover:-translate-y-0.5"
-              >
-                {t('exam.startExam')}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleStartExam(exam.id)}
+                  className="btn btn-primary hover:-translate-y-0.5 flex-1"
+                >
+                  {t('exam.startExam')}
+                </button>
+                {exam.status === 'COMPLETED' && (
+                  <button
+                    onClick={() => handleResetExam(exam.id)}
+                    className="btn btn-ghost hover:-translate-y-0.5 text-amber-400 border-amber-400/30"
+                  >
+                    🔄 Làm lại
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

@@ -9,7 +9,7 @@ import { useAnnouncements } from '../hooks/useAnnouncements';
 const Layout: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
-  const { announcements } = useAnnouncements();
+  const { announcements } = useAnnouncements(user);
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);

@@ -31,10 +31,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (token) {
-      // TODO: Decode token to get user info or fetch profile
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (e) {
+          console.error("Failed to parse user from local storage", e);
+          localStorage.removeItem('user');
+        }
       }
     } else {
       setUser(null);
@@ -44,15 +48,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (data: LoginDto) => {
     try {
       const response = await authService.login(data);
-      if (response && response.accessToken) {
-        setToken(response.accessToken);
-        localStorage.setItem('token', response.accessToken);
-        if (response.refreshToken) {
-            localStorage.setItem('refreshToken', response.refreshToken);
-        }
+      let sessionToken = '';
 
-        // TODO: Decode JWT to get real role
-        const dummyUser: User = { id: 0, email: data.email, role: UserRole.Student };
+      if (typeof response === 'string') {
+          sessionToken = response;
+      } else if (response && typeof response === 'object' && 'accessToken' in response) {
+          sessionToken = response.accessToken;
+      }
+
+      if (sessionToken) {
+        setToken(sessionToken);
+        localStorage.setItem('token', sessionToken);
+        localStorage.removeItem('refreshToken'); // Cleanup old refresh tokens
+
+        // Create a dummy user object since the session token is opaque
+        // In a real app, we might fetch the user profile here
+        const dummyUser: User = { id: 1, email: data.email, role: UserRole.Student };
         setUser(dummyUser);
         localStorage.setItem('user', JSON.stringify(dummyUser));
       }
@@ -63,7 +74,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    // Call backend logout if needed (fire and forget)
     if (user) {
         authService.logout({ userId: user.id }).catch(console.error);
     }
@@ -80,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const handleLogout = () => logout();
     window.addEventListener('auth:logout', handleLogout);
     return () => window.removeEventListener('auth:logout', handleLogout);
-  }, [user]); // Add user dependency to ensure logout has access to current user if needed
+  }, [user]);
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout }}>

@@ -127,14 +127,16 @@ Mặc định, `appsettings.Development.json` có thể đang trỏ đến một
 2. Di chuyển vào thư mục Frontend:
    ```bash
    cd OnlineExamFe/client
+   npm install
+   npm run dev
    ```
 3. Cài đặt các thư viện (chỉ cần làm lần đầu):
    ```bash
-   npm install
+
    ```
 4. Chạy ứng dụng:
    ```bash
-   npm run dev
+
    ```
 5. Truy cập địa chỉ hiện ra trên màn hình (thường là `http://localhost:5173`) bằng trình duyệt.
 

@@ -22,14 +22,11 @@ const ExamRoomPage: React.FC = () => {
 
   const wsUrl = location.state?.wsUrl;
   const duration = location.state?.duration || 60;
+  const initialQuestions = location.state?.questions || [];
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<number, any>>({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-
-  const { formattedTime } = useTimer(duration, () => {
-    handleSubmit();
-  });
 
   const { connectionState, syncAnswer, submitExam } = useExam({
     wsUrl,
@@ -43,11 +40,40 @@ const ExamRoomPage: React.FC = () => {
     onError: (msg) => alert(`${t('common.error')}: ${msg}`)
   });
 
+  const { formattedTime } = useTimer(duration, () => {
+    alert(t('exam.timeUp'));
+    submitExam();
+  });
+
   useEffect(() => {
-    setQuestions([
-      { id: 1, text: 'What is 2+2?', type: 1, options: [{ id: 1, text: '3' }, { id: 2, text: '4' }] },
-      { id: 2, text: 'Capital of France?', type: 1, options: [{ id: 3, text: 'Paris' }, { id: 4, text: 'London' }] }
-    ]);
+    if (initialQuestions.length > 0) {
+      const mappedQuestions = initialQuestions.map((q: any) => {
+        let options = [];
+        try {
+          if (q.cleanAnswer) {
+             const parsed = JSON.parse(q.cleanAnswer);
+             options = parsed.map((opt: any, idx: number) => ({
+               id: idx + 1,
+               text: opt.Content || opt.text || opt
+             }));
+          }
+        } catch (e) {
+          console.error('Failed to parse options', e);
+        }
+
+        return {
+          id: q.id,
+          text: q.content,
+          type: q.type,
+          options
+        };
+      });
+      setQuestions(mappedQuestions);
+    } else {
+      setQuestions([
+        { id: 1, text: 'No questions loaded. Please start from exam list.', type: 1, options: [] }
+      ]);
+    }
   }, []);
 
   const handleAnswer = (questionId: number, answer: any) => {

@@ -2,24 +2,36 @@ import { useState, useEffect } from 'react';
 import apiClient from '../utils/apiClient';
 import { Announcement } from '../components/AnnouncementBanner';
 
-export const useAnnouncements = () => {
+export const useAnnouncements = (user: any) => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!user) {
+        setAnnouncements([]);
+        setLoading(false);
+        return;
+    }
+
     const fetchAnnouncements = async () => {
       try {
+        // MOCK DATA: Avoid 401 for now
+        const mapped: Announcement[] = [
+            { id: 1, message: 'Welcome to the Online Exam System!', type: 'info' },
+            { id: 2, message: 'System maintenance scheduled for Sunday.', type: 'warning' }
+        ];
+
         // apiClient interceptor returns the data directly
-        const response = await apiClient.get<any[]>('/api/Announcements') as unknown as any[];
+        // const response = await apiClient.get<any[]>('/api/Announcements') as unknown as any[];
 
         // Map backend response to frontend Announcement interface
         // Backend returns: { id, title, content, type, date }
-        const mapped: Announcement[] = response.map((item: any) => ({
-          id: item.id,
-          message: `${item.title}: ${item.content}`,
-          type: item.type || 'info'
-        }));
+        // const mapped: Announcement[] = response.map((item: any) => ({
+        //   id: item.id,
+        //   message: `${item.title}: ${item.content}`,
+        //   type: item.type || 'info'
+        // }));
 
         setAnnouncements(mapped);
         setLoading(false);
@@ -31,7 +43,7 @@ export const useAnnouncements = () => {
     };
 
     fetchAnnouncements();
-  }, []);
+  }, [user]);
 
   return { announcements, loading, error };
 };

@@ -16,19 +16,35 @@ export const useExam = ({ wsUrl, studentId, examId, onSynced, onSubmitted, onErr
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
 
+  // Use refs for callbacks to avoid reconnecting when they change
+  const onSyncedRef = useRef(onSynced);
+  const onSubmittedRef = useRef(onSubmitted);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+    onSyncedRef.current = onSynced;
+    onSubmittedRef.current = onSubmitted;
+    onErrorRef.current = onError;
+  }, [onSynced, onSubmitted, onError]);
+
   const connect = useCallback(() => {
     if (!wsUrl) return;
 
     setConnectionState(prev => prev === 'disconnected' ? 'connecting' : 'reconnecting');
 
-    const ws = monitoringService.connect(wsUrl, (data) => {
+    const token = localStorage.getItem('token');
+    const urlWithToken = token
+        ? `${wsUrl}${wsUrl.includes('?') ? '&' : '?'}session=${encodeURIComponent(token)}`
+        : wsUrl;
+
+    const ws = monitoringService.connect(urlWithToken, (data) => {
       console.log('WS Message:', data);
-      if (data.type === 'synced') {
-        onSynced?.();
-      } else if (data.type === 'submitted') {
-        onSubmitted?.(data.result);
+      if (data.status === 'submitted') {
+        onSubmittedRef.current?.(data);
+      } else if (data.type === 'synced') {
+        onSyncedRef.current?.();
       } else if (data.type === 'error') {
-        onError?.(data.message);
+        onErrorRef.current?.(data.message);
       }
     });
 
@@ -52,12 +68,12 @@ export const useExam = ({ wsUrl, studentId, examId, onSynced, onSubmitted, onErr
           connect();
         }, timeout);
       } else {
-        onError?.('Connection lost. Please refresh the page.');
+        onErrorRef.current?.('Connection lost. Please refresh the page.');
       }
     };
 
     wsRef.current = ws;
-  }, [wsUrl, onError, onSynced, onSubmitted]);
+  }, [wsUrl]); // Only reconnect if wsUrl changes
 
   useEffect(() => {
     connect();
@@ -71,7 +87,7 @@ export const useExam = ({ wsUrl, studentId, examId, onSynced, onSubmitted, onErr
   const syncAnswer = useCallback((questionId: number, answer: any) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
-        action: 'sync',
+        Action: 'SubmitAnswer',
         studentId,
         examId,
         questionId,
@@ -88,14 +104,14 @@ export const useExam = ({ wsUrl, studentId, examId, onSynced, onSubmitted, onErr
   const submitExam = useCallback(() => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
-        action: 'submit',
+        Action: 'SubmitExam',
         studentId,
         examId
       }));
     } else {
-       onError?.('Cannot submit: Connection lost. Please try again when connected.');
+       onErrorRef.current?.('Cannot submit: Connection lost. Please try again when connected.');
     }
-  }, [studentId, examId, onError]);
+  }, [studentId, examId]);
 
   return {
     connectionState,

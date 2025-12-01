@@ -49,10 +49,10 @@ export interface CheckOtpDto {
   email: string;
 }
 
-export interface TokenResponse {
+export type TokenResponse = string | {
   accessToken: string;
   refreshToken: string;
-}
+};
 
 export interface RefreshTokenDto {
   accessToken: string;
@@ -65,22 +65,22 @@ export interface RefreshTokenDto {
 export const authService = {
   login: async (data: LoginDto): Promise<TokenResponse> => {
     // Cast the result because our interceptor unwraps the response, but Axios types don't know that.
-    return await apiClient.post<TokenResponse>('/api/AuthController/login', data) as unknown as Promise<TokenResponse>;
+    return await apiClient.post<TokenResponse>('/api/Auth/login', data) as unknown as Promise<TokenResponse>;
   },
 
   logout: async (data: LogoutDto): Promise<void> => {
-    return await apiClient.post<void>('/api/AuthController/logout', data) as unknown as Promise<void>;
+    return await apiClient.post<void>('/api/Auth/logout', data) as unknown as Promise<void>;
   },
 
   refreshToken: async (data: RefreshTokenDto): Promise<TokenResponse> => {
-    return await apiClient.post<TokenResponse>('/api/AuthController/refresh-token', data) as unknown as Promise<TokenResponse>;
+    return await apiClient.post<TokenResponse>('/api/Auth/refresh-token', data) as unknown as Promise<TokenResponse>;
   },
 
   sendOtp: async (data: SendOtpDto): Promise<void> => {
-    return await apiClient.post<void>('/api/AuthController/send-otp', data) as unknown as Promise<void>;
+    return await apiClient.post<void>('/api/Auth/send-otp', data) as unknown as Promise<void>;
   },
 
   checkOtp: async (data: CheckOtpDto): Promise<void> => {
-    return await apiClient.post<void>('/api/AuthController/check-otp', data) as unknown as Promise<void>;
+    return await apiClient.post<void>('/api/Auth/check-otp', data) as unknown as Promise<void>;
   }
 };
