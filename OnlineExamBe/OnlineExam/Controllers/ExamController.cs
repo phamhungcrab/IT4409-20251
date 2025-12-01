@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.Exam;
+using OnlineExam.Application.Dtos.ExamStudent;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
@@ -68,10 +69,19 @@ namespace OnlineExam.Controllers
                 //Trả kết quả
                 else if (state.Status == ExamStatus.COMPLETED)
                 {
+                    var result = new ResponseResultExamDto
+                    {
+                        ExamId = state.ExamId,
+                        StudentId = state.StudentId,
+                        StartTime = state.StartTime,
+                        EndTime = state.EndTime,
+                        Points = state.Points,
+                        Status = state.Status
+                    };
                     return Ok(new
                     {
-                        status = "completed"
-                        
+                        status = "completed",
+                        data = result
                     });
                 }
 
@@ -81,7 +91,6 @@ namespace OnlineExam.Controllers
                     return Ok(new
                     {
                         status = "expired"
-                        
                     });
                 }
                 else return BadRequest("Không có status bài thi tương ứng");
@@ -111,7 +120,7 @@ namespace OnlineExam.Controllers
                 {   
                     status = "create",
                     wsUrl = websocketUrl,
-                    examForStudent
+                    data = examForStudent
                 });
             }
                 
