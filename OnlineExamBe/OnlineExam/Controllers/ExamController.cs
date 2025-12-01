@@ -103,7 +103,7 @@ namespace OnlineExam.Controllers
                 {
                     ExamId = dto.ExamId,
                     StudentId = dto.StudentId,
-                    DurationMinutes = dto.DurationMinutes,
+                    DurationMinutes = exam.DurationMinutes,
                     StartTime = exam.StartTime,
                     EndTime = exam.EndTime,
                 });
