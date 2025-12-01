@@ -14,7 +14,7 @@ namespace OnlineExam.Domain.Entities
         public QuestionDifficulty Difficulty { get; set; } = QuestionDifficulty.Easy;
         public required string Content { get; set; }
         public string ImageUrl { get; set; } = String.Empty;
-        public float Point { get; set; }
+        public float Point { get; set; } = 1;
         public required string Answer { get; set; }
         public int Chapter { get; set; }
         public int SubjectId { get; set; }

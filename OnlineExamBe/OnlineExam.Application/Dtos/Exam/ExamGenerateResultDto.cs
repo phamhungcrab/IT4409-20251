@@ -31,6 +31,6 @@ namespace OnlineExam.Application.Dtos.Exam
         public string ImageUrl { get; set; } = String.Empty;
         public float Point { get; set; }
         public int Chapter { get; set; }
-        public required string CleanAnswer { get; set; }
+        public required List<string> CleanAnswer { get; set; }
     }
 }

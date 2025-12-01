@@ -102,7 +102,7 @@ app.UseHttpsRedirection();
 
 app.UseWebSockets();
 
-app.UseMiddleware<SessionMiddleware>();
+//app.UseMiddleware<SessionMiddleware>();
 
 app.UseSession();
 

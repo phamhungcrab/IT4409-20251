@@ -8,6 +8,7 @@ using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -149,20 +150,39 @@ namespace OnlineExam.Application.Services
                     ExamId = exam.Id,
                     QuestionId = q.Id,
                     StudentId = StudentId,
-                    CorrectAnswer = GetCorrectAnswer(q.Answer) // Lấy correct từ chuỗi
+                    CorrectAnswer = GetCorrectAnswer(q.Answer), // Lấy correct từ chuỗi
+                    Point = q.Point
                 });
             }
         }
 
         private string GetCorrectAnswer(string list)
         {
-            return "";
-        }
+            if (string.IsNullOrWhiteSpace(list))
+                return "";
 
-        private string CleanAnswer(string raw)
+            var correctAnswers = list
+                            .Split('|', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(p => p.Trim())
+                            .Where(p => p.EndsWith("*"))
+                            .Select(p => p.TrimEnd('*').Trim())
+                            .Where(p => p.Length > 0)
+                            .Select(p => p.ToLowerInvariant()) // chuẩn hoá lowercase
+                            .Distinct(StringComparer.InvariantCultureIgnoreCase)
+                            .OrderBy(p => p, StringComparer.InvariantCultureIgnoreCase)
+                            .ToList();
+
+            return string.Join("|", correctAnswers);
+        }
+           
+        private List<string> CleanAnswer(string raw)
         {
-            return "";
-        }
+            if (string.IsNullOrWhiteSpace(raw))
+                return new List<string>();
 
+            return raw.Split('|', StringSplitOptions.RemoveEmptyEntries)
+                      .Select(x => x.Trim().TrimEnd('*').Trim())
+                      .ToList();
+        }
     }
 }
