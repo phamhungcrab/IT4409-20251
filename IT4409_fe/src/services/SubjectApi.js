@@ -1,6 +1,6 @@
 import { api } from "../lib/axiosClient";
 
-async function getAllSubject() {
+const getAllSubject = async () => {
     try {
         const res = await api.get("/subject/get-all");
         return res.data
@@ -10,7 +10,7 @@ async function getAllSubject() {
     }
 }
 
-async function getSubjectByCode(code) {
+const getSubjectByCode = async (code) => {
     try {
         const res = await api.get(`/subject/get-with-${code}`);
         return res.data;
@@ -20,19 +20,21 @@ async function getSubjectByCode(code) {
     }
 }
 
-async function createSubject(credentials) {
+const createSubject = async (credentials) => {
     try {
         const newSubject = await api.post("/subject/create", {
             name: credentials.name,
             subjectCode: credentials.subjectCode,
-            sub
-        })
+        });
+        return newSubject.data;
     } catch (e) {
-
+        console.alert(e);
+        return
     }
 }
 
 export {
     getAllSubject,
-    getSubjectByCode
+    getSubjectByCode,
+    createSubject
 }

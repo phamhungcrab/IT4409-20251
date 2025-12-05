@@ -9,7 +9,7 @@ const authRequestInterceptor = (config) => {
 };
 
 export const api = axios.create({
-    baseURL: process.env.BASE_API_URL
+    baseURL: "/api"
 });
 
 api.interceptors.request.use(authRequestInterceptor);

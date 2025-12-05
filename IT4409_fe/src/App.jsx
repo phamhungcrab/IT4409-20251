@@ -13,6 +13,7 @@ import { Layout } from './layouts/(admin)/Layout';
 import { CMSAccounts } from './pages/(admin)/CMSAccount';
 import { CMSSubject } from './pages/(admin)/CMSSubject';
 import { CMSSignup } from './pages/(admin)/CMSSignup';
+import { CMSStudents } from './pages/(admin)/CMSStudents';
 
 
 function App() {
@@ -36,8 +37,9 @@ function App() {
           <Route path="class" element={<CMSClass />} />
           <Route path="exam" element={<CMSExam />} />
           <Route path="questions" element={<CMSQuestions />} />
-          <Route path="results" element={<CMSResults />} />
+          <Route path="results/:examId" element={<CMSResults />} />
           <Route path="subject" element={<CMSSubject />} />
+          <Route path="class/students" element={<CMSStudents />} />
         </Route>
       </Routes>
     </BrowserRouter>

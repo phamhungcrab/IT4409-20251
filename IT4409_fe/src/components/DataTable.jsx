@@ -3,7 +3,7 @@ import React from "react";
 export const DataTable = ({ columns, data, actions }) => {
     return (
         <div className="overflow-x-auto bg-white rounded-lg shadow">
-            <table className="min-w border-collapse">
+            <table className="w-full border-collapse">
                 <thead className="bg-gray-100 text-gray-700 uppercase text-sm">
                     <tr>
                         {columns.map((col) => (
@@ -31,7 +31,7 @@ export const DataTable = ({ columns, data, actions }) => {
                                             key={idx}
                                             onClick={() => action.onClick(row)}
                                             className={`${action.color === "red"
-                                                ? "text-red-600 hover:text-red-800"
+                                                ? "text-[#AA1D2B] hover:text-red-800"
                                                 : "text-indigo-600 hover:text-indigo-800"
                                                 } font-medium text-sm transition mx-1`}
                                         >

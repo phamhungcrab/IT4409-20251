@@ -1,24 +1,13 @@
 // Quản lý ngân hàng câu hỏi
+import { useState } from "react";
 import { DataTable } from "../../components/DataTable";
+import { CommonButton } from "../../components/Button";
+import { Modal } from "../../components/Modal";
+import { Form } from "../../components/Form";
 
 export const CMSQuestions = () => {
 
-    const getCorrectAnswer = (answerText) => {
-        const parts = answerText.split(",");
-        const correct = parts.find(p => p.includes("(đúng)"));
-        return correct ? correct.replace("(đúng)", "").trim() : "";
-    };
-
-    const renderAnswerList = (answerText) => {
-        return answerText
-            .split(",")            // tách theo dấu phẩy
-            .map(a => a.trim())    // bỏ khoảng trắng
-            .map((a, i) => <div key={i}>{a}</div>); // hiển thị mỗi đáp án 1 dòng
-    };
-
-
-
-    const questions = [
+    const [questions, setQuestions] = useState([
         { id: "1", type: "SINGLE_CHOICE", content: "Đơn vị đo cường độ dòng điện trong hệ SI là gì?", point: 1, answer: "A. Ampe (A) (đúng), B. Vôn (V), C.Oát (W), D.Jun (J)", subjectId: 2 },
         { id: "1", type: "SINGLE_CHOICE", content: "Đơn vị đo hiệu điện thế trong hệ SI là gì?", point: 1, answer: "A. Ampe (A), B. Vôn (V) (đúng), C.Oát (W), D.Jun (J)", subjectId: 2 },
         {
@@ -29,8 +18,63 @@ export const CMSQuestions = () => {
             answer: "A. Một nhóm phương pháp giúp máy tính tự học từ dữ liệu mà không cần lập trình rõ ràng từng bước (đúng), B. Một công nghệ giúp máy tính chỉ có thể thực hiện các tác vụ cố định được lập trình sẵn, C. Một kỹ thuật cho phép máy tính vận hành hoàn toàn không cần dữ liệu, D. Một hệ thống mô phỏng hành vi con người bằng cách sao chép trực tiếp não bộ thật",
             subjectId: 5
         }
+    ]);
+    const [open, setOpen] = useState(false);
+    const [editData, setEditData] = useState(null);
 
+    const getCorrectAnswer = (answerText) => {
+        const parts = answerText.split(",");
+        const correct = parts.find(p => p.includes("(đúng)"));
+        return correct ? correct.replace("(đúng)", "").trim() : "";
+    };
+
+    const renderAnswerList = (answerText) => {
+        return answerText
+            .split(",")
+            .map(a => a.trim())
+            .map((a, i) => <div key={i}>{a}</div>);
+    };
+
+    const handleAdd = () => {
+        setEditData(null);
+        setOpen(true);
+    };
+
+    const handleEdit = (row) => {
+        setEditData(row);
+        setOpen(true);
+    };
+
+    const handleDelete = (id) => {
+        setQuestions(questions.filter(q => q.id !== id));
+    };
+
+    const handleSave = (formData) => {
+        if (editData) {
+            // Update
+            setQuestions(questions.map(q =>
+                q.id === editData.id ? { ...editData, ...formData } : q
+            ));
+        } else {
+            // Create
+            setQuestions([...questions, { id: Date.now(), ...formData }]);
+        }
+        setOpen(false);
+    };
+
+    const questionFields = [
+        { name: "content", label: "Nội dung câu hỏi", type: "text" },
+        {
+            name: "type", label: "Loại câu hỏi", type: "select", options: [
+                { value: "SINGLE_CHOICE", label: "Single choice" },
+                { value: "MULTI_CHOICE", label: "Multi choice" }
+            ]
+        },
+        { name: "point", label: "Điểm", type: "number" },
+        { name: "answer", label: "Danh sách đáp án", type: "text" },
+        { name: "subjectId", label: "Học phần", type: "number" }
     ];
+
 
     const columns = [
         {
@@ -82,8 +126,8 @@ export const CMSQuestions = () => {
     ];
 
     const actions = [
-        { label: "Sửa", color: "indigo", onClick: (u) => alert(`Sửa câu hỏi`) },
-        { label: "Xóa", color: "red", onClick: (u) => alert(`Xóa câu hỏi`) },
+        { label: "Sửa", color: "indigo", onClick: handleEdit },
+        { label: "Xóa", color: "red", onClick: handleDelete },
     ];
 
     return (
@@ -110,16 +154,24 @@ export const CMSQuestions = () => {
                     </select>
                 </div>
 
-                <button className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md shadow hover:bg-indigo-500 transition whitespace-nowrap">
-                    + Thêm câu hỏi
-                </button>
+                <CommonButton
+                    label="+ Thêm câu hỏi"
+                    color="danger"
+                    onClick={handleAdd}
+                />
+
             </div>
 
-            <div className="overflow-x-auto">
-                <div className="min-w-[900px]">
-                    <DataTable columns={columns} data={questions} actions={actions} />
-                </div>
-            </div>
+            <Modal isOpen={open} onClose={() => setOpen(false)} title={editData ? "Sửa câu hỏi" : "Thêm câu hỏi"}>
+                <Form
+                    fields={questionFields}
+                    initialValues={editData || {}}
+                    onSubmit={handleSave}
+                    onCancel={() => setOpen(false)}
+                />
+            </Modal>
+
+            <DataTable columns={columns} data={questions} actions={actions} />
 
             <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
                 <p>Hiển thị {questions.length > 0 ? `1–${questions.length}` : "0"} trong {questions.length} câu hỏi</p>

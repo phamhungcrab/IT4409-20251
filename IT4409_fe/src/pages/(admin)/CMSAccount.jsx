@@ -1,13 +1,18 @@
-import React from "react";
+import React, { useState } from "react";
 import { DataTable } from "../../components/DataTable";
+import { Modal } from "../../components/Modal";
+import { Form } from "../../components/Form";
+import { CommonButton } from "../../components/Button";
 
 export const CMSAccounts = () => {
-    const users = [
-        { id: 1, fullname: "Phạm Đặng Mai Hương", mssv: "20225134", email: "mhmhuong04@gmail.com", role: "student" },
-        { id: 2, fullname: "Trần Thị Minh Thu", mssv: "20224901", email: "minhthu@gmail.com", role: "student" },
-        { id: 3, fullname: "Trần Thị Hồng Thơm", mssv: "", email: "hongthom@gmail.com", role: "teacher" },
-        { id: 4, fullname: "Admin", mssv: "", email: "admin@gmail.com", role: "admin" },
-    ];
+    const [accounts, setAccounts] = useState([
+        { id: 1, fullname: "Phạm Đặng Mai Hương", mssv: "20225134", email: "mhmhuong04@gmail.com", role: "student", password: "123456", dateOfBirth: "2004-12-06" },
+        { id: 2, fullname: "Trần Thị Minh Thu", mssv: "20224901", email: "minhthu@gmail.com", role: "student", password: "123456", dateOfBirth: "2004-04-15" },
+        { id: 3, fullname: "Trần Thị Hồng Thơm", mssv: "", email: "hongthom@gmail.com", role: "teacher", password: "123456", dateOfBirth: "2003-04-15" },
+        { id: 4, fullname: "Admin", mssv: "", email: "admin@gmail.com", role: "admin", password: "123456" },
+    ]);
+    const [open, setOpen] = useState(false);
+    const [editData, setEditData] = useState(null);
 
     const columns = [
         {
@@ -28,6 +33,7 @@ export const CMSAccounts = () => {
                 </div>
             ),
         },
+        { header: "Ngày sinh", accessor: "dateOfBirth" },
         { header: "Mã số SV", accessor: "mssv", render: (u) => u.mssv || "—" },
         { header: "Email", accessor: "email" },
         {
@@ -52,9 +58,51 @@ export const CMSAccounts = () => {
         },
     ];
 
+    const accountFields = [
+        { name: "fullname", label: "Họ tên", type: "text" },
+        { name: "dateOfBirth", label: "Ngày sinh", type: "date" },
+        { name: "mssv", label: "Mã số sinh viên", type: "text" },
+        { name: "email", label: "Email", type: "text" },
+        {
+            name: "role", label: "Vai trò", type: "select", options: [
+                { value: "STUDENT", label: "Sinh viên" },
+                { value: "TEACHER", label: "Giáo viên" },
+                { value: "ADMIN", label: "Quản trị viên" }
+            ]
+        },
+        { name: "password", label: "Mật khẩu", type: "text" }
+    ]
+
+    const handleAdd = () => {
+        setEditData(null);
+        setOpen(true);
+    };
+
+    const handleEdit = (row) => {
+        setEditData(row);
+        setOpen(true);
+    };
+
+    const handleDelete = (id) => {
+        setAccounts(subjects.filter(q => q.id !== id));
+    };
+
+    const handleSave = (formData) => {
+        if (editData) {
+            // Update
+            setAccounts(subjects.map(q =>
+                q.id === editData.id ? { ...editData, ...formData } : q
+            ));
+        } else {
+            // Create
+            setAccounts([...subjects, { id: Date.now(), ...formData }]);
+        }
+        setOpen(false);
+    };
+
     const actions = [
-        { label: "Sửa", color: "indigo", onClick: (u) => alert(`Sửa ${u.fullname}`) },
-        { label: "Xóa", color: "red", onClick: (u) => alert(`Xóa ${u.fullname}`) },
+        { label: "Sửa", color: "gray", onClick: handleEdit },
+        { label: "Xóa", color: "red", onClick: handleDelete },
     ];
 
     return (
@@ -81,21 +129,33 @@ export const CMSAccounts = () => {
                         <option value="admin">Quản trị viên</option>
                     </select>
                 </div>
+                <CommonButton
+                    label="+ Thêm tài khoản"
+                    color="danger"
+                    onClick={handleAdd}
+                />
 
-                <button className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md shadow hover:bg-indigo-500 transition whitespace-nowrap">
-                    + Thêm tài khoản
-                </button>
             </div>
 
-            <DataTable columns={columns} data={users} actions={actions} />
+            <Modal isOpen={open} onClose={() => setOpen(false)} title={editData ? "Sửa thông tin tài khoản" : "Thêm tài khoản mới"}>
+                <Form
+                    fields={accountFields}
+                    initialValues={editData || {}}
+                    onSubmit={handleSave}
+                    onCancel={() => setOpen(false)}
+                />
+            </Modal>
+
+            <DataTable columns={columns} data={accounts} actions={actions} />
 
             <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
-                <p>Hiển thị {users.length > 0 ? `1–${users.length}` : "0"} trong {users.length} người dùng</p>
+                <p>Hiển thị {accounts.length > 0 ? `1–${accounts.length}` : "0"} trong {accounts.length} bài kiểm tra</p>
                 <div className="flex items-center gap-2">
                     <button className="px-3 py-1 border rounded hover:bg-gray-100">Trước</button>
                     <button className="px-3 py-1 border rounded hover:bg-gray-100">Sau</button>
                 </div>
             </div>
+
         </div>
     );
 };

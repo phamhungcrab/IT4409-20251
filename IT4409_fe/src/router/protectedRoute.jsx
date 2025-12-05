@@ -1,55 +1,18 @@
-import { useNavigate, Navigate } from "react-router-dom";
-import { useState, useEffect, cloneElement } from "react";
-
-const checkLoginApi = async () => {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            const isAuthenticated = true;
-            if (isAuthenticated) resolve();
-            else reject();
-        }, 800);
-    });
-};
-
-const getProfileApi = async () => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve({ role: "admin" });
-        }, 300);
-    });
-};
+import { Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 export const ProtectedRoute = ({ children }) => {
+    const [loading, setLoading] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(true);
-    const [role, setRole] = useState('admin');
-    const navigate = useNavigate();
 
     // useEffect(() => {
-    //     const checkLoginStatus = async () => {
-    //         try {
-    //             await checkLoginApi();
-    //             setIsLoggedIn(true);
-    //         } catch (e) {
-    //             setIsLoggedIn(false);
-    //             navigate("/admin/login", { replace: true })
-    //         }
-    //     }
-
-    //     const checkRole = async () => {
-    //         try {
-    //             let userData = await getProfileApi();
-    //             let userRole = userData.role;
-    //             setRole(userRole);
-    //         } catch (e) {
-    //             setRole('');
-    //         }
-    //     }
-
-    //     checkLoginStatus();
-    //     checkRole();
+    //     const token = localStorage.getItem("token");
+    //     console.log("Token: ", token);
+    //     setIsLoggedIn(!!token);
+    //     setLoading(false);
     // }, []);
 
-    if (!isLoggedIn) return <Navigate to="/admin/login" replace />;
+    if (loading) return <div>Loading...</div>;
 
-    return cloneElement(children, { role });
-}
+    return isLoggedIn ? children : <Navigate to="/admin/login" replace />;
+};

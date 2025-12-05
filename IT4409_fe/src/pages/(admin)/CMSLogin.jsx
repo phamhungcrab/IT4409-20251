@@ -1,16 +1,8 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-const loginApi = async (email, password) => {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            if (email === "admin@gmail.com" && password === "123456")
-                resolve({ token: "12345" });
-            else reject(new Error("Sai thông tin đăng nhập"));
-        }, 800);
-    });
-};
+import { loginApi } from "../../services/AuthApi";
+import { api } from "../../lib/axiosClient";
 
 export const CMSLogin = () => {
     const navigate = useNavigate();
@@ -20,26 +12,47 @@ export const CMSLogin = () => {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
+    const validate = () => {
+        if (!email.trim()) return "Vui lòng nhập email!";
+
+        const re = /^\S+@\S+\.\S+$/;
+        if (!re.test(email)) return "Địa chỉ email không hợp lệ.";
+
+        if (!password.trim()) return "Vui lòng nhập mật khẩu";
+
+        return "";
+    }
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
-        if (!email || !password)
-            return setError("Vui lòng nhập đầy đủ thông tin");
+        const v = validate();
+        if (v) {
+            setError(v);
+            return;
+        }
         try {
             setLoading(true);
-            const res = await loginApi(email, password);
-            localStorage.setItem("auth-token", res.token);
-            navigate("/");
-        } catch (err) {
-            setError(err.message);
+            const data = await loginApi({ email, password });
+
+            //console.log("Login data: ", data.data);
+
+            if (data.data) {
+                localStorage.setItem("token", data.data)
+            }
+
+            api.defaults.headers.common["Authorization"] = `Bearer ${data.data}`;
+
+            navigate("/admin/home", { replace: true });
+        } catch (e) {
+            setError(e.message || "Có lỗi xảy ra. Vui lòng thử lại");
         } finally {
             setLoading(false);
         }
-    };
+    }
 
     return (
         <div className="flex min-h-full flex-col justify-center bg-white px-6 py-12 lg:px-80">
-            {/* Logo + Title */}
             <div className="sm:mx-auto sm:w-full sm:max-w-sm">
                 <img
                     src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500"
@@ -51,18 +64,12 @@ export const CMSLogin = () => {
                 </h2>
             </div>
 
-            {/* Form */}
             <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-                {error && (
-                    <div className="text-red-400 bg-red-500/10 border border-red-500/20 rounded-md p-3 mb-4 text-sm text-center">
-                        {error}
-                    </div>
-                )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label for="email" class="block text-sm/6 font-medium text-gray-900">Email</label>
-                        <div class="mt-2">
+                        <label for="email" className="block text-sm/6 font-medium text-gray-900">Email</label>
+                        <div className="mt-2">
                             <input
                                 id="email"
                                 type="email"
@@ -72,15 +79,15 @@ export const CMSLogin = () => {
                                 placeholder="Nhập email..."
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                class="block w-full rounded-md bg-white px-3 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                class="block w-full rounded-md bg-white px-3 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#AA1D2B] sm:text-sm/6" />
                         </div>
                     </div>
 
                     <div>
-                        <div class="flex items-center justify-between">
+                        <div className="flex items-center justify-between">
                             <label for="password" class="block text-sm/6 font-medium text-gray-900">Mật khẩu</label>
                         </div>
-                        <div class="mt-2 relative">
+                        <div className="mt-2 relative">
                             <input
                                 id="password"
                                 type={showPassword ? "text" : "password"}
@@ -90,7 +97,7 @@ export const CMSLogin = () => {
                                 placeholder="Nhập mật khẩu"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                class="block w-full rounded-md bg-white px-3 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                                class="block w-full rounded-md bg-white px-3 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#AA1D2B] sm:text-sm/6" />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword((prev) => !prev)}
@@ -105,11 +112,10 @@ export const CMSLogin = () => {
                         </div>
                     </div>
 
-                    {/* Button */}
                     <div>
                         <button
                             type="submit"
-                            className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                            className="flex w-full justify-center rounded-md bg-[#AA1D2B] px-3 py-2.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                         >
                             Đăng nhập
                         </button>
