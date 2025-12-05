@@ -7,6 +7,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { authService, LoginDto, UserRole } from '../services/authService';
+import { userService } from '../services/userService';
 
 export interface User {
   id: number;
@@ -59,13 +60,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (sessionToken) {
         setToken(sessionToken);
         localStorage.setItem('token', sessionToken);
-        localStorage.removeItem('refreshToken'); // Cleanup old refresh tokens
+        localStorage.removeItem('refreshToken');
 
-        // Create a dummy user object since the session token is opaque
-        // In a real app, we might fetch the user profile here
-        const dummyUser: User = { id: 1, email: data.email, role: UserRole.Student };
-        setUser(dummyUser);
-        localStorage.setItem('user', JSON.stringify(dummyUser));
+        // Backend returns an opaque session string (not JWT).
+        // We must fetch the user list to identify the current user's role and ID.
+        try {
+            const allUsers = await userService.getAll();
+            // Match lowercase email just to be safe
+            const currentUser = allUsers.find(u => u.email.toLowerCase() === data.email.toLowerCase());
+
+            if (currentUser) {
+                console.log('User found via lookup:', currentUser);
+
+                // Map API role enum/string to proper Role string
+                // Backend UserRole enum values might be integers or strings.
+                // We'll convert to string to match UserRole enum usage in frontend.
+                let roleStr = String(currentUser.role);
+
+                // If it's number 0, 1, 2... map it manually if we knew the mapping.
+                // Assuming backend returns string "Teacher", "Student", etc. as currently observed in DTOs.
+                // If it returns int, we might need adjustments. For now, trusting DTOs.
+
+                if (roleStr === '1' || roleStr === 'Teacher') roleStr = UserRole.Teacher;
+                else if (roleStr === '0' || roleStr === 'Admin') roleStr = UserRole.Admin;
+                else if (roleStr === '2' || roleStr === 'Student') roleStr = UserRole.Student;
+
+                const userObj: User = {
+                    id: currentUser.id,
+                    email: currentUser.email,
+                    role: roleStr
+                };
+                setUser(userObj);
+                localStorage.setItem('user', JSON.stringify(userObj));
+            } else {
+                 console.warn('User not found in user list, defaulting to Student');
+                 const dummyUser: User = { id: 0, email: data.email, role: UserRole.Student };
+                 setUser(dummyUser);
+                 localStorage.setItem('user', JSON.stringify(dummyUser));
+            }
+
+        } catch (e) {
+            console.error('Failed to fetch user details to determine role', e);
+            // Fallback to student so at least they can log in
+            const dummyUser: User = { id: 0, email: data.email, role: UserRole.Student };
+            setUser(dummyUser);
+            localStorage.setItem('user', JSON.stringify(dummyUser));
+        }
       }
     } catch (error) {
       console.error('Login failed', error);

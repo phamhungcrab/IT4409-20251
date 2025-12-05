@@ -38,8 +38,9 @@ export default defineConfig(({ mode }) => {
       // Example: proxy API requests to avoid CORS during development
       proxy: {
         "/api": {
-          target: "http://localhost:5133",
+          target: "https://it4409-20251.onrender.com",
           changeOrigin: true,
+          secure: false, // Handle HTTPS
         },
       },
     },

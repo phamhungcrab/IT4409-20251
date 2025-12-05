@@ -41,18 +41,35 @@ const ExamListPage: React.FC = () => {
     try {
       const response = await examService.startExam({
           examId,
-          studentId: user.id,
-          classId: 1, // Placeholder
-          blueprintId: 1, // Placeholder
-          durationMinutes: 60 // Placeholder
+          studentId: user.id
       });
 
       console.log('[ExamListPage] Start exam response:', response);
 
       if (response.status === 'create' || response.status === 'in_progress') {
+        let wsUrl = response.wsUrl;
+
+        // Fix for production: if backend returns localhost or relative path, ensure we use wss:// on render
+        const apiBase = (import.meta as any).env.VITE_API_BASE_URL || '';
+        if (wsUrl) {
+           if (wsUrl.includes('localhost') && apiBase.includes('onrender')) {
+               // Replace localhost with render domain and force wss
+               try {
+                   const parsedWs = new URL(wsUrl);
+                   const parsedApi = new URL(apiBase);
+                   wsUrl = `wss://${parsedApi.host}${parsedWs.pathname}`;
+               } catch (e) {
+                   console.error('Failed to parse URLs for WS fix', e);
+               }
+           } else if (wsUrl.startsWith('/')) {
+               // If relative, prepend API base (converting http to ws)
+               wsUrl = apiBase.replace(/^http/, 'ws') + wsUrl;
+           }
+        }
+
         navigate(`/exam/${examId}`, {
           state: {
-            wsUrl: response.wsUrl,
+            wsUrl: wsUrl,
             duration: response.examForStudent?.durationMinutes || 60,
             questions: response.examForStudent?.questions || []
           }

@@ -4,12 +4,13 @@ import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'ax
 export interface ResultApiModel<T = any> {
   data: T;
   messageCode?: number;
-  isStatus: boolean;
+  isStatus?: boolean; // Some endpoints might use this
+  status?: boolean;   // Login/User endpoints use this
 }
 
 // Create Axios instance
 const apiClient = axios.create({
-  baseURL: (import.meta as any).env.VITE_API_BASE_URL || '',
+  baseURL: '', // Force relative path to use Vite Proxy
   headers: {
     'Content-Type': 'application/json',
   },
@@ -32,16 +33,25 @@ apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     // Check if the response follows ResultApiModel structure
     const data = response.data;
-    if (data && typeof data === 'object' && 'isStatus' in data) {
-      const result = data as ResultApiModel;
-      if (result.isStatus) {
-        return result.data; // Unwrap and return the actual data
-      } else {
-        // API returned success HTTP code but logical failure
-        return Promise.reject(new Error('API Error: Operation failed'));
+    if (data && typeof data === 'object') {
+      // Check for either status or isStatus
+      const hasStatus = 'status' in data;
+      const hasIsStatus = 'isStatus' in data;
+
+      if (hasStatus || hasIsStatus) {
+        const result = data as ResultApiModel;
+        // Use the property that exists
+        const success = hasStatus ? result.status : result.isStatus;
+
+        if (success) {
+          return result.data; // Unwrap and return the actual data
+        } else {
+          // API returned success HTTP code but logical failure
+          return Promise.reject(new Error('API Error: Operation failed'));
+        }
       }
     }
-    // Fallback for endpoints returning raw data (like ExamController)
+    // Fallback for endpoints returning raw data
     return data;
   },
   async (error: AxiosError) => {

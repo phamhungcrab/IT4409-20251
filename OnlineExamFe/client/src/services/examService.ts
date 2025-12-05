@@ -18,9 +18,6 @@ export interface CreateExamForTeacherOrAdmin {
 export interface ExamStartRequest {
   examId: number;
   studentId: number;
-  classId: number;
-  blueprintId: number;
-  durationMinutes: number;
 }
 
 export interface CreateExamForStudentDto {
@@ -56,75 +53,47 @@ export const examService = {
   },
 
   getStudentExams: async (studentId: number): Promise<any[]> => {
-    // MOCK DATA: Backend missing endpoint
-    console.warn('Using MOCK DATA for getStudentExams');
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          {
+    // API /api/Exam/get-by-student is missing in Swagger and Backend.
+    // Mocking response to allow UI to function as requested.
+    console.warn('Mocking getStudentExams due to missing API');
+    return [
+        {
             id: 1,
-            name: 'Mock Exam 1',
-            subject: 'Mathematics',
+            name: 'Kỳ thi Cuối kỳ (Mock)',
+            classId: 1,
+            blueprintId: 1,
             durationMinutes: 60,
             startTime: new Date().toISOString(),
-            endTime: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
-            status: 'UPCOMING'
-          },
-          {
-            id: 2,
-            name: 'Mock Exam 2',
-            subject: 'Physics',
-            durationMinutes: 45,
-            startTime: new Date(Date.now() - 86400000).toISOString(), // Yesterday
-            endTime: new Date().toISOString(),
-            status: 'COMPLETED'
-          }
-        ]);
-      }, 500);
-    });
-    // return await apiClient.get<any[]>(`/api/Exam/student/${studentId}`) as unknown as Promise<any[]>;
+            endTime: new Date(Date.now() + 86400000).toISOString(), // +1 day
+            status: 'OPEN'
+        }
+    ] as any[];
+    // Original call:
+    // return await apiClient.get<any[]>(`/api/Exam/get-by-student?studentId=${studentId}`) as unknown as Promise<any[]>;
   },
 
   submitExam: async (data: { examId: number; studentId: number; answers: any[] }): Promise<any> => {
-     // MOCK DATA: Backend missing endpoint
-     console.warn('Using MOCK DATA for submitExam');
-     return new Promise((resolve) => {
-       setTimeout(() => {
-         resolve({
-           message: 'Exam submitted successfully (MOCKED)',
-           score: 8.5
-         });
-       }, 1000);
-     });
-     // return await apiClient.post<any>('/api/Exam/submit', data) as unknown as Promise<any>;
+     return await apiClient.post<any>('/api/Result/submit', data) as unknown as Promise<any>;
   },
 
   getAllExams: async (): Promise<any[]> => {
-    // MOCK DATA: Backend missing endpoint
-    console.warn('Using MOCK DATA for getAllExams');
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          {
+    // API /api/Exam/get-all is missing in Swagger and Backend.
+    // Mocking response for Teachers/Admins.
+    console.warn('Mocking getAllExams due to missing API');
+    return [
+        {
             id: 1,
-            name: 'Final Exam - Math',
-            classId: 101,
-            durationMinutes: 90,
-            startTime: new Date().toISOString(),
-            endTime: new Date(Date.now() + 172800000).toISOString()
-          },
-          {
-            id: 2,
-            name: 'Midterm - History',
-            classId: 102,
+            name: 'Kỳ thi Cuối kỳ (Mock)',
+            classId: 1,
+            blueprintId: 1,
             durationMinutes: 60,
             startTime: new Date().toISOString(),
-            endTime: new Date(Date.now() + 172800000).toISOString()
-          }
-        ]);
-      }, 500);
-    });
-    // return await apiClient.get<any[]>('/api/Exam/all') as unknown as Promise<any[]>;
+            endTime: new Date(Date.now() + 86400000).toISOString(),
+            status: 'OPEN'
+        }
+    ] as any[];
+    // Original call:
+    // return await apiClient.get<any[]>('/api/Exam/get-all') as unknown as Promise<any[]>;
   },
 
   resetExam: async (examId: number, studentId: number): Promise<any> => {
