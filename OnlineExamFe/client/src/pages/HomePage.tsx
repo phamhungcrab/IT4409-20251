@@ -41,6 +41,7 @@ const HomePage: React.FC = () => {
 
   // State for teachers
   const [teacherClasses, setTeacherClasses] = useState<ClassDto[]>([]);
+  const [teacherExams, setTeacherExams] = useState<any[]>([]);
   const [selectedClassStudents, setSelectedClassStudents] = useState<StudentDto[]>([]);
   const [viewingClassId, setViewingClassId] = useState<number | null>(null);
 
@@ -102,6 +103,12 @@ const HomePage: React.FC = () => {
           // Fetch classes for this teacher
           const classes = await classService.getByTeacherAndSubject(user.id);
           setTeacherClasses(classes);
+
+          // Fetch all exams, then filter by the teacher's classes
+          const allExams = await examService.getAllExams();
+          const classIds = new Set(classes.map(c => c.id));
+          const filteredExams = allExams.filter((ex: any) => classIds.has(ex.classId));
+          setTeacherExams(filteredExams);
         } catch (error) {
           console.error('Failed to fetch teacher classes', error);
         }
@@ -128,20 +135,23 @@ const HomePage: React.FC = () => {
     const durationStr = prompt("Enter duration (minutes):", "60");
     const duration = parseInt(durationStr || "60", 10);
 
-    // MOCK: In real app, open a modal with full form
+    const blueprintStr = prompt("Enter Blueprint ID (required):", "1");
+    const blueprintId = parseInt(blueprintStr || "1", 10);
+
     try {
-        await examService.createExam({
-            name: examName,
-            classId: classId,
-            blueprintId: 1, // Default blueprint (assuming seed data exists)
-            durationMinutes: duration,
-            startTime: new Date().toISOString(),
-            endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-        });
-        alert("Exam created successfully!");
+      const newExam = await examService.createExam({
+        name: examName,
+        classId: classId,
+        blueprintId,
+        durationMinutes: duration,
+        startTime: new Date().toISOString(),
+        endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      });
+      alert("Exam created successfully!");
+      setTeacherExams(prev => [...prev, newExam]);
     } catch (err) {
-        alert("Failed to create exam. Backend might require specific Blueprint ID.");
-        console.error(err);
+      alert("Failed to create exam. Please verify Blueprint/Class IDs.");
+      console.error(err);
     }
   };
 
@@ -219,8 +229,38 @@ const HomePage: React.FC = () => {
                      </table>
                    </div>
                )}
-             </div>
-           </div>
+            </div>
+
+            {/* Exams for teacher's classes */}
+            <div className="glass-card p-5 md:col-span-2">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm text-slate-300">Exams</p>
+                  <h2 className="text-xl font-semibold text-white">Exams in your classes</h2>
+                </div>
+              </div>
+              {teacherExams.length === 0 ? (
+                <p className="text-slate-400">No exams created for your classes yet.</p>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {teacherExams.map(ex => (
+                    <div key={ex.id} className="panel p-4 border border-white/10 rounded-xl bg-white/5">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-semibold text-white">{ex.name}</h3>
+                        <span className="tag">
+                          <span className="h-2 w-2 rounded-full bg-sky-400" aria-hidden />
+                          Class #{ex.classId}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-300">Duration: {ex.durationMinutes} minutes</p>
+                      <p className="text-xs text-slate-400">Start: {new Date(ex.startTime).toLocaleString()}</p>
+                      <p className="text-xs text-slate-400">End: {new Date(ex.endTime).toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       ) : (
         // ================= STUDENT DASHBOARD =================

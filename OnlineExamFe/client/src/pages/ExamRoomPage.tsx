@@ -10,6 +10,7 @@ interface Question {
   id: number;
   text: string;
   type: number;
+  order: number;
   options?: { id: number; text: string }[];
 }
 
@@ -32,7 +33,21 @@ const ExamRoomPage: React.FC = () => {
     wsUrl,
     studentId: user?.id || 0,
     examId: Number(examId),
-    onSynced: () => console.log(t('exam.synced')),
+    onSynced: (syncedData) => {
+      if (Array.isArray(syncedData)) {
+        const incoming: Record<number, any> = {};
+        syncedData.forEach((item: any) => {
+          const qId = item.questionId ?? item.QuestionId ?? item.id ?? item.Id;
+          if (qId !== undefined && qId !== null) {
+            incoming[qId] = item.answer ?? item.Answer;
+          }
+        });
+        if (Object.keys(incoming).length > 0) {
+          setAnswers((prev) => ({ ...prev, ...incoming }));
+        }
+      }
+      console.log(t('exam.synced'));
+    },
     onSubmitted: (result) => {
       alert(`${t('exam.submitted')} ${t('exam.score')}: ${result?.score}`);
       navigate('/results');
@@ -47,38 +62,51 @@ const ExamRoomPage: React.FC = () => {
 
   useEffect(() => {
     if (initialQuestions.length > 0) {
-      const mappedQuestions = initialQuestions.map((q: any) => {
-        let options = [];
-        try {
-          if (q.cleanAnswer) {
-             const parsed = JSON.parse(q.cleanAnswer);
-             options = parsed.map((opt: any, idx: number) => ({
-               id: idx + 1,
-               text: opt.Content || opt.text || opt
-             }));
-          }
-        } catch (e) {
-          console.error('Failed to parse options', e);
-        }
+      const mappedQuestions: Question[] = initialQuestions.map((q: any, idx: number) => {
+        const opts = (q.cleanAnswer ?? q.CleanAnswer ?? []) as any[];
+        const options = Array.isArray(opts)
+          ? opts.map((opt: any, optionIdx: number) => ({
+              id: optionIdx + 1,
+              text: opt?.Content ?? opt?.text ?? opt
+            }))
+          : [];
 
         return {
-          id: q.id,
-          text: q.content,
-          type: q.type,
+          id: q.id ?? q.Id,
+          text: q.content ?? q.Content ?? '',
+          type: q.type ?? q.Type ?? 0,
+          order: q.order ?? q.Order ?? idx + 1,
           options
         };
       });
+
       setQuestions(mappedQuestions);
+
+      // Hydrate answers from local storage backup
+      const savedAnswers: Record<number, any> = {};
+      mappedQuestions.forEach((q) => {
+        const saved = localStorage.getItem(`exam_${examId}_q_${q.id}`);
+        if (saved) {
+          try {
+            savedAnswers[q.id] = JSON.parse(saved);
+          } catch {
+            // ignore parse errors
+          }
+        }
+      });
+      if (Object.keys(savedAnswers).length > 0) {
+        setAnswers((prev) => ({ ...prev, ...savedAnswers }));
+      }
     } else {
       setQuestions([
-        { id: 1, text: 'No questions loaded. Please start from exam list.', type: 1, options: [] }
+        { id: 1, text: 'No questions loaded. Please start from exam list.', type: 1, order: 1, options: [] }
       ]);
     }
-  }, []);
+  }, [initialQuestions, examId]);
 
-  const handleAnswer = (questionId: number, answer: any) => {
+  const handleAnswer = (questionId: number, order: number, answer: any) => {
     setAnswers((prev) => ({ ...prev, [questionId]: answer }));
-    syncAnswer(questionId, answer);
+    syncAnswer(questionId, order, answer);
   };
 
   const handleSubmit = () => {
@@ -90,6 +118,8 @@ const ExamRoomPage: React.FC = () => {
   if (!user || !examId) return <div>Invalid exam session</div>;
 
   const currentQuestion = questions[currentQuestionIndex];
+  const selectedValue = currentQuestion ? answers[currentQuestion.id] : undefined;
+  const selectedOptions = Array.isArray(selectedValue) ? selectedValue : [];
 
   const getConnectionStatusText = (state: string) => {
     switch (state) {
@@ -145,12 +175,12 @@ const ExamRoomPage: React.FC = () => {
             {currentQuestion && (
               <QuestionCard
                 questionId={currentQuestion.id}
-                orderIndex={currentQuestionIndex + 1}
+                orderIndex={currentQuestion.order}
                 text={currentQuestion.text}
                 questionType={currentQuestion.type}
                 options={currentQuestion.options}
-                selectedOptions={answers[currentQuestion.id]}
-                onAnswer={(ans) => handleAnswer(currentQuestion.id, ans)}
+                selectedOptions={selectedOptions}
+                onAnswer={(ans) => handleAnswer(currentQuestion.id, currentQuestion.order, ans)}
               />
             )}
 

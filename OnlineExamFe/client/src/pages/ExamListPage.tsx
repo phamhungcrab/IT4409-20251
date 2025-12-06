@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { examService } from '../services/examService';
+import { examService, ExamGenerateResult } from '../services/examService';
 import useAuth from '../hooks/useAuth';
 
 interface Exam {
@@ -40,42 +40,59 @@ const ExamListPage: React.FC = () => {
     if (!user) return;
     try {
       const response = await examService.startExam({
-          examId,
-          studentId: user.id
+        examId,
+        studentId: user.id,
       });
 
       console.log('[ExamListPage] Start exam response:', response);
 
-      if (response.status === 'create' || response.status === 'in_progress') {
-        let wsUrl = response.wsUrl;
+      let wsUrl = response.wsUrl || '';
+      let examPayload: ExamGenerateResult | null = response.data ?? null;
 
-        // Fix for production: if backend returns localhost or relative path, ensure we use wss:// on render
-        const apiBase = (import.meta as any).env.VITE_API_BASE_URL || '';
-        if (wsUrl) {
-           if (wsUrl.includes('localhost') && apiBase.includes('onrender')) {
-               // Replace localhost with render domain and force wss
-               try {
-                   const parsedWs = new URL(wsUrl);
-                   const parsedApi = new URL(apiBase);
-                   wsUrl = `wss://${parsedApi.host}${parsedWs.pathname}`;
-               } catch (e) {
-                   console.error('Failed to parse URLs for WS fix', e);
-               }
-           } else if (wsUrl.startsWith('/')) {
-               // If relative, prepend API base (converting http to ws)
-               wsUrl = apiBase.replace(/^http/, 'ws') + wsUrl;
-           }
+      const apiBase = (import.meta as any).env.VITE_API_BASE_URL || '';
+      if (wsUrl) {
+        if (wsUrl.includes('localhost') && apiBase.includes('onrender')) {
+          try {
+            const parsedWs = new URL(wsUrl);
+            const parsedApi = new URL(apiBase);
+            wsUrl = `wss://${parsedApi.host}${parsedWs.pathname}`;
+          } catch (e) {
+            console.error('Failed to parse URLs for WS fix', e);
+          }
+        } else if (wsUrl.startsWith('/')) {
+          wsUrl = apiBase.replace(/^http/, 'ws') + wsUrl;
+        }
+      }
+
+      const cacheKey = `exam_${examId}_payload`;
+      if (!examPayload && response.status === 'in_progress') {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          try {
+            examPayload = JSON.parse(cached);
+          } catch (e) {
+            console.warn('Failed to parse cached exam payload', e);
+          }
+        }
+      } else if (examPayload) {
+        localStorage.setItem(cacheKey, JSON.stringify(examPayload));
+      }
+
+      if (response.status === 'create' || response.status === 'in_progress') {
+        if (!examPayload) {
+          alert('Không tải được đề thi. Vui lòng thử lại.');
+          return;
         }
 
         navigate(`/exam/${examId}`, {
           state: {
-            wsUrl: wsUrl,
-            duration: response.examForStudent?.durationMinutes || 60,
-            questions: response.examForStudent?.questions || []
-          }
+            wsUrl,
+            duration: examPayload.durationMinutes || 60,
+            questions: examPayload.questions || [],
+          },
         });
       } else if (response.status === 'completed') {
-        alert('Bạn đã hoàn thành bài thi này rồi!');
+        alert('Bạn đã hoàn thành bài thi này!');
         navigate('/results');
       } else if (response.status === 'expired') {
         alert('Bài thi đã hết hạn!');
@@ -85,22 +102,6 @@ const ExamListPage: React.FC = () => {
     } catch (error) {
       console.error('Error starting exam', error);
       alert('Error starting exam');
-    }
-  };
-
-  const handleResetExam = async (examId: number) => {
-    if (!user) return;
-    if (!confirm('Bạn có chắc muốn làm lại bài thi này? (CHỈ DÙNG ĐỂ TEST)')) return;
-
-    try {
-      await examService.resetExam(examId, user.id);
-      alert('Đã reset bài thi! Bạn có thể làm lại.');
-      // Refresh exam list
-      const data = await examService.getStudentExams(user.id);
-      setExams(data);
-    } catch (error) {
-      console.error('Error resetting exam', error);
-      alert('Lỗi khi reset bài thi');
     }
   };
 
@@ -144,14 +145,6 @@ const ExamListPage: React.FC = () => {
                 >
                   {t('exam.startExam')}
                 </button>
-                {exam.status === 'COMPLETED' && (
-                  <button
-                    onClick={() => handleResetExam(exam.id)}
-                    className="btn btn-ghost hover:-translate-y-0.5 text-amber-400 border-amber-400/30"
-                  >
-                    🔄 Làm lại
-                  </button>
-                )}
               </div>
             </div>
           ))}

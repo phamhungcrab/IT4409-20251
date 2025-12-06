@@ -76,14 +76,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // Backend UserRole enum values might be integers or strings.
                 // We'll convert to string to match UserRole enum usage in frontend.
                 let roleStr = String(currentUser.role);
+                const roleLower = roleStr.toLowerCase();
 
-                // If it's number 0, 1, 2... map it manually if we knew the mapping.
-                // Assuming backend returns string "Teacher", "Student", etc. as currently observed in DTOs.
-                // If it returns int, we might need adjustments. For now, trusting DTOs.
-
-                if (roleStr === '1' || roleStr === 'Teacher') roleStr = UserRole.Teacher;
-                else if (roleStr === '0' || roleStr === 'Admin') roleStr = UserRole.Admin;
-                else if (roleStr === '2' || roleStr === 'Student') roleStr = UserRole.Student;
+                if (roleStr === '1' || roleLower === 'teacher') roleStr = UserRole.Teacher;
+                else if (roleStr === '0' || roleLower === 'admin') roleStr = UserRole.Admin;
+                else if (roleStr === '2' || roleLower === 'student') roleStr = UserRole.Student;
 
                 const userObj: User = {
                     id: currentUser.id,

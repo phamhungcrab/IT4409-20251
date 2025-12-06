@@ -5,7 +5,7 @@ interface UseExamProps {
   wsUrl: string;
   studentId: number;
   examId: number;
-  onSynced?: () => void;
+  onSynced?: (answers?: any) => void;
   onSubmitted?: (result: any) => void;
   onError?: (error: string) => void;
 }
@@ -41,8 +41,8 @@ export const useExam = ({ wsUrl, studentId, examId, onSynced, onSubmitted, onErr
       console.log('WS Message:', data);
       if (data.status === 'submitted') {
         onSubmittedRef.current?.(data);
-      } else if (data.type === 'synced') {
-        onSyncedRef.current?.();
+      } else if (Array.isArray(data)) {
+        onSyncedRef.current?.(data);
       } else if (data.type === 'error') {
         onErrorRef.current?.(data.message);
       }
@@ -52,6 +52,7 @@ export const useExam = ({ wsUrl, studentId, examId, onSynced, onSubmitted, onErr
       console.log('WS Connected');
       setConnectionState('connected');
       reconnectAttempts.current = 0;
+      ws.send(JSON.stringify({ Action: 'SyncState' }));
     };
 
     ws.onclose = () => {
@@ -84,14 +85,13 @@ export const useExam = ({ wsUrl, studentId, examId, onSynced, onSubmitted, onErr
     };
   }, [connect]);
 
-  const syncAnswer = useCallback((questionId: number, answer: any) => {
+  const syncAnswer = useCallback((questionId: number, order: number, answer: any) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
         Action: 'SubmitAnswer',
-        studentId,
-        examId,
-        questionId,
-        answer
+        Order: order,
+        QuestionId: questionId,
+        Answer: answer
       }));
       // Save to local storage as backup
       localStorage.setItem(`exam_${examId}_q_${questionId}`, JSON.stringify(answer));
@@ -104,9 +104,7 @@ export const useExam = ({ wsUrl, studentId, examId, onSynced, onSubmitted, onErr
   const submitExam = useCallback(() => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
-        Action: 'SubmitExam',
-        studentId,
-        examId
+        Action: 'SubmitExam'
       }));
     } else {
        onErrorRef.current?.('Cannot submit: Connection lost. Please try again when connected.');

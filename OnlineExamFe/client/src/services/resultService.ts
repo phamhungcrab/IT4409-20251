@@ -11,9 +11,13 @@ export type { ResultItem };
 
 export const resultService = {
   getResultsByStudent: async (studentId: number): Promise<ResultItem[]> => {
-    // Assuming endpoint exists: GET /api/Result/student/{studentId}
-    // If not, we might need to adjust or use a mock
-    return await apiClient.get<ResultItem[]>(`/api/Result/student/${studentId}`) as unknown as Promise<ResultItem[]>;
+    try {
+      return await apiClient.get<ResultItem[]>(`/api/Result/student/${studentId}`) as unknown as Promise<ResultItem[]>;
+    } catch (e: any) {
+      // Backend chưa có endpoint -> tránh crash UI
+      console.warn('Result endpoint missing, returning empty list.', e?.message || e);
+      return [];
+    }
   },
 
   getResultDetail: async (resultId: number): Promise<any> => {

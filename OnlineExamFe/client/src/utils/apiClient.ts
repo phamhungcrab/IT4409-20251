@@ -10,7 +10,8 @@ export interface ResultApiModel<T = any> {
 
 // Create Axios instance
 const apiClient = axios.create({
-  baseURL: '', // Force relative path to use Vite Proxy
+  // Use env base when provided (production) else fall back to relative (dev proxy)
+  baseURL: (import.meta as any).env?.VITE_API_BASE_URL || '',
   headers: {
     'Content-Type': 'application/json',
   },
