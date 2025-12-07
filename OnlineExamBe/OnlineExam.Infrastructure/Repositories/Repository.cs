@@ -45,5 +45,26 @@ namespace OnlineExam.Infrastructure.Repositories
         {
             await _dbcontext.SaveChangesAsync();
         }
+
+        public async Task<List<TResult>> JoinAsync<T2, TKey, TResult>(
+            Expression<Func<T, TKey>> outerSelector,
+            Expression<Func<T2, TKey>> innerSelector,
+            Expression<Func<T,bool>> predicate,
+            Expression<Func <T, T2, TResult>> resultSelector
+            )
+            where T2 : class
+        {
+            var inner = _dbcontext.Set<T2>();
+
+            return await _dbSet.Where(predicate).Join(
+                inner,  
+                outerSelector,
+                innerSelector,
+                resultSelector
+                ).ToListAsync();
+
+        }
+
+       
     }
 }

@@ -19,16 +19,19 @@ namespace OnlineExam.Application.Services
         private readonly IUserService _userService;
         private readonly IRepository<StudentClass> _studentClassRepo;
         private readonly ISubjectService _subjectService;
+        private readonly IRepository<User> _studentRepo;
 
         public ClassService(IRepository<Class> repository
                             , IUserService userService ,
                             IRepository<StudentClass> studentClassRepo,
-                            ISubjectService subjectService
+                            ISubjectService subjectService,
+                            IRepository<User> studentRepo
             ) : base(repository)
         {
             _userService = userService;
             _studentClassRepo = studentClassRepo;
             _subjectService = subjectService;
+            _studentRepo = studentRepo;
         }
 
         /// <summary>
@@ -51,12 +54,46 @@ namespace OnlineExam.Application.Services
 
 
         }
+        
+        
+        
+
+        public async Task<ResultApiModel> GetStudents(int classId)
+        {
+            var curClass = await GetByIdAsync(classId);
+            if (curClass == null)
+                return new ResultApiModel
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.NotFound,
+                    Data = "Không tìm thấy lớp"
+                };
+            var student =await  _studentClassRepo
+                .JoinAsync<User, int, User>(
+                    outer => outer.StudentId,
+                    inner => inner.Id,
+                    c => c.ClassId == classId,
+                    (outer, inner) => inner
+                );
+
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = student
+            };
+
+        }
+        
+        
+        
+        
         /// <summary>
         /// them sinh vien vao lop
         /// </summary>
         /// <param name="students"> Ds gofm mssv va email</param>
         /// <param name="classId">Id cua lop</param>
-        /// <returns></returns>
+        /// <returns>sinh vien ko them duoc</returns>
         public async Task<ResultApiModel> AddStudentsAsync(AddStudentDto[] students, int classId)
         {
             List<AddStudentDto> invalidStudents = new List<AddStudentDto>();
@@ -71,7 +108,7 @@ namespace OnlineExam.Application.Services
             {
                 var student = await _userService.GetUserByEmail(item.Email);
                 // svien khong ton tai hoac khong khop email - mssv
-                if(student == null || !student.MSSV.Equals(item.MSSV))
+                if(student == null || !student.MSSV.Equals(item.MSSV) || student.Role != UserRole.STUDENT)
                 {
                     invalidStudents.Add(item);
                     continue;

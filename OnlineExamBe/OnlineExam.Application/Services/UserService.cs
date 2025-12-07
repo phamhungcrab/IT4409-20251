@@ -1,4 +1,5 @@
-﻿using OnlineExam.Application.Dtos.ReponseDtos;
+﻿using Microsoft.AspNetCore.Http;
+using OnlineExam.Application.Dtos.ReponseDtos;
 using OnlineExam.Application.Dtos.RequestDtos;
 using OnlineExam.Application.Dtos.RequestDtos.User;
 using OnlineExam.Application.Dtos.ResponseDtos;
@@ -13,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,9 +23,11 @@ namespace OnlineExam.Application.Services
 {
     public class UserService : CrudService<User>, IUserService
     {
-        
-        public UserService(IRepository<User> repository) : base(repository)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public UserService(IRepository<User> repository, IHttpContextAccessor httpContextAccessor) : base(repository)
         {
+            _httpContextAccessor = httpContextAccessor;
         }
         #region Admin
         // ke thua tu crud
@@ -127,10 +131,13 @@ namespace OnlineExam.Application.Services
             {
                 Status = true,
                 MessageCode = ResponseCode.Success,
-                Data = "Cap nhat user thanh cong"
+                Data = update
             };
 
         }
+        
+
+        
         #endregion
 
         #region User
@@ -184,7 +191,7 @@ namespace OnlineExam.Application.Services
                 {
                     Status = true,
                     MessageCode = ResponseCode.Success,
-                    Data = "Tao user thanh cong"
+                    Data = newUser
 
                 };
             
@@ -202,7 +209,7 @@ namespace OnlineExam.Application.Services
                 {
                     Status = false,
                     MessageCode = ResponseCode.BadRequest,
-                    Data = "Thieu Email"
+                    Data = "Thiếu Email"
                 };
             }
 
@@ -212,21 +219,21 @@ namespace OnlineExam.Application.Services
                 {
                     Status = false,
                     MessageCode = ResponseCode.BadRequest,
-                    Data = "Sai dinh dang email"
+                    Data = "Sai định dạng email"
                 };
             }
-            var checkMail = await _repository.FindAsync(x => x.Email.ToLower().Equals(userUpdate.Email.ToLower()));
-            if (!checkMail.Any())
+            var userId = int.Parse(_httpContextAccessor.HttpContext!.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var user  = await _repository.GetByIdAsync(userId);
+            if (user == null)
             {
                 return new ResultApiModel()
                 {
                     Status = false,
                     MessageCode = ResponseCode.Conflict,
-                    Data = "Khong ton tai"
+                    Data = "Tài khoản đã bị xóa"
                 };
             }
 
-            var user = checkMail.First();
             user.Email = userUpdate.Email;
             user.FullName = userUpdate.FullName;
             user.DateOfBirth = userUpdate.DateOfBirth;  
@@ -236,11 +243,11 @@ namespace OnlineExam.Application.Services
             {
                 Status = true,
                 MessageCode = ResponseCode.Success,
-                Data = "Cap nhat user thanh cong"
+                Data = user
             };
 
         }
-        
+
 
         public async Task<User?> GetUserByEmail(string email)
         {

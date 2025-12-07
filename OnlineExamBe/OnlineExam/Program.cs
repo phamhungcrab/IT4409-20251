@@ -38,6 +38,11 @@ builder.Services.AddSwaggerGen(c =>
         In = ParameterLocation.Header,
         Description = "Session token header"
     });
+    c.AddServer(new OpenApiServer
+    {
+        Url = "https://localhost:7239"
+
+    });
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
          {

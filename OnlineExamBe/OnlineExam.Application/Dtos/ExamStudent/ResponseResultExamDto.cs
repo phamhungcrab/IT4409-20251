@@ -11,7 +11,7 @@ namespace OnlineExam.Application.Dtos.ExamStudent
     {
         public int ExamId { get; set; }
         public int StudentId { get; set; }
-        public DateTime? StartTime { get; set; }
+        public DateTime StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         public float? Points { get; set; }
         public ExamStatus Status { get; set; }
