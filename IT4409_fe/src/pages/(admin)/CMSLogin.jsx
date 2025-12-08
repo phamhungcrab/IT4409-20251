@@ -38,10 +38,11 @@ export const CMSLogin = () => {
             //console.log("Login data: ", data.data);
 
             if (data.data) {
-                localStorage.setItem("token", data.data)
+                localStorage.setItem("session", data.data);
+
             }
 
-            api.defaults.headers.common["Authorization"] = `Bearer ${data.data}`;
+            // api.defaults.headers.common["Authorization"] = `Bearer ${data.data}`;
 
             navigate("/admin/home", { replace: true });
         } catch (e) {
@@ -79,7 +80,7 @@ export const CMSLogin = () => {
                                 placeholder="Nhập email..."
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                class="block w-full rounded-md bg-white px-3 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#AA1D2B] sm:text-sm/6" />
+                                className="block w-full rounded-md bg-white px-3 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#AA1D2B] sm:text-sm/6" />
                         </div>
                     </div>
 
@@ -97,7 +98,7 @@ export const CMSLogin = () => {
                                 placeholder="Nhập mật khẩu"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                class="block w-full rounded-md bg-white px-3 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#AA1D2B] sm:text-sm/6" />
+                                className="block w-full rounded-md bg-white px-3 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#AA1D2B] sm:text-sm/6" />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword((prev) => !prev)}

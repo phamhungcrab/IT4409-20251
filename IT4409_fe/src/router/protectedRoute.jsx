@@ -5,12 +5,12 @@ export const ProtectedRoute = ({ children }) => {
     const [loading, setLoading] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(true);
 
-    // useEffect(() => {
-    //     const token = localStorage.getItem("token");
-    //     console.log("Token: ", token);
-    //     setIsLoggedIn(!!token);
-    //     setLoading(false);
-    // }, []);
+    useEffect(() => {
+        const session = localStorage.getItem("session");
+        // console.log("Token: ", token);
+        setIsLoggedIn(!!session);
+        setLoading(false);
+    }, []);
 
     if (loading) return <div>Loading...</div>;
 

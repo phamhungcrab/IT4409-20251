@@ -1,55 +1,71 @@
 //Quản lý lớp học
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Form } from "../../components/Form";
 import { CommonButton } from "../../components/Button";
 import { Modal } from "../../components/Modal";
-import { DataTable } from "../../components/DataTable";
 import { ExamCard } from "../../components/Card";
+import { AddStudentToClassForm } from "../../components/AddStudentToClassForm";
+import { createClass, deleteClass, getAllClasses, updateClass } from "../../services/ClassApi";
+import { getAllUsers } from "../../services/UserApi";
+import { getAllSubject } from "../../services/SubjectApi";
+import { ConfirmModal } from "../../components/ConfirmModal";
 
 export const CMSClass = () => {
 
-    const [classes, setClasses] = useState([
-        { id: "1", name: "Công nghệ web 20251", teacherId: "1", subjectId: "2", teacherName: "Đỗ Bá Lâm", subjectCode: "IT4409" },
-        { id: "2", name: "IOT và ứng dụng 20251", teacherId: "2", subjectId: "3", teacherName: "Đặng Tuấn Linh", subjectCode: "IT4321" }
-    ]);
+    const [classes, setClasses] = useState([]);
     const [open, setOpen] = useState(false);
     const [editData, setEditData] = useState(null);
+    const [openMultiple, setOpenMultiple] = useState(false);
+    const [teachers, setTeachers] = useState([]);
+    const [subjects, setSubjects] = useState([]);
+    const [deleteId, setDeleteId] = useState(null);
 
-    const columns = [
-        {
-            header: "STT",
-            accessor: "id"
-        },
-        {
-            header: "Tên lớp học",
-            accessor: "name"
-        },
-        {
-            header: "Mã học phần",
-            accessor: "subjectCode"
-        },
-        {
-            header: "Giảng viên",
-            accessor: "teacherName"
+    useEffect(() => {
+        fetchAllData();
+    }, []);
+
+    const fetchAllData = async () => {
+        try {
+            const classRes = await getAllClasses();
+            setClasses(classRes);
+
+            const teacherRes = await getAllUsers();
+            const teacherOptions = teacherRes.map(t => ({
+                value: t.id,
+                label: t.fullName,
+            }));
+            setTeachers(teacherOptions);
+
+            const subjectRes = await getAllSubject();
+            const subjectOptions = subjectRes.map(s => ({
+                value: s.id,
+                label: s.subjectCode + ' - ' + s.name,
+            }));
+            setSubjects(subjectOptions);
+
+        } catch (error) {
+            console.error("Lỗi tải dữ liệu:", error);
         }
-    ];
+    };
+
 
     const classFields = [
         { name: "name", label: "Tên lớp học", type: "text" },
         {
-            name: "subjectId", label: "Mã học phần", type: "select", options: [
-                { value: "2", label: "IT4409" },
-                { value: "3", label: "IT4321" },
-            ]
+            name: "subjectId",
+            label: "Mã học phần",
+            type: "select",
+            options: subjects
         },
         {
-            name: "teacherId", label: "Giảng viên", type: "select", options: [
-                { value: "1", label: "Đỗ Bá Lâm" },
-                { value: "2", label: "Đặng Tuấn Linh" }
-            ]
+            name: "teacherId",
+            label: "Giảng viên",
+            type: "select",
+            options: teachers
         }
     ];
+
 
     const handleAdd = () => {
         setEditData(null);
@@ -61,25 +77,38 @@ export const CMSClass = () => {
         setOpen(true);
     };
 
-    const handleDelete = (id) => {
-        setClasses(classes.filter(q => q.id !== id));
+    const handleDelete = (row) => {
+        setDeleteId(row.id);
     };
 
-    const handleSave = (formData) => {
+    const confirmDelete = async () => {
+        const res = await deleteClass(deleteId);
+
+        if (res) {
+            setAccounts(prev => prev.filter(acc => acc.id !== deleteId));
+        }
+
+        setDeleteId(null);
+    };
+
+    const handleSave = async (formData) => {
         if (editData) {
             // Update
+            const edited = await updateClass(editData);
             setClasses(classes.map(q =>
-                q.id === editData.id ? { ...editData, ...formData } : q
+                q.id === editData.id ? { ...editData, edited } : q
             ));
         } else {
             // Create
-            setClasses([...classes, { id: Date.now(), ...formData }]);
+            const created = await createClass(formData);
+            setClasses([...classes, created]);
         }
         setOpen(false);
     };
 
     const actions = [
         { label: "Sửa", color: "gray", onClick: handleEdit },
+        { label: "Thêm sinh viên", color: "gray", onClick: () => setOpenMultiple(true) },
         { label: "Xóa", color: "red", onClick: handleDelete },
     ];
 
@@ -103,8 +132,9 @@ export const CMSClass = () => {
                       shadow-sm"
                     >
                         <option value="">Học phần</option>
-                        <option value="2">IT4409</option>
-                        <option value="3">IT4321</option>
+                        {subjects.map((s) => {
+                            return <option value={s.value} key={s.value}>{s.label}</option>
+                        })}
                     </select>
                 </div>
 
@@ -116,6 +146,16 @@ export const CMSClass = () => {
 
             </div>
 
+            <ConfirmModal
+                isOpen={!!deleteId}
+                title="Xóa lớp học"
+                message="Bạn có chắc chắn muốn xóa lớp học này? Hành động này không thể hoàn tác."
+                confirmLabel="Xóa"
+                cancelLabel="Hủy"
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteId(null)}
+            />
+
             <Modal isOpen={open} onClose={() => setOpen(false)} title={editData ? "Sửa lớp học" : "Thêm lớp học"}>
                 <Form
                     fields={classFields}
@@ -125,12 +165,25 @@ export const CMSClass = () => {
                 />
             </Modal>
 
+            <Modal
+                isOpen={openMultiple}
+                onClose={() => setOpenMultiple(false)}
+                title="Thêm nhiều tài khoản"
+            >
+                <AddStudentToClassForm
+                    onSuccess={(createdList) => {
+                        setClasses(prev => [...prev, ...createdList]);
+                        setOpenMultiple(false);
+                    }}
+                />
+            </Modal>
+
             <div className="grid grid-cols-4 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {classes.map(classroom => (
                     <ExamCard
                         key={classroom.id}
                         title={classroom.name}
-                        subtitle={`${classroom.subjectCode} - ${classroom.teacherName}`}
+                        subtitle={`${classroom.subjectId} - ${classroom.teacherId}`}
                         actions={actions}
                     />
                 ))}

@@ -1,18 +1,27 @@
 // Quản lý học phần
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Form } from "../../components/Form";
 import { CommonButton } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { DataTable } from "../../components/DataTable";
+import { ConfirmModal } from "../../components/ConfirmModal";
+import { createSubject, deleteSubject, editSubject, getAllSubject } from "../../services/SubjectApi";
 
 export const CMSSubject = () => {
 
-    const [subjects, setSubjects] = useState([
-        { id: "1", name: "Công nghệ web và dịch vụ trực tuyến", code: "IT4409" },
-        { id: "2", name: "IOT và ứng dụng 20251", code: "IT4321" }
-    ]);
+    const [subjects, setSubjects] = useState([]);
     const [open, setOpen] = useState(false);
     const [editData, setEditData] = useState(null);
+    const [deleteId, setDeleteId] = useState(null);
+
+    useEffect(() => {
+        const getSubjects = async () => {
+            const res = await getAllSubject();
+            setSubjects(res);
+        }
+
+        getSubjects();
+    }, []);
 
     const columns = [
         {
@@ -21,19 +30,22 @@ export const CMSSubject = () => {
         },
         {
             header: "Mã học phần",
-            accessor: "code"
+            accessor: "subjectCode"
         },
         {
             header: "Tên học phần",
             accessor: "name"
+        },
+        {
+            header: "Số chương",
+            accessor: "totalChapters"
         }
     ];
 
     const classFields = [
         { name: "name", label: "Tên học phần", type: "text" },
-        {
-            name: "subjectId", label: "Mã học phần", type: "text"
-        }
+        { name: "subjectCode", label: "Mã học phần", type: "text" },
+        { name: "totalChapters", label: "Tổng số chương", type: "number" }
     ];
 
     const handleAdd = () => {
@@ -46,19 +58,31 @@ export const CMSSubject = () => {
         setOpen(true);
     };
 
-    const handleDelete = (id) => {
-        setSubjects(subjects.filter(q => q.id !== id));
+    const handleDelete = (row) => {
+        setDeleteId(row.id);
     };
 
-    const handleSave = (formData) => {
+    const confirmDelete = async () => {
+        const res = await deleteSubject(deleteId);
+
+        if (res) {
+            setSubjects(prev => prev.filter(acc => acc.id !== deleteId));
+        }
+
+        setDeleteId(null);
+    };
+
+    const handleSave = async (formData) => {
         if (editData) {
             // Update
+            const edited = await editSubject(editData.id, formData);
             setSubjects(subjects.map(q =>
-                q.id === editData.id ? { ...editData, ...formData } : q
+                q.id === editData.id ? { ...editData, edited } : q
             ));
         } else {
             // Create
-            setSubjects([...subjects, { id: Date.now(), ...formData }]);
+            const created = await createSubject(formData);
+            setSubjects([...subjects, created]);
         }
         setOpen(false);
     };
@@ -100,6 +124,16 @@ export const CMSSubject = () => {
                     onCancel={() => setOpen(false)}
                 />
             </Modal>
+
+            <ConfirmModal
+                isOpen={!!deleteId}
+                title="Xóa học phần"
+                message="Bạn có chắc chắn muốn xóa học phần này? Hành động này không thể hoàn tác."
+                confirmLabel="Xóa"
+                cancelLabel="Hủy"
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteId(null)}
+            />
 
             <DataTable columns={columns} data={subjects} actions={actions} />
 

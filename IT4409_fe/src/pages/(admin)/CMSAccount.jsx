@@ -1,18 +1,34 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import { DataTable } from "../../components/DataTable";
 import { Modal } from "../../components/Modal";
 import { Form } from "../../components/Form";
 import { CommonButton } from "../../components/Button";
+import { ConfirmModal } from "../../components/ConfirmModal";
+import { createSingleUser, deleteUser, editUser, getAllUsers, uploadUsersJson } from "../../services/UserApi";
+import { UsersFormData } from "../../components/UsersFormData";
 
 export const CMSAccounts = () => {
-    const [accounts, setAccounts] = useState([
-        { id: 1, fullname: "Phạm Đặng Mai Hương", mssv: "20225134", email: "mhmhuong04@gmail.com", role: "student", password: "123456", dateOfBirth: "2004-12-06" },
-        { id: 2, fullname: "Trần Thị Minh Thu", mssv: "20224901", email: "minhthu@gmail.com", role: "student", password: "123456", dateOfBirth: "2004-04-15" },
-        { id: 3, fullname: "Trần Thị Hồng Thơm", mssv: "", email: "hongthom@gmail.com", role: "teacher", password: "123456", dateOfBirth: "2003-04-15" },
-        { id: 4, fullname: "Admin", mssv: "", email: "admin@gmail.com", role: "admin", password: "123456" },
-    ]);
+    const [accounts, setAccounts] = useState([]);
     const [open, setOpen] = useState(false);
     const [editData, setEditData] = useState(null);
+    const [deleteId, setDeleteId] = useState(null);
+    const [openMultiple, setOpenMultiple] = useState(false);
+
+    useEffect(() => {
+        const getUsers = async () => {
+            const data = await getAllUsers();
+            const formatted = data.map(u => ({
+                ...u,
+                dateOfBirth: u.dateOfBirth
+                    ? new Date(u.dateOfBirth).toLocaleDateString("vi-VN")
+                    : ""
+            }));
+
+            setAccounts(formatted);
+        }
+
+        getUsers();
+    }, []);
 
     const columns = [
         {
@@ -21,15 +37,15 @@ export const CMSAccounts = () => {
         },
         {
             header: "Họ tên",
-            accessor: "fullname",
+            accessor: "fullName",
             render: (user) => (
                 <div className="flex items-center gap-3">
                     <img
-                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullname)}&background=random`}
-                        alt={user.fullname}
+                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=random`}
+                        alt={user.fullName}
                         className="w-8 h-8 rounded-full border border-gray-200"
                     />
-                    <span className="font-medium">{user.fullname}</span>
+                    <span className="font-medium">{user.fullName}</span>
                 </div>
             ),
         },
@@ -41,16 +57,16 @@ export const CMSAccounts = () => {
             accessor: "role",
             render: (u) => (
                 <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${u.role === "student"
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${u.role === "STUDENT"
                         ? "bg-blue-50 text-blue-700"
-                        : u.role === "teacher"
+                        : u.role === "TEACHER"
                             ? "bg-green-50 text-green-700"
                             : "bg-purple-50 text-purple-700"
                         }`}
                 >
-                    {u.role === "student"
+                    {u.role === "STUDENT"
                         ? "Sinh viên"
-                        : u.role === "teacher"
+                        : u.role === "TEACHER"
                             ? "Giảng viên"
                             : "Quản trị viên"}
                 </span>
@@ -59,7 +75,7 @@ export const CMSAccounts = () => {
     ];
 
     const accountFields = [
-        { name: "fullname", label: "Họ tên", type: "text" },
+        { name: "fullName", label: "Họ tên", type: "text" },
         { name: "dateOfBirth", label: "Ngày sinh", type: "date" },
         { name: "mssv", label: "Mã số sinh viên", type: "text" },
         { name: "email", label: "Email", type: "text" },
@@ -79,23 +95,48 @@ export const CMSAccounts = () => {
     };
 
     const handleEdit = (row) => {
-        setEditData(row);
+        setEditData({
+            ...row,
+            dateOfBirth: row.dateOfBirth
+                ? new Date(row.dateOfBirth).toISOString().split("T")[0]
+                : ""
+        });
         setOpen(true);
     };
 
-    const handleDelete = (id) => {
-        setAccounts(subjects.filter(q => q.id !== id));
+    const handleDelete = (row) => {
+        setDeleteId(row.id);
     };
 
-    const handleSave = (formData) => {
+    const confirmDelete = async () => {
+        const res = await deleteUser(deleteId);
+
+        if (res) {
+            setAccounts(prev => prev.filter(acc => acc.id !== deleteId));
+        }
+
+        setDeleteId(null);
+    };
+
+
+
+    const handleSave = async (formData) => {
         if (editData) {
             // Update
+            const edited = await editUser(editData);
             setAccounts(subjects.map(q =>
-                q.id === editData.id ? { ...editData, ...formData } : q
+                q.id === editData.id ? { ...editData, edited } : q
             ));
         } else {
             // Create
-            setAccounts([...subjects, { id: Date.now(), ...formData }]);
+            if (!Array.isArray(formData)) {
+                const created = await createSingleUser(formData);
+                // console.log("Created user (cms account): ", created);
+                setAccounts(prev => [...prev, created]);
+            } else {
+                const createdList = await uploadUsersJson(formData);
+                setAccounts(prev => [...prev, ...createdList]);
+            }
         }
         setOpen(false);
     };
@@ -129,6 +170,14 @@ export const CMSAccounts = () => {
                         <option value="admin">Quản trị viên</option>
                     </select>
                 </div>
+
+                <CommonButton
+                    label="+ Thêm nhiều tài khoản"
+                    color="primary"
+                    onClick={() => setOpenMultiple(true)}
+                />
+
+
                 <CommonButton
                     label="+ Thêm tài khoản"
                     color="danger"
@@ -146,10 +195,35 @@ export const CMSAccounts = () => {
                 />
             </Modal>
 
+            <Modal
+                isOpen={openMultiple}
+                onClose={() => setOpenMultiple(false)}
+                title="Thêm nhiều tài khoản"
+            >
+                <UsersFormData
+                    onSuccess={(createdList) => {
+                        setAccounts(prev => [...prev, ...createdList]);
+                        setOpenMultiple(false);
+                    }}
+                />
+            </Modal>
+
+
+            <ConfirmModal
+                isOpen={!!deleteId}
+                title="Xóa tài khoản"
+                message="Bạn có chắc chắn muốn xóa tài khoản này? Hành động này không thể hoàn tác."
+                confirmLabel="Xóa"
+                cancelLabel="Hủy"
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteId(null)}
+            />
+
+
             <DataTable columns={columns} data={accounts} actions={actions} />
 
             <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
-                <p>Hiển thị {accounts.length > 0 ? `1–${accounts.length}` : "0"} trong {accounts.length} bài kiểm tra</p>
+                <p>Hiển thị {accounts.length > 0 ? `1–${accounts.length}` : "0"} trong {accounts.length} người dùng</p>
                 <div className="flex items-center gap-2">
                     <button className="px-3 py-1 border rounded hover:bg-gray-100">Trước</button>
                     <button className="px-3 py-1 border rounded hover:bg-gray-100">Sau</button>
