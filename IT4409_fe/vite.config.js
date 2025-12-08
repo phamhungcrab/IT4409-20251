@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:5133",   // URL của backend
+        target: import.meta.env.VITE_BASE_API_URL,   // URL của backend
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, "/api")
