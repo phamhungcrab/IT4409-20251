@@ -1,40 +1,31 @@
-<!--
-  index.html for the Online Examination System React application.
-  This file serves as the root HTML document that hosts the SPA.
-  The React components will be mounted into the <div id="root"> element.
-  It links to the web app manifest (manifest.json) to enable progressive
-  web app capabilities and defines basic metadata for search engines.
--->
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="UTF-8" />
-  <!-- Ensure proper rendering and touch zooming on mobile devices -->
+  <!-- Thiết lập để trình duyệt render đúng và hỗ trợ zoom trên thiết bị di động -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Online Examination System – create, take and monitor exams online." />
-  <!-- Link to the PWA manifest. The %PUBLIC_URL% placeholder will be replaced at build time when using tools like Create React App. -->
-  <!-- <link rel="manifest" href="%PUBLIC_URL%/manifest.json" /> -->
+  <meta name="description" content="Online Examination System – HUST" />
+
   <link rel="manifest" href="/manifest.json" />
-  <!-- Favicon -->
-  <!-- <link rel="icon" href="%PUBLIC_URL%/favicon.ico" /> -->
-  <!-- Favicon chung -->
+
   <link rel="icon" href="/favicon.ico" />
   <link rel="icon" type="image/png" sizes="16x16" href="public/favicon-16x16.png">
   <link rel="icon" type="image/png" sizes="32x32" href="public/favicon-32x32.png">
 
-  <!-- iOS (Apple devices) -->
+  <!-- Icon cho thiết bị iOS (iPhone, iPad) khi ghim app ra màn hình chính -->
   <link rel="apple-touch-icon" href="public/apple-touch-icon.png">
   <title>Online Examination System</title>
 </head>
 
 <body>
-  <!-- This message is shown if JavaScript is disabled in the user's browser. -->
-  <!-- <noscript>You need to enable JavaScript to run this app.</noscript> -->
-  <!-- React will render into this root element -->
+  <!-- Thông báo sẽ hiển thị nếu trình duyệt tắt JavaScript -->
+  <noscript>Bạn cần bật JavaScript để chạy ứng dụng này.</noscript>
+  <!-- React sẽ render toàn bộ giao diện vào phần tử root này -->
   <div id="root"></div>
   <script type="module" src="/src/index.tsx"></script>
-  <!-- The bundled application script will be injected here by the build tool (e.g., Webpack or Vite). -->
+  <!-- File bundle của ứng dụng sẽ được build tool (Vite) xử lý và nạp từ script này. -->
 </body>
 
 </html>

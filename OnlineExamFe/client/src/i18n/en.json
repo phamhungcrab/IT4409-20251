@@ -16,7 +16,8 @@
     "password": "Password",
     "loginButton": "Sign In",
     "logout": "Logout",
-    "loginFailed": "Login failed. Please check your credentials."
+    "loginFailed": "Login failed. Please check your credentials.",
+    "welcomeBack": "Welcome back"
   },
   "nav": {
     "exams": "My Exams",

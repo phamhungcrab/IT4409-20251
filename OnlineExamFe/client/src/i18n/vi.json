@@ -16,7 +16,8 @@
         "password": "Mật khẩu",
         "loginButton": "Đăng nhập",
         "logout": "Đăng xuất",
-        "loginFailed": "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin."
+        "loginFailed": "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
+        "welcomeBack" : "Xin chào!"
     },
     "nav": {
         "exams": "Kỳ thi của tôi",
