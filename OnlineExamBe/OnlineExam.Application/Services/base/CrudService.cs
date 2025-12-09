@@ -17,9 +17,9 @@ namespace OnlineExam.Application.Services.Base
             _repository = repository;
         }
 
-        public virtual async Task<IEnumerable<T>> GetAllAsync()
+        public virtual async Task<IEnumerable<T>> GetAllAsync(params string[] includes)
         {
-            return await _repository.GetAllAsync();
+            return await _repository.GetAllAsync(includes);
         }
 
         public virtual async Task<T?> GetByIdAsync(int id)

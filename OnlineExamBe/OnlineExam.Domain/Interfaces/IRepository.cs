@@ -10,9 +10,9 @@ namespace OnlineExam.Domain.Interfaces
     public interface IRepository<T> where T : class
     {
 
-        Task<IEnumerable<T>> GetAllAsync();
+        Task<IEnumerable<T>> GetAllAsync(params string[]  includes );
         Task<T?> GetByIdAsync(int id);
-        Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate);
+        Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, params string[] includes);
         Task AddAsync(T entity);
         Task AddRangeAsync(IEnumerable<T> entities);
         void DeleteAsync(T entity);
@@ -28,5 +28,7 @@ namespace OnlineExam.Domain.Interfaces
             )
          where T2 : class;
 
+   
+    
     }
 }

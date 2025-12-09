@@ -26,7 +26,7 @@ namespace OnlineExam.Controllers
         {
             ResultApiModel apiResultModel = new ResultApiModel();
             apiResultModel.Status = true;
-            apiResultModel.Data = await _classService.GetAllAsync();
+            apiResultModel.Data = await _classService.GetAllAsync("Teacher", "Subject", "StudentClasses", "Exams");
             return Ok(apiResultModel);
         }
         [HttpGet]

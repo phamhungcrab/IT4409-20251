@@ -44,7 +44,10 @@ namespace OnlineExam.Application.Services
         {
             
             var sClass = await _repository.FindAsync(c => (subjectId == null ? true : c.SubjectId.Equals(subjectId))
-                                                     &&(teacherId) == null ? true: c.TeacherId.Equals(teacherId));
+                                                     &&(teacherId) == null ? true: c.TeacherId.Equals(teacherId),
+                                                     "Teacher", "Subject", "StudentClasses", "Exams"
+                                                     );
+           
             return new ResultApiModel
             {
                 Status = true,

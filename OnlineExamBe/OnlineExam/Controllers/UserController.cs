@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.RequestDtos.User;
 using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Dtos.User;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services;
 using OnlineExam.Attributes;
@@ -24,6 +25,25 @@ namespace OnlineExam.Controllers
             _userService = userService;
         }
 
+
+        [HttpPost]
+        [Route("search-for-admin")]
+        [SessionAuthorize(UserRole.ADMIN)]
+        public async Task<IActionResult> Search(SearchForAdminDto search)
+        {
+            ResultApiModel apiResultModel = new ResultApiModel();
+            apiResultModel.Data = await _userService.SearchForAdminAsync(search);
+            return Ok(apiResultModel);
+        }
+
+        [HttpPost]
+        [Route("search-for-user")]
+        public async Task<IActionResult> Search(SearchForUserDto search)
+        {
+            ResultApiModel apiResultModel = new ResultApiModel();
+            apiResultModel.Data = await _userService.SearchForUserAsync(search);
+            return Ok(apiResultModel);
+        }
         [HttpGet]
         [Route("get-all")]
         [SessionAuthorize(UserRole.ADMIN)]

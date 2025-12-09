@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using OnlineExam.Application.Dtos.ReponseDtos;
 using OnlineExam.Application.Dtos.RequestDtos;
 using OnlineExam.Application.Dtos.RequestDtos.User;
 using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Dtos.User;
 using OnlineExam.Application.Helpers;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services.Base;
@@ -18,6 +20,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace OnlineExam.Application.Services
 {
@@ -30,6 +33,64 @@ namespace OnlineExam.Application.Services
             _httpContextAccessor = httpContextAccessor;
         }
         #region Admin
+        /// <summary>
+        /// tim kiem cho admin
+        /// </summary>
+        /// <param name="searchModel"></param>
+        /// <returns></returns>
+        public async Task<ResultApiModel> SearchForAdminAsync(SearchForAdminDto searchModel)
+        {
+            var query = _repository.Query();
+            if (!string.IsNullOrEmpty(searchModel.FullName))
+            {
+                var fullName = searchModel.FullName.ToLower().Trim();
+                query = query.Where(c => c.FullName.ToLower().Trim().Contains(fullName));
+            }
+
+            if (!string.IsNullOrEmpty(searchModel.MSSV))
+            {
+                var mssv = searchModel.MSSV.ToLower().Trim();
+                query = query.Where(c => c.MSSV.ToLower().Trim().Contains(mssv));
+            }
+
+            if(searchModel.DobFrom != null)
+            {
+                query = query.Where(c => c.DateOfBirth >= searchModel.DobFrom);
+            }
+
+            if (searchModel.DobTo != null)
+            {
+                query = query.Where(c => c.DateOfBirth <= searchModel.DobTo);
+            }
+
+            if (!string.IsNullOrEmpty(searchModel.Email))
+            {
+                var email = searchModel.Email.ToLower().Trim();
+                query = query.Where(c => c.Email.ToLower().Trim().Contains(email));
+            }
+            if (searchModel.Role != null)
+            {
+                query = query.Where(c => c.Role == searchModel.Role);
+            }
+            var totalItems = await query.CountAsync();
+
+            var users = await query
+                .Skip((searchModel.PageNumber - 1) * searchModel.PageSize)
+                .Take(searchModel.PageSize)
+                .ToListAsync();
+
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = new
+                {
+                    TotalItems = totalItems,
+                    Users = users
+                }
+            };
+
+        }
         // ke thua tu crud
 
         /// <summary>
@@ -135,13 +196,56 @@ namespace OnlineExam.Application.Services
             };
 
         }
-        
 
-        
+
+
         #endregion
 
         #region User
 
+        public async Task<ResultApiModel> SearchForUserAsync(SearchForUserDto searchModel)
+        {
+            var query = _repository.Query();
+            if (!string.IsNullOrEmpty(searchModel.FullName))
+            {
+                var fullName = searchModel.FullName.ToLower().Trim();
+                query = query.Where(c => c.FullName.ToLower().Trim().Contains(fullName));
+            }
+
+            if (!string.IsNullOrEmpty(searchModel.MSSV))
+            {
+                var mssv = searchModel.MSSV.ToLower().Trim();
+                query = query.Where(c => c.MSSV.ToLower().Trim().Contains(mssv));
+            }
+
+            if (!string.IsNullOrEmpty(searchModel.Email))
+            {
+                var email = searchModel.Email.ToLower().Trim();
+                query = query.Where(c => c.Email.ToLower().Trim().Contains(email));
+            }
+            if (searchModel.Role != null)
+            {
+                query = query.Where(c => c.Role == searchModel.Role);
+            }
+            var totalItems = await query.CountAsync();
+
+            var users = await query
+                .Skip((searchModel.PageNumber - 1) * searchModel.PageSize)
+                .Take(searchModel.PageSize)
+                .ToListAsync();
+
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = new
+                {
+                    TotalItems = totalItems,
+                    Users = users
+                }
+            };
+
+        }
         //Các phương thức của User
         public async Task<ResultApiModel> CreateAsync(CreateUserAdminDto user)
         {
