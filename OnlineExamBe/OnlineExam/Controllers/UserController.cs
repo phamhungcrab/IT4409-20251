@@ -32,7 +32,7 @@ namespace OnlineExam.Controllers
         public async Task<IActionResult> Search(SearchForAdminDto search)
         {
             ResultApiModel apiResultModel = new ResultApiModel();
-            apiResultModel.Data = await _userService.SearchForAdminAsync(search);
+            apiResultModel = await _userService.SearchForAdminAsync(search);
             return Ok(apiResultModel);
         }
 
@@ -41,7 +41,7 @@ namespace OnlineExam.Controllers
         public async Task<IActionResult> Search(SearchForUserDto search)
         {
             ResultApiModel apiResultModel = new ResultApiModel();
-            apiResultModel.Data = await _userService.SearchForUserAsync(search);
+            apiResultModel= await _userService.SearchForUserAsync(search);
             return Ok(apiResultModel);
         }
         [HttpGet]
