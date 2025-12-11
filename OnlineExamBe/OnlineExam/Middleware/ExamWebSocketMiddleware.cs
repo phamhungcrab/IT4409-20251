@@ -1,4 +1,5 @@
 ﻿using OnlineExam.Application.Dtos.WebSocket;
+using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Websocket;
 using OnlineExam.Domain.Enums;
 using System.Net.WebSockets;
@@ -41,7 +42,7 @@ namespace OnlineExam.Middleware
                 return;
             }
 
-            using WebSocket socket = await context.WebSockets.AcceptWebSocketAsync();
+            using WebSocket socket = await context.WebSockets.AcceptWebSocketAsync(); 
             await ListenLoop(socket, examId, studentId);
         }
 
@@ -50,11 +51,82 @@ namespace OnlineExam.Middleware
             using var scope = _scopeFactory.CreateScope();
             var cache = scope.ServiceProvider.GetRequiredService<IExamAnswerCache>();
             var grading = scope.ServiceProvider.GetRequiredService<IExamGradingService>();
+            var _examService = scope.ServiceProvider.GetService<IExamService>();
+            // gui thong tin thoi gian cho fe. het tgian thi nop bai
+
+            var sendTask = Task.Run(async () =>
+            {
+                try
+                {
+                    while (socket.State == WebSocketState.Open)
+                    {
+                        if (_examService != null)
+                        {
+                            var examStudent = await _examService.GetExamStudent(examId, studentId);
+                            var exam = await _examService.GetByIdAsync(examId);
+                            if (examStudent == null || exam == null)
+                            {
+                                var msgBytes = Encoding.UTF8.GetBytes(
+                                JsonSerializer.Serialize(new { status = $"error : Không có bài thi cho sinh viên này {examId} : {studentId}" })
+                                );
+                                await socket.SendAsync(msgBytes, WebSocketMessageType.Text, true, CancellationToken.None);
+                                await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed", CancellationToken.None);
+                                break;
+                            }
+                            var remainingTime = exam.DurationMinutes * 60 - (int)(DateTime.UtcNow - examStudent.StartTime).TotalSeconds;
+                            if (remainingTime <= 0 || exam.EndTime <= DateTime.UtcNow)
+                            {
+                                await HandleSubmitExam(socket, examId, studentId);
+                                break;
+                            }
+                            var bytes = Encoding.UTF8.GetBytes(remainingTime.ToString());
+                            try
+                            {
+                                await socket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex.ToString());
+                            }
+
+                            // 1 s gui 1 lan de cap nhat tgian
+                            await Task.Delay(1000);
+
+                        }
+                        else
+                        {
+                            await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed", CancellationToken.None);
+                            break;
+                        }
+                    }
+                }
+                catch(Exception ex) 
+                {
+                    Console.WriteLine(ex.ToString());
+                }
+
+                finally
+                {
+                    if (socket.State != WebSocketState.Closed &&
+                    socket.State != WebSocketState.Aborted)
+                    {
+                        await socket.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "Closed",
+                            CancellationToken.None);
+                    }
+                }
+            });
+            
+
+            // nhan ycau tu fe de xu ly
+
+            var receiveTask = Task.Run(async () => {
 
             var buffer = new byte[4096];
-
             try
             {
+
                 while (socket.State == WebSocketState.Open)
                 {
                     var result = await socket.ReceiveAsync(buffer, CancellationToken.None);
@@ -127,6 +199,11 @@ namespace OnlineExam.Middleware
                         CancellationToken.None);
                 }
             }
+
+            });
+
+            await Task.WhenAny(sendTask, receiveTask);
+
         }
 
         private async Task HandleSync(WebSocket socket, int examId, int studentId)

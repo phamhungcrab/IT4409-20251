@@ -21,14 +21,31 @@ namespace OnlineExam.Infrastructure.Repositories
             _dbSet = _dbcontext.Set<T>();
         }
 
-        public async Task<IEnumerable<T>> GetAllAsync()
-            => await _dbSet.ToListAsync();
+        public async Task<IEnumerable<T>> GetAllAsync(params string[] includes)
+        {
+            IQueryable<T> query = _dbSet;
+            foreach (var item in includes)
+            {
+                query = query.Include(item);
+            }
+            return await query.ToListAsync();
+        }
+           
 
         public async Task<T?> GetByIdAsync(int id)
             => await _dbSet.FindAsync(id);
+         
 
-        public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
-            => await _dbSet.Where(predicate).ToListAsync();
+        public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, params string[] includes)
+        
+        {
+            IQueryable<T> query = _dbSet;
+            foreach (var item in includes)
+            {
+                query = query.Include(item);
+            }
+            return await query.Where(predicate).ToListAsync();
+        }
 
         public async Task AddAsync(T entity)
             => await _dbSet.AddAsync(entity);
@@ -45,5 +62,25 @@ namespace OnlineExam.Infrastructure.Repositories
         {
             await _dbcontext.SaveChangesAsync();
         }
+
+        public async Task<List<TResult>> JoinAsync<T2, TKey, TResult>(
+            Expression<Func<T, TKey>> outerSelector,
+            Expression<Func<T2, TKey>> innerSelector,
+            Expression<Func<T,bool>> predicate,
+            Expression<Func <T, T2, TResult>> resultSelector
+            )
+            where T2 : class
+        {
+            var inner = _dbcontext.Set<T2>();
+
+            return await _dbSet.Where(predicate).Join(
+                inner,  
+                outerSelector,
+                innerSelector,
+                resultSelector
+                ).ToListAsync();
+
+        }
+
     }
 }

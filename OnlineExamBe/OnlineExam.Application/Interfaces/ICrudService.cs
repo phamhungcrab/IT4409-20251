@@ -9,7 +9,7 @@ namespace OnlineExam.Application.Interfaces
     public interface ICrudService<T> where T : class
     {
 
-        Task<IEnumerable<T>> GetAllAsync();
+        Task<IEnumerable<T>> GetAllAsync(params string[] includes);
         Task<T?> GetByIdAsync(int id);
         Task CreateAsync(T entity);
         Task<bool> UpdateAsync(T entity);

@@ -15,6 +15,7 @@ namespace OnlineExam.Application.Interfaces
 
         public Task<ResultApiModel> GetByTeacherAndSubject(int? teacherId, int? subjectId);
         public Task<ResultApiModel> CreateAsync(CreateClassDto newClass);
+        public Task<ResultApiModel> GetStudents(int classId);
         public Task<ResultApiModel> AddStudentsAsync(AddStudentDto[] students, int classId);
         public Task<ResultApiModel> UpdateAsync(UpdateClassDto updateClass, int classId);
         

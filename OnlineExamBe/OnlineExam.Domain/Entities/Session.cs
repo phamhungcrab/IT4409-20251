@@ -17,7 +17,7 @@ namespace OnlineExam.Domain.Entities
         public DateTime IssuedAt { get; set; }
         public DateTime ExpiresAt { get; set; }
 
-        [JsonIgnore]
+        
         public User? User { get; set; }
 
     }
