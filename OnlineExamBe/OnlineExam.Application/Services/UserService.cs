@@ -1,7 +1,10 @@
-﻿using OnlineExam.Application.Dtos.ReponseDtos;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using OnlineExam.Application.Dtos.ReponseDtos;
 using OnlineExam.Application.Dtos.RequestDtos;
 using OnlineExam.Application.Dtos.RequestDtos.User;
 using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Dtos.User;
 using OnlineExam.Application.Helpers;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services.Base;
@@ -13,19 +16,81 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace OnlineExam.Application.Services
 {
     public class UserService : CrudService<User>, IUserService
     {
-        
-        public UserService(IRepository<User> repository) : base(repository)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public UserService(IRepository<User> repository, IHttpContextAccessor httpContextAccessor) : base(repository)
         {
+            _httpContextAccessor = httpContextAccessor;
         }
         #region Admin
+        /// <summary>
+        /// tim kiem cho admin
+        /// </summary>
+        /// <param name="searchModel"></param>
+        /// <returns></returns>
+        public async Task<ResultApiModel> SearchForAdminAsync(SearchForAdminDto searchModel)
+        {
+            var query = _repository.Query();
+            if (!string.IsNullOrEmpty(searchModel.FullName))
+            {
+                var fullName = searchModel.FullName.ToLower().Trim();
+                query = query.Where(c => c.FullName.ToLower().Trim().Contains(fullName));
+            }
+
+            if (!string.IsNullOrEmpty(searchModel.MSSV))
+            {
+                var mssv = searchModel.MSSV.ToLower().Trim();
+                query = query.Where(c => c.MSSV.ToLower().Trim().Contains(mssv));
+            }
+
+            if(searchModel.DobFrom != null)
+            {
+                query = query.Where(c => c.DateOfBirth >= searchModel.DobFrom);
+            }
+
+            if (searchModel.DobTo != null)
+            {
+                query = query.Where(c => c.DateOfBirth <= searchModel.DobTo);
+            }
+
+            if (!string.IsNullOrEmpty(searchModel.Email))
+            {
+                var email = searchModel.Email.ToLower().Trim();
+                query = query.Where(c => c.Email.ToLower().Trim().Contains(email));
+            }
+            if (searchModel.Role != null)
+            {
+                query = query.Where(c => c.Role == searchModel.Role);
+            }
+            var totalItems = await query.CountAsync();
+
+            var users = await query
+                .Skip((searchModel.PageNumber - 1) * searchModel.PageSize)
+                .Take(searchModel.PageSize)
+                .ToListAsync();
+
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = new
+                {
+                    TotalItems = totalItems,
+                    Users = users
+                }
+            };
+
+        }
         // ke thua tu crud
 
         /// <summary>
@@ -127,14 +192,60 @@ namespace OnlineExam.Application.Services
             {
                 Status = true,
                 MessageCode = ResponseCode.Success,
-                Data = "Cap nhat user thanh cong"
+                Data = update
             };
 
         }
+
+
+
         #endregion
 
         #region User
 
+        public async Task<ResultApiModel> SearchForUserAsync(SearchForUserDto searchModel)
+        {
+            var query = _repository.Query();
+            if (!string.IsNullOrEmpty(searchModel.FullName))
+            {
+                var fullName = searchModel.FullName.ToLower().Trim();
+                query = query.Where(c => c.FullName.ToLower().Trim().Contains(fullName));
+            }
+
+            if (!string.IsNullOrEmpty(searchModel.MSSV))
+            {
+                var mssv = searchModel.MSSV.ToLower().Trim();
+                query = query.Where(c => c.MSSV.ToLower().Trim().Contains(mssv));
+            }
+
+            if (!string.IsNullOrEmpty(searchModel.Email))
+            {
+                var email = searchModel.Email.ToLower().Trim();
+                query = query.Where(c => c.Email.ToLower().Trim().Contains(email));
+            }
+            if (searchModel.Role != null)
+            {
+                query = query.Where(c => c.Role == searchModel.Role);
+            }
+            var totalItems = await query.CountAsync();
+
+            var users = await query
+                .Skip((searchModel.PageNumber - 1) * searchModel.PageSize)
+                .Take(searchModel.PageSize)
+                .ToListAsync();
+
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = new
+                {
+                    TotalItems = totalItems,
+                    Users = users
+                }
+            };
+
+        }
         //Các phương thức của User
         public async Task<ResultApiModel> CreateAsync(CreateUserAdminDto user)
         {
@@ -184,7 +295,7 @@ namespace OnlineExam.Application.Services
                 {
                     Status = true,
                     MessageCode = ResponseCode.Success,
-                    Data = "Tao user thanh cong"
+                    Data = newUser
 
                 };
             
@@ -202,7 +313,7 @@ namespace OnlineExam.Application.Services
                 {
                     Status = false,
                     MessageCode = ResponseCode.BadRequest,
-                    Data = "Thieu Email"
+                    Data = "Thiếu Email"
                 };
             }
 
@@ -212,21 +323,21 @@ namespace OnlineExam.Application.Services
                 {
                     Status = false,
                     MessageCode = ResponseCode.BadRequest,
-                    Data = "Sai dinh dang email"
+                    Data = "Sai định dạng email"
                 };
             }
-            var checkMail = await _repository.FindAsync(x => x.Email.ToLower().Equals(userUpdate.Email.ToLower()));
-            if (!checkMail.Any())
+            var userId = int.Parse(_httpContextAccessor.HttpContext!.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var user  = await _repository.GetByIdAsync(userId);
+            if (user == null)
             {
                 return new ResultApiModel()
                 {
                     Status = false,
                     MessageCode = ResponseCode.Conflict,
-                    Data = "Khong ton tai"
+                    Data = "Tài khoản đã bị xóa"
                 };
             }
 
-            var user = checkMail.First();
             user.Email = userUpdate.Email;
             user.FullName = userUpdate.FullName;
             user.DateOfBirth = userUpdate.DateOfBirth;  
@@ -236,11 +347,11 @@ namespace OnlineExam.Application.Services
             {
                 Status = true,
                 MessageCode = ResponseCode.Success,
-                Data = "Cap nhat user thanh cong"
+                Data = user
             };
 
         }
-        
+
 
         public async Task<User?> GetUserByEmail(string email)
         {

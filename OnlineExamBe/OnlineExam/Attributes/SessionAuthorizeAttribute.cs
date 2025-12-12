@@ -10,7 +10,7 @@ namespace OnlineExam.Attributes
 {
     public class SessionAuthorizeAttribute : Attribute, IAsyncAuthorizationFilter
     {
-        private readonly UserRole[] _roles;
+        private readonly UserRole[] _roles = { UserRole.STUDENT, UserRole.ADMIN, UserRole.TEACHER };
 
         public SessionAuthorizeAttribute(params UserRole[] roles )
         {
@@ -29,17 +29,19 @@ namespace OnlineExam.Attributes
                 context.Result = new UnauthorizedObjectResult("Missing session.");
                 return;
             }
-            
-            
-               var session = await _sessionService.ValidateSession(sessionString, _roles);
- 
+
+
+            var session = await _sessionService.ValidateSession(sessionString, _roles);
+
 
             if (session == null)
             {
-                context.Result = new UnauthorizedObjectResult("Session expired or invalid.");
+                context.Result = new UnauthorizedObjectResult("Forbidden: You do not have permission to perform this action.");
                 return;
             }
             await _sessionService.ExtendSessionAsync(sessionString);
+
+
             //var session = await _sessionService.GetBySessionStringAsync(sessionString);
             //var user = await _userService.GetByIdAsync(session!.UserId);
             //var claims = new List<Claim>

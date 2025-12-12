@@ -60,8 +60,6 @@ db/*.bak
 # --- Temporary ---
 tmp/
 testMSSSV.json
-README.md
-
 
 ################################################################################
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.

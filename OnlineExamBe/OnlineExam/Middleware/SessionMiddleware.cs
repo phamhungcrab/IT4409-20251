@@ -11,9 +11,11 @@ namespace OnlineExam.Middleware
     public class SessionMiddleware
     {
         private readonly RequestDelegate _next;
-        public SessionMiddleware(RequestDelegate next )
+        private readonly IUserService _userService;
+        public SessionMiddleware(RequestDelegate next, IUserService userService )
         {
             _next = next;
+            _userService = userService;
         }
 
         public async Task InvokeAsync(HttpContext context, ISessionService _sessionService) 
@@ -44,13 +46,19 @@ namespace OnlineExam.Middleware
             }
 
             await _sessionService.ExtendSessionAsync(sessionString);
+            var user = await _userService.GetByIdAsync(session.UserId);
+            if (user == null) 
+            {
+                await context.Response.WriteAsync("User is deleted!");
+                return;
+            }
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, session.UserId.ToString()),
                 new Claim(ClaimTypes.Role, session.UserRole.ToString()),
-                //new Claim(ClaimTypes.Name, user.FullName),
-                //new Claim(ClaimTypes.Email, user.Email),
-                //new Claim("MSSV", user.MSSV)
+                new Claim(ClaimTypes.Name, user.FullName),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim("MSSV", user.MSSV)
             };
 
             var identity = new ClaimsIdentity(claims, "SessionAuth");

@@ -3,6 +3,7 @@ using OnlineExam.Application.Dtos.Class;
 using OnlineExam.Application.Dtos.RequestDtos.User;
 using OnlineExam.Application.Dtos.ResponseDtos;
 using OnlineExam.Application.Interfaces;
+using OnlineExam.Attributes;
 using OnlineExam.Domain.Enums;
 using System.Text.Json;
 
@@ -20,18 +21,32 @@ namespace OnlineExam.Controllers
         }
         [HttpGet]
         [Route("get-all")]
+        [SessionAuthorize(UserRole.ADMIN)]
         public async Task<IActionResult> GetAll()
         {
             ResultApiModel apiResultModel = new ResultApiModel();
-            apiResultModel.Data = await _classService.GetAllAsync();
+            apiResultModel.Status = true;
+            apiResultModel.Data = await _classService.GetAllAsync("Teacher", "Subject", "StudentClasses", "Exams");
             return Ok(apiResultModel);
         }
         [HttpGet]
         [Route("get-by-teacher-and-subject")]
+        [SessionAuthorize(UserRole.TEACHER,UserRole.ADMIN)]
         public async Task<IActionResult> GetByTeacherAndSubject(int? teacherId = null, int? subjectId = null )
         {
             ResultApiModel apiResultModel = new ResultApiModel();
-            apiResultModel.Data = await _classService.GetByTeacherAndSubject(teacherId, subjectId);
+            apiResultModel = await _classService.GetByTeacherAndSubject(teacherId, subjectId);
+            return Ok(apiResultModel);
+        }
+
+
+        [HttpGet]
+        [Route("get-students")]
+        
+        public async Task<IActionResult> GetStudents(int classId)
+        {
+            ResultApiModel apiResultModel = new ResultApiModel();
+            apiResultModel = await _classService.GetStudents(classId);
             return Ok(apiResultModel);
         }
         /// <summary>

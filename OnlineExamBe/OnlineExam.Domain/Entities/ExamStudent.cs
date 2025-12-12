@@ -5,9 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OnlineExam.Application.Dtos.ExamStudent
+namespace OnlineExam.Domain.Entities
 {
-    public class ResponseResultExamDto
+    public class ExamStudent
     {
         public int ExamId { get; set; }
         public int StudentId { get; set; }
@@ -15,5 +15,8 @@ namespace OnlineExam.Application.Dtos.ExamStudent
         public DateTime? EndTime { get; set; }
         public float? Points { get; set; }
         public ExamStatus Status { get; set; }
+
+        public Exam? Exam { get; set; }
+        public User? Student { get; set; }
     }
 }

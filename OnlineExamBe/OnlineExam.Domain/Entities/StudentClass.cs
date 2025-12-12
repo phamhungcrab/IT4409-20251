@@ -12,9 +12,9 @@ namespace OnlineExam.Domain.Entities
         public int StudentId { get; set; }
         public int ClassId { get; set; }
 
-        [JsonIgnore]
+        
         public User Student { get; set; }
-        [JsonIgnore]
+       
         public Class Class { get; set; }
     }
 }

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.RequestDtos.User;
 using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Dtos.User;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services;
 using OnlineExam.Attributes;
@@ -14,7 +15,6 @@ namespace OnlineExam.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize]
     [SessionAuthorize]
     public class UserController : Controller
     {
@@ -25,10 +25,28 @@ namespace OnlineExam.Controllers
             _userService = userService;
         }
 
+
+        [HttpPost]
+        [Route("search-for-admin")]
+        [SessionAuthorize(UserRole.ADMIN)]
+        public async Task<IActionResult> Search(SearchForAdminDto search)
+        {
+            ResultApiModel apiResultModel = new ResultApiModel();
+            apiResultModel = await _userService.SearchForAdminAsync(search);
+            return Ok(apiResultModel);
+        }
+
+        [HttpPost]
+        [Route("search-for-user")]
+        public async Task<IActionResult> Search(SearchForUserDto search)
+        {
+            ResultApiModel apiResultModel = new ResultApiModel();
+            apiResultModel= await _userService.SearchForUserAsync(search);
+            return Ok(apiResultModel);
+        }
         [HttpGet]
         [Route("get-all")]
-        //[Authorize(Roles = "ADMIN")]
-        //[Authorize]
+        [SessionAuthorize(UserRole.ADMIN)]
         public async Task<IActionResult> GetAll() 
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -42,7 +60,7 @@ namespace OnlineExam.Controllers
         /// <returns></returns>
         [HttpPost]
         [Route("create-users")]
-        //[Authorize(Roles ="ADMIN")]
+        [SessionAuthorize(UserRole.ADMIN)]
         public async Task<IActionResult> RegisterForUser(IFormFile file)
         {
             if (file == null || file.Length == 0)
@@ -64,7 +82,7 @@ namespace OnlineExam.Controllers
 
         [HttpPost]
         [Route("create")]
-        //[Authorize(Roles ="ADMIN")]
+        [SessionAuthorize(UserRole.ADMIN)]
         public async Task<IActionResult> Create(CreateUserAdminDto user)
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -79,7 +97,7 @@ namespace OnlineExam.Controllers
         /// <returns></returns>
         [HttpPut]
         [Route("update")]
-
+        [SessionAuthorize(UserRole.ADMIN)]
         public async Task<IActionResult> Update(CreateUserAdminDto user)
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -94,7 +112,6 @@ namespace OnlineExam.Controllers
         /// <returns></returns>
         [HttpPut]
         [Route("update-for-user")]
-        
         public async Task<IActionResult> UserUpdate(UserUpdateDto user)
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -103,7 +120,7 @@ namespace OnlineExam.Controllers
         }
         [HttpDelete]
         [Route("delete")]
-
+        [SessionAuthorize(UserRole.ADMIN)]
         public async Task<IActionResult> Delete(int userId)
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -112,11 +129,11 @@ namespace OnlineExam.Controllers
             apiResultModel.Data = success;
             if (success)
             {
-                apiResultModel.MessageCode = ResponseCode.NotFound;
+                apiResultModel.MessageCode = ResponseCode.Success;
             }
             else
             {
-                apiResultModel.MessageCode = ResponseCode.Success;
+                apiResultModel.MessageCode = ResponseCode.NotFound;
             }
             return Ok(apiResultModel);  
         }
