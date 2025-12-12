@@ -12,7 +12,7 @@ const LoginPage: React.FC = () => {
   const { t } = useTranslation();
 
   // useAuth: hook tự viết, quản lý logic đăng nhập/đăng xuất.
-  // Từ hook này ta lấy ra hàm login để gọi khi người dùng submit form.
+  // Từ hook này ta lấy ra hàm login để gọi khi người dùng submit form. 
   const { login } = useAuth();
 
   // State lưu giá trị email người dùng nhập

@@ -48,7 +48,7 @@ root.render(
       {/* AuthProvider là một Context Provider tự viết để quản lý trạng thái đăng nhập.
           Ví dụ: lưu thông tin user, token, hàm login(), logout().
           Bao bọc <App /> bên trong để mọi component con có thể dùng useAuth() lấy thông tin user. */}
-      <AuthProvider>
+      <AuthProvider> 
         {/* App là component gốc của ứng dụng, chứa layout chính, router, các page,... */}
         <App />
       </AuthProvider>

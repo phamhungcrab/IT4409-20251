@@ -24,7 +24,7 @@ const App: React.FC = () => {
    * Nói dễ hiểu:
    *  - appRoutes = "bản đồ" định nghĩa: path nào → component nào.
    *  - useRoutes(appRoutes) = "dựa vào URL hiện tại, tạo ra cây component tương ứng".
-   *
+   * 
    * Ví dụ:
    *  - Nếu URL là /login -> useRoutes trả về element <LoginPage />.
    *  - Nếu URL là /exams -> trả về <ExamListPage />.

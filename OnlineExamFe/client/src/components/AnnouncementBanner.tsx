@@ -1,23 +1,25 @@
 /**
- * AnnouncementBanner component.
- *
- * This component displays a list of announcements at the top of a page. Each
- * announcement can optionally be dismissed by the user. It accepts an
- * `announcements` prop consisting of objects with an `id`, a `message`, and an
- * optional `type` to control the color (e.g. info, success, warning, error).
- * When the close button is clicked, the announcement is removed from local
- * state. See HomePage.tsx for an example of usage. For a production
- * application, you may hook this up to a real-time announcement feed via
- * SignalR.
+ * AnnouncementBanner:
+ *  - Component hiển thị danh sách các thông báo ở đầu trang.
+ *  - Mỗi thông báo có thể được học sinh/giáo viên tự đóng lại (dismiss).
+ *  - Dùng cho các thông báo quan trọng: lịch thi, bảo trì hệ thống, thông báo khẩn,...
  */
-// dùng cho thông báo tới học sinh
+
+ // dùng cho thông báo tới học sinh
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 /**
- * Defines the shape of an announcement. `type` is optional and controls
- * the banner color; supported values are 'info', 'success', 'warning' and
- * 'error'. Additional properties (e.g. createdAt) may be added as needed.
+ * Kiểu dữ liệu cho một thông báo (Announcement):
+ *  - id      : mã định danh duy nhất cho từng thông báo (dùng làm key khi render).
+ *  - message : nội dung thông báo hiển thị cho người dùng.
+ *  - type    : loại thông báo (tùy chọn), quyết định màu sắc:
+ *      + 'info'    : thông tin chung
+ *      + 'success' : thông báo thành công
+ *      + 'warning' : cảnh báo
+ *      + 'error'   : lỗi, sự cố
+ *
+ * Có thể bổ sung thêm các trường khác nếu cần (vd: createdAt, creator, link,...).
  */
 export interface Announcement {
   id: number;
@@ -25,19 +27,41 @@ export interface Announcement {
   type?: 'info' | 'success' | 'warning' | 'error';
 }
 
+/**
+ * Props của component AnnouncementBanner:
+ *  - announcements: mảng các thông báo cần hiển thị.
+ */
 export interface AnnouncementBannerProps {
   announcements: Announcement[];
 }
 
+/**
+ * Component AnnouncementBanner:
+ *  - Nhận props là mảng thông báo.
+ *  - Lưu bản sao mảng thông báo vào state local để cho phép người dùng "đóng" từng thông báo
+ *    mà KHÔNG ảnh hưởng đến dữ liệu gốc ở component cha.
+ */
 const AnnouncementBanner: React.FC<AnnouncementBannerProps> = ({ announcements }) => {
+  // useTranslation: hook của i18next để lấy text đa ngôn ngữ (dùng cho aria-label nút đóng)
   const { t } = useTranslation();
-  // Maintain a local copy so that users can dismiss announcements without
-  // affecting the prop passed from the parent. In a state management
-  // scenario, you might push dismissals back up to the parent or a store.
+
+  /**
+   * State `visible`:
+   *  - Lưu danh sách các thông báo đang hiển thị.
+   *  - Khởi tạo bằng giá trị từ props `announcements`.
+   *  - Khi người dùng bấm nút "×" để đóng một thông báo,
+   *    ta sẽ cập nhật `visible` để loại bỏ thông báo đó.
+   *
+   * Lưu ý:
+   *  - Dùng state riêng thay vì chỉnh sửa trực tiếp props (props là "readonly").
+   */
   const [visible, setVisible] = useState<Announcement[]>(announcements);
 
-  // Map announcement types to Tailwind CSS classes. Feel free to adjust
-  // colors or use another styling solution. Unknown types default to info.
+  /**
+   * Hàm map `type` của thông báo sang các class Tailwind CSS tương ứng.
+   *  - Mỗi loại (info/success/warning/error) sẽ có màu nền + màu chữ khác nhau.
+   *  - Nếu type không xác định, mặc định dùng kiểu 'info'.
+   */
   const typeToClass = (type: Announcement['type']) => {
     switch (type) {
       case 'success':
@@ -52,33 +76,50 @@ const AnnouncementBanner: React.FC<AnnouncementBannerProps> = ({ announcements }
     }
   };
 
+  /**
+   * handleClose:
+   *  - Được gọi khi người dùng bấm nút "×" trên một thông báo.
+   *  - Tham số `id` là id của thông báo muốn đóng.
+   *  - Cập nhật state `visible` bằng cách filter bỏ phần tử có id tương ứng.
+   */
   const handleClose = (id: number) => {
     setVisible((prev) => prev.filter((a) => a.id !== id));
   };
 
+  /**
+   * Nếu không còn thông báo nào trong `visible`:
+   *  - Trả về null để React không render gì cả.
+   *  - Đây là pattern phổ biến: component tự "ẩn" khi không có dữ liệu.
+   */
   if (visible.length === 0) {
-    return null; // Render nothing if there are no announcements
+    return null;
   }
 
   return (
     <div className="space-y-3">
       {visible.map((ann) => (
         <div
-          key={ann.id}
+          key={ann.id} // key giúp React nhận diện từng phần tử trong danh sách
           className={
             'glass-card flex items-start gap-3 p-4 border ' + typeToClass(ann.type)
           }
         >
+          {/* Icon tròn chứa dấu "!" để nhấn mạnh rằng đây là thông báo */}
           <div className="h-10 w-10 flex items-center justify-center rounded-full bg-white/10 text-lg font-bold text-white">
             !
           </div>
+
+          {/* Phần nội dung thông báo */}
           <div className="flex-1">
             <p className="text-sm leading-relaxed">{ann.message}</p>
           </div>
+
+          {/* Nút đóng (×) để người dùng ẩn thông báo */}
           <button
             type="button"
             onClick={() => handleClose(ann.id)}
             className="btn btn-ghost px-3 py-2 text-sm hover:-translate-y-0.5"
+            // aria-label giúp tăng khả năng truy cập (accessibility) cho screen reader
             aria-label={t('common.close')}
           >
             ×

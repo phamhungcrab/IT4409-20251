@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import apiClient from '../utils/apiClient';
 import { Announcement } from '../components/AnnouncementBanner';
 
-export const useAnnouncements = (user: any) => {
+export const useAnnouncements = (user?: any) => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
+    // Nếu user là null (chưa đăng nhập/logout), ta clear announcements.
+    // Nếu user là undefined (gọi từ AdminPage không truyền arg), ta vẫn fetch ("lấy chung").
+    if (user === null) {
         setAnnouncements([]);
         setLoading(false);
         return;

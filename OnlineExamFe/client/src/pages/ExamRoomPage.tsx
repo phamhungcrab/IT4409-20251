@@ -6,6 +6,15 @@ import { useExam } from '../hooks/useExam';
 import { useTimer } from '../hooks/useTimer';
 import QuestionCard from '../components/QuestionCard';
 
+/**
+ * Question:
+ *  - Kiểu dữ liệu câu hỏi hiển thị trong phòng thi.
+ *  - id      : id câu hỏi (để lưu đáp án, sync lên server)
+ *  - text    : nội dung câu hỏi
+ *  - type    : loại câu hỏi (ví dụ 1 = chọn 1, 2 = chọn nhiều, 3 = tự luận... tùy BE)
+ *  - order   : thứ tự câu hỏi (quan trọng vì backend WS thường sync theo Order)
+ *  - options : danh sách đáp án (chỉ có với trắc nghiệm)
+ */
 interface Question {
   id: number;
   text: string;
@@ -14,56 +23,225 @@ interface Question {
   options?: { id: number; text: string }[];
 }
 
+/**
+ * ExamRoomPage (Phòng thi):
+ *  - Trang làm bài thi của sinh viên.
+ *  - Nhận dữ liệu từ trang danh sách bài thi (ExamListPage) thông qua location.state:
+ *      + wsUrl      : URL WebSocket để realtime sync
+ *      + duration   : thời lượng bài thi (phút)
+ *      + questions  : danh sách câu hỏi đã được backend tạo
+ *
+ * Luồng tổng quan:
+ *  1) Lấy examId từ URL (/exam/:examId).
+ *  2) Lấy wsUrl/duration/questions từ location.state (dữ liệu được navigate từ trang trước).
+ *  3) Khởi tạo WebSocket bằng useExam() để:
+ *      - Sync đáp án mỗi khi chọn (SubmitAnswer)
+ *      - Khi vào phòng thi thì SyncState để lấy đáp án đã làm trước đó (nếu đang in_progress)
+ *  4) Khởi tạo timer bằng useTimer():
+ *      - Đếm ngược theo duration
+ *      - Hết giờ thì auto submit.
+ *  5) Render giao diện:
+ *      - 1 câu hỏi hiện tại (QuestionCard)
+ *      - Nút prev/next
+ *      - Lưới số câu để nhảy nhanh
+ *
+ * Lưu ý:
+ *  - Nếu người dùng F5 (refresh), location.state có thể bị mất -> không còn questions/wsUrl.
+ *    Khi đó trang sẽ rơi vào “No questions loaded...”.
+ *    (Giải pháp tốt hơn: fetch lại theo examId hoặc lấy cache từ localStorage.)
+ */
 const ExamRoomPage: React.FC = () => {
+  /**
+   * i18next:
+   *  - t(key): lấy text đa ngôn ngữ.
+   */
   const { t } = useTranslation();
+
+  /**
+   * useParams:
+   *  - Lấy tham số động trên URL.
+   *  - Route: /exam/:examId => examId là string.
+   */
   const { examId } = useParams<{ examId: string }>();
+
+  /**
+   * useLocation:
+   *  - Lấy thông tin location hiện tại.
+   *  - location.state: dữ liệu được truyền khi navigate (giống như “gói dữ liệu” đi kèm chuyển trang).
+   */
   const location = useLocation();
+
+  /**
+   * useNavigate:
+   *  - Dùng để chuyển trang bằng code.
+   */
   const navigate = useNavigate();
+
+  /**
+   * useAuth:
+   *  - Lấy user hiện tại (student).
+   */
   const { user } = useAuth();
 
+  // ========================
+  // DỮ LIỆU NHẬN TỪ TRANG TRƯỚC (ExamListPage)
+  // ========================
+
+  /**
+   * wsUrl:
+   *  - URL WebSocket do backend trả về khi start-exam.
+   *  - Thường có dạng wss://.../ws/exam?token=...
+   *
+   * duration:
+   *  - Thời lượng bài thi, nếu không có thì mặc định 60.
+   *
+   * initialQuestions:
+   *  - Danh sách câu hỏi đã được backend tạo.
+   */
   const wsUrl = location.state?.wsUrl;
   const duration = location.state?.duration || 60;
   const initialQuestions = location.state?.questions || [];
 
+  // ========================
+  // STATE CHO UI
+  // ========================
+
+  /**
+   * questions:
+   *  - Danh sách câu hỏi hiển thị.
+   *  - Được map từ initialQuestions (PascalCase/camelCase) sang dạng chuẩn FE.
+   */
   const [questions, setQuestions] = useState<Question[]>([]);
+
+  /**
+   * answers:
+   *  - Lưu đáp án theo dạng: { [questionId]: answer }
+   *  - Ví dụ:
+   *      answers[12] = [1,3] (chọn nhiều)
+   *      answers[15] = [2]   (chọn 1) hoặc đơn giản là 2 (tùy QuestionCard/OptionList)
+   *  - Dùng Record<number, any> vì answer có thể là number[] hoặc string (tự luận).
+   */
   const [answers, setAnswers] = useState<Record<number, any>>({});
+
+  /**
+   * currentQuestionIndex:
+   *  - Index câu hỏi đang hiển thị.
+   *  - Dùng để next/prev và nhảy câu.
+   */
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
+  // ========================
+  // WEBSOCKET HOOK: useExam
+  // ========================
+
+  /**
+   * useExam:
+   *  - Hook quản lý kết nối WebSocket và giao thức realtime của backend.
+   *
+   * Các tham số quan trọng:
+   *  - wsUrl      : URL WS
+   *  - studentId  : id sinh viên
+   *  - examId     : id bài thi
+   *
+   * Callback:
+   *  - onSynced:
+   *      + Khi WS kết nối xong, client thường gửi SyncState.
+   *      + Server có thể trả về danh sách đáp án đã lưu trước đó (in_progress).
+   *      + Ta “hydrate” (đổ) đáp án vào state answers để UI hiển thị lại.
+   *  - onSubmitted:
+   *      + Khi submit xong, server trả kết quả (ví dụ score).
+   *      + Ta alert và chuyển sang /results.
+   *  - onError: hiển thị lỗi.
+   */
   const { connectionState, syncAnswer, submitExam } = useExam({
     wsUrl,
     studentId: user?.id || 0,
     examId: Number(examId),
+
     onSynced: (syncedData) => {
+      /**
+       * syncedData có thể là:
+       *  - mảng đáp án cached từ server.
+       *
+       * Vì backend có thể trả key theo PascalCase (QuestionId/Answer)
+       * hoặc camelCase (questionId/answer), ta normalize về 1 format.
+       */
       if (Array.isArray(syncedData)) {
         const incoming: Record<number, any> = {};
+
         syncedData.forEach((item: any) => {
+          // Ưu tiên đọc theo nhiều kiểu tên field để không bị “lệch format”
           const qId = item.questionId ?? item.QuestionId ?? item.id ?? item.Id;
           if (qId !== undefined && qId !== null) {
             incoming[qId] = item.answer ?? item.Answer;
           }
         });
+
+        // Nếu có đáp án từ server thì merge vào answers hiện tại
         if (Object.keys(incoming).length > 0) {
           setAnswers((prev) => ({ ...prev, ...incoming }));
         }
       }
+
+      // Log một message (có thể thay bằng toast)
       console.log(t('exam.synced'));
     },
+
     onSubmitted: (result) => {
+      // Thông báo nộp bài và điểm (nếu server trả về)
       alert(`${t('exam.submitted')} ${t('exam.score')}: ${result?.score}`);
+
+      // Chuyển sang trang kết quả
       navigate('/results');
     },
+
     onError: (msg) => alert(`${t('common.error')}: ${msg}`)
   });
 
+  // ========================
+  // TIMER HOOK: useTimer
+  // ========================
+
+  /**
+   * useTimer(duration, onTimeUp):
+   *  - duration ở đây đang là “phút” (mặc định 60).
+   *  - Hook sẽ tạo đồng hồ đếm ngược và trả về formattedTime (vd: 59:12).
+   *  - Khi hết giờ -> gọi callback:
+   *      + alert hết giờ
+   *      + tự động submitExam()
+   */
   const { formattedTime } = useTimer(duration, () => {
     alert(t('exam.timeUp'));
     submitExam();
   });
 
+  // ========================
+  // MAP QUESTIONS + HYDRATE ANSWERS TỪ LOCALSTORAGE
+  // ========================
+
   useEffect(() => {
+    /**
+     * Nếu initialQuestions có dữ liệu (được truyền từ trang trước):
+     *  - Map về format Question chuẩn FE.
+     *  - Đồng thời đọc localStorage để khôi phục đáp án (backup phía client).
+     */
     if (initialQuestions.length > 0) {
       const mappedQuestions: Question[] = initialQuestions.map((q: any, idx: number) => {
+        /**
+         * opts:
+         *  - Một số backend trả danh sách đáp án ở field CleanAnswer/CleanAnswer.
+         *  - Tên field có thể khác nhau (cleanAnswer/CleanAnswer).
+         */
         const opts = (q.cleanAnswer ?? q.CleanAnswer ?? []) as any[];
+
+        /**
+         * options:
+         *  - Chuyển opts sang mảng { id, text } để OptionList render.
+         *  - Ở đây dùng optionIdx + 1 làm id (vì backend có thể không có id cho từng option).
+         *
+         * Lưu ý:
+         *  - Nếu backend có id thật cho đáp án, nên dùng id đó để gửi lên server chính xác.
+         */
         const options = Array.isArray(opts)
           ? opts.map((opt: any, optionIdx: number) => ({
               id: optionIdx + 1,
@@ -80,47 +258,109 @@ const ExamRoomPage: React.FC = () => {
         };
       });
 
+      // Cập nhật state câu hỏi
       setQuestions(mappedQuestions);
 
-      // Hydrate answers from local storage backup
+      /**
+       * Khôi phục đáp án từ localStorage:
+       *  - Mỗi câu lưu theo key: exam_<examId>_q_<questionId>
+       *  - Ví dụ: exam_12_q_99
+       */
       const savedAnswers: Record<number, any> = {};
+
       mappedQuestions.forEach((q) => {
         const saved = localStorage.getItem(`exam_${examId}_q_${q.id}`);
         if (saved) {
           try {
             savedAnswers[q.id] = JSON.parse(saved);
           } catch {
-            // ignore parse errors
+            // Nếu dữ liệu bị lỗi JSON thì bỏ qua, tránh crash.
           }
         }
       });
+
+      // Nếu có đáp án đã lưu thì merge vào state answers
       if (Object.keys(savedAnswers).length > 0) {
         setAnswers((prev) => ({ ...prev, ...savedAnswers }));
       }
     } else {
+      /**
+       * Nếu không có initialQuestions:
+       *  - Thường xảy ra khi refresh trang làm mất location.state.
+       *  - Tạm thời set 1 câu “placeholder” để user biết cần vào từ ExamList.
+       */
       setQuestions([
-        { id: 1, text: 'No questions loaded. Please start from exam list.', type: 1, order: 1, options: [] }
+        {
+          id: 1,
+          text: 'Không tải được câu hỏi. Hãy vào từ danh sách bài thi và bắt đầu lại.',
+          type: 1,
+          order: 1,
+          options: []
+        }
       ]);
     }
   }, [initialQuestions, examId]);
 
+  // ========================
+  // XỬ LÝ CHỌN ĐÁP ÁN + SUBMIT
+  // ========================
+
+  /**
+   * handleAnswer:
+   *  - Được gọi khi user chọn đáp án ở QuestionCard.
+   *  - Việc cần làm:
+   *      1) Update answers trong state để UI phản ánh ngay.
+   *      2) Gọi syncAnswer(...) để gửi lên server realtime.
+   *
+   * Vì backend yêu cầu Order/QuestionId/Answer, ta truyền cả questionId và order.
+   */
   const handleAnswer = (questionId: number, order: number, answer: any) => {
     setAnswers((prev) => ({ ...prev, [questionId]: answer }));
     syncAnswer(questionId, order, answer);
   };
 
+  /**
+   * handleSubmit:
+   *  - Xác nhận trước khi nộp.
+   *  - Nếu đồng ý: submitExam() (WS gửi SubmitExam).
+   */
   const handleSubmit = () => {
     if (window.confirm(t('exam.confirmSubmit'))) {
       submitExam();
     }
   };
 
-  if (!user || !examId) return <div>Invalid exam session</div>;
+  /**
+   * Guard đơn giản:
+   *  - Nếu không có user hoặc không có examId => session không hợp lệ.
+   *  - Thực tế có thể điều hướng về /login hoặc /exams thay vì chỉ render text.
+   */
+  if (!user || !examId) return <div>Phiên làm bài không hợp lệ</div>;
+
+  // ========================
+  // TÍNH TOÁN CÂU HIỆN TẠI + ĐÁP ÁN HIỆN TẠI
+  // ========================
 
   const currentQuestion = questions[currentQuestionIndex];
+
+  /**
+   * selectedValue:
+   *  - Lấy đáp án đã chọn của câu hiện tại từ answers.
+   */
   const selectedValue = currentQuestion ? answers[currentQuestion.id] : undefined;
+
+  /**
+   * selectedOptions:
+   *  - Một số component con (OptionList) mong muốn dạng mảng number[]
+   *  - Nếu selectedValue không phải mảng thì trả về [] để tránh lỗi.
+   */
   const selectedOptions = Array.isArray(selectedValue) ? selectedValue : [];
 
+  /**
+   * Chuyển trạng thái kết nối WS sang text đa ngôn ngữ.
+   * connectionState thường là:
+   *  - connected / reconnecting / disconnected
+   */
   const getConnectionStatusText = (state: string) => {
     switch (state) {
       case 'connected':
@@ -136,12 +376,16 @@ const ExamRoomPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Header dính trên cùng: hiển thị mã bài thi, trạng thái WS, timer, nút nộp */}
       <header className="sticky top-0 z-10 border-b border-white/10 bg-slate-950/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-sky-200/70">Exam room</p>
+
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-semibold text-white">Exam #{examId}</h1>
+
+              {/* Badge trạng thái kết nối WebSocket */}
               <span
                 className={`tag ${connectionState === 'connected' ? 'text-emerald-100' : 'text-amber-100'}`}
               >
@@ -155,14 +399,13 @@ const ExamRoomPage: React.FC = () => {
               </span>
             </div>
           </div>
+
           <div className="flex items-center gap-3">
-            <div className="text-xl font-mono font-bold text-sky-100">
-              {formattedTime}
-            </div>
-            <button
-              onClick={handleSubmit}
-              className="btn btn-primary hover:-translate-y-0.5"
-            >
+            {/* Đồng hồ đếm ngược */}
+            <div className="text-xl font-mono font-bold text-sky-100">{formattedTime}</div>
+
+            {/* Nút nộp bài */}
+            <button onClick={handleSubmit} className="btn btn-primary hover:-translate-y-0.5">
               {t('exam.submitExam')}
             </button>
           </div>
@@ -171,6 +414,7 @@ const ExamRoomPage: React.FC = () => {
 
       <main className="flex-1">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-6 lg:flex-row">
+          {/* Cột trái: hiển thị câu hỏi + nút prev/next */}
           <div className="flex-1 space-y-4">
             {currentQuestion && (
               <QuestionCard
@@ -185,6 +429,7 @@ const ExamRoomPage: React.FC = () => {
             )}
 
             <div className="flex justify-between gap-3">
+              {/* Nút Previous: disable khi đang ở câu đầu */}
               <button
                 disabled={currentQuestionIndex === 0}
                 onClick={() => setCurrentQuestionIndex((prev) => prev - 1)}
@@ -192,6 +437,8 @@ const ExamRoomPage: React.FC = () => {
               >
                 {t('exam.previous')}
               </button>
+
+              {/* Nút Next: disable khi đang ở câu cuối */}
               <button
                 disabled={currentQuestionIndex === questions.length - 1}
                 onClick={() => setCurrentQuestionIndex((prev) => prev + 1)}
@@ -202,9 +449,17 @@ const ExamRoomPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Cột phải: lưới số câu + trạng thái autosync */}
           <aside className="w-full lg:w-72 space-y-4">
             <div className="glass-card p-4">
               <h3 className="font-semibold text-white mb-3">{t('exam.questions')}</h3>
+
+              {/*
+                Lưới số câu:
+                - Click số câu để nhảy thẳng tới câu đó.
+                - Nếu câu đã có answers[q.id] => viền xanh (đã làm).
+                - Nếu đang ở câu hiện tại => nền xanh.
+              */}
               <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-4">
                 {questions.map((q, idx) => (
                   <button
@@ -223,8 +478,8 @@ const ExamRoomPage: React.FC = () => {
             </div>
 
             <div className="glass-card p-4 space-y-2">
-              <p className="text-sm text-slate-300">Auto-sync enabled</p>
-              <p className="text-xs text-slate-400">Your answers are synced in real-time.</p>
+              <p className="text-sm text-slate-300">Tự động đồng bộ (auto-sync) đang bật</p>
+              <p className="text-xs text-slate-400">Đáp án của bạn được đồng bộ theo thời gian thực.</p>
             </div>
           </aside>
         </div>
@@ -234,3 +489,25 @@ const ExamRoomPage: React.FC = () => {
 };
 
 export default ExamRoomPage;
+
+/**
+ * Giải thích nhanh các khái niệm dễ vấp (người mới):
+ *
+ * 1) location.state là gì?
+ *    - Là dữ liệu “đi kèm” khi navigate sang trang khác.
+ *    - Ví dụ: navigate('/exam/12', { state: { wsUrl, questions, duration } })
+ *    - Nhược điểm: refresh trang (F5) thì state thường mất.
+ *
+ * 2) WebSocket dùng để làm gì ở phòng thi?
+ *    - Sync đáp án realtime lên server (chống mất dữ liệu nếu rớt mạng).
+ *    - Cho phép resume (đang làm dở -> vào lại vẫn thấy đáp án đã làm).
+ *
+ * 3) Hydrate answers là gì?
+ *    - “Đổ dữ liệu” đáp án đã có (từ server hoặc localStorage) vào state answers
+ *      để UI hiển thị lại các lựa chọn.
+ *
+ * 4) Tại sao phải normalize PascalCase/camelCase?
+ *    - Backend C# hay trả JSON PascalCase (QuestionId, CleanAnswer...)
+ *    - Frontend JS thường dùng camelCase (questionId, cleanAnswer...)
+ *    - Nên code phải đọc được cả 2 để tránh lỗi khi BE/FE không thống nhất.
+ */

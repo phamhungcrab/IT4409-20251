@@ -45,7 +45,7 @@ a {
   color: #002c4acb;
 }
 
-.app-shell {
+.app-shell { 
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-lg);

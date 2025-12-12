@@ -9,7 +9,7 @@ import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'ax
  *        messageCode: ...,
  *        isStatus: true/false,
  *        status: true/false
- *      }
+ *      } 
  *
  *  - <T = any> nghĩa là kiểu dữ liệu của data có thể generic (tùy endpoint).
  *    Ví dụ:
