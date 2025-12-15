@@ -85,6 +85,8 @@ const OptionList: React.FC<OptionListProps> = ({
   onChange,
   groupName
 }) => {
+  const normalizedSelected = Array.isArray(selected) ? selected : [];
+
   /**
    * handleSelect:
    *  - Hàm xử lý khi người dùng tick/bỏ tick một đáp án.
@@ -103,16 +105,19 @@ const OptionList: React.FC<OptionListProps> = ({
    */
   const handleSelect = (id: number, checked: boolean) => {
     if (questionType === 1) {
-      // Chọn 1: chọn thì thay thế toàn bộ bằng [id], bỏ chọn thì về rỗng
-      onChange(checked ? [id] : []);
-    } else {
-      // Chọn nhiều: tick thì thêm vào, bỏ tick thì lọc ra
-      const newSelected = checked
-        ? [...selected, id]
-        : selected.filter((optionId) => optionId !== id);
-
-      onChange(newSelected);
+      // Radio: chỉ xử lý khi checked=true (browser tự bỏ chọn option cũ)
+      if (checked) {
+        onChange([id]);
+      }
+      return;
     }
+
+    // Chọn nhiều: tick thì thêm vào, bỏ tick thì lọc ra
+    const newSelected = checked
+      ? [...normalizedSelected, id]
+      : normalizedSelected.filter((optionId) => optionId !== id);
+
+    onChange(newSelected);
   };
 
   return (
@@ -123,7 +128,7 @@ const OptionList: React.FC<OptionListProps> = ({
     <ul className="space-y-3" role="list">
       {options.map((opt) => {
         // Kiểm tra đáp án này hiện có được chọn không
-        const isSelected = selected.includes(opt.id);
+        const isSelected = normalizedSelected.includes(opt.id);
 
         // isSingle = true nếu câu hỏi là chọn 1
         const isSingle = questionType === 1;

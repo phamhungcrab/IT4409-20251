@@ -32,5 +32,6 @@ namespace OnlineExam.Application.Dtos.Exam
         public float Point { get; set; }
         public int Chapter { get; set; }
         public required List<string> CleanAnswer { get; set; }
+        public List<int> CorrectOptionIds { get; set; } = new();
     }
 }

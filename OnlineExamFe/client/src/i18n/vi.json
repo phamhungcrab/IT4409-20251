@@ -17,13 +17,14 @@
         "loginButton": "Đăng nhập",
         "logout": "Đăng xuất",
         "loginFailed": "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
-        "welcomeBack" : "Xin chào!"
+        "welcomeBack": "Xin chào!"
     },
     "nav": {
         "exams": "Kỳ thi của tôi",
         "results": "Kết quả",
         "admin": "Trang quản trị",
-        "login": "Đăng nhập"
+        "login": "Đăng nhập",
+        "dashboard": "Dashboard"
     },
     "exam": {
         "listTitle": "Danh sách kỳ thi",
@@ -36,6 +37,7 @@
         "submitExam": "Nộp bài",
         "confirmSubmit": "Bạn có chắc chắn muốn nộp bài không?",
         "submitted": "Nộp bài thành công!",
+        "completedMessage": "Bạn đã hoàn thành bài thi này!",
         "score": "Điểm của bạn",
         "questions": "Câu hỏi",
         "previous": "Trước",

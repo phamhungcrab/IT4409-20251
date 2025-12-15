@@ -50,20 +50,25 @@ const Layout: React.FC = () => {
   const getLinks = (): SidebarLink[] => {
     const links: SidebarLink[] = [];
 
-    // Chưa đăng nhập -> chỉ cho link login
+    // Not logged in -> only login link
     if (!user) {
       links.push({ path: '/login', label: t('nav.login') });
       return links;
     }
 
-    // Role Student -> cho xem danh sách bài thi và kết quả
+    // Student links
     if (user.role === 'Student') {
       links.push({ path: '/exams', label: t('nav.exams') });
       links.push({ path: '/results', label: t('nav.results') });
     }
 
-    // Role Admin hoặc Teacher -> cho xem trang quản trị/giảng viên
-    if (user.role === 'Admin' || user.role === 'Teacher') {
+    // Teacher dashboard
+    if (user.role === 'Teacher') {
+      links.push({ path: '/', label: t('nav.dashboard') });
+    }
+
+    // Admin dashboard
+    if (user.role === 'Admin') {
       links.push({ path: '/admin', label: t('nav.admin') });
     }
 

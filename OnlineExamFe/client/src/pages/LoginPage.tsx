@@ -12,7 +12,7 @@ const LoginPage: React.FC = () => {
   const { t } = useTranslation();
 
   // useAuth: hook tự viết, quản lý logic đăng nhập/đăng xuất.
-  // Từ hook này ta lấy ra hàm login để gọi khi người dùng submit form. 
+  // Từ hook này ta lấy ra hàm login để gọi khi người dùng submit form.
   const { login } = useAuth();
 
   // State lưu giá trị email người dùng nhập
@@ -37,30 +37,63 @@ const LoginPage: React.FC = () => {
    */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Mỗi lần submit mới, xóa lỗi cũ (nếu có)
     setError(null);
 
-    // Kiểm tra đơn giản: nếu thiếu email hoặc password thì báo lỗi luôn
     if (!email || !password) {
-      setError(t('auth.loginFailed')); // Có thể đổi thành message cụ thể hơn
+      setError(t('auth.loginFailed'));
       return;
     }
 
     try {
-      // Bật trạng thái loading: để disable button, đổi text "Loading..."
       setLoading(true);
 
-      // Gọi hàm login từ useAuth, truyền email và password người dùng nhập
-      // login thường sẽ gọi API backend, lưu token, lưu user vào context,...
-      await login({ email, password });
+      // Thu thập thông tin thiết bị
+      const userAgent = navigator.userAgent;
+      const deviceId = `device-${navigator.platform}-${navigator.language}-${screen.width}x${screen.height}`;
 
-      // Nếu login thành công: điều hướng sang trang /exams
-      navigate('/exams');
+      // Lấy IP nếu có thể, hoặc dùng placeholder
+      let ipAddress = 'Unknown IP';
+      try {
+        // Thử lấy IP public (nếu có mạng internet và không bị chặn CORS)
+        // Nếu thất bại thì vẫn login bình thường
+        const ipRes = await fetch('https://api.ipify.org?format=json').catch(() => null);
+        if (ipRes && ipRes.ok) {
+           const ipData = await ipRes.json();
+           ipAddress = ipData.ip;
+        }
+      } catch {
+        // Ignore error
+      }
+
+      await login({
+        email,
+        password,
+        userAgent,
+        deviceId,
+        ipAddress: ipAddress
+      });
+
+      const stored = localStorage.getItem('user');
+      let role = '';
+      if (stored) {
+        try {
+          role = JSON.parse(stored)?.role ?? '';
+        } catch {
+          role = '';
+        }
+      }
+
+      if (role === 'Admin') {
+        navigate('/admin');
+      } else if (role === 'Teacher') {
+        navigate('/');
+      } else {
+        navigate('/exams');
+      }
     } catch (err) {
-      // Nếu có lỗi (login sai, API lỗi, v.v.) thì hiển thị thông báo lỗi chung
       setError(t('auth.loginFailed'));
+      console.error(err);
     } finally {
-      // Dù thành công hay thất bại, tắt trạng thái loading
       setLoading(false);
     }
   };

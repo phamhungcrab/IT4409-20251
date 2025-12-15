@@ -12,12 +12,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 export interface ResultItem {
-  id: number;
+  examId: number;
   examTitle: string;
-  objectiveScore: number;
-  subjectiveScore: number;
-  totalScore: number;
+  score: number;
   status: string;
+  submittedAt?: string;
 }
 
 export interface ResultTableProps {
@@ -32,34 +31,34 @@ const ResultTable: React.FC<ResultTableProps> = ({ results }) => {
           <thead>
             <tr>
               <th className="px-6 py-3 text-left text-xs font-semibold">Exam</th>
-              <th className="px-6 py-3 text-center text-xs font-semibold">Objective</th>
-              <th className="px-6 py-3 text-center text-xs font-semibold">Subjective</th>
-              <th className="px-6 py-3 text-center text-xs font-semibold">Total</th>
+              <th className="px-6 py-3 text-center text-xs font-semibold">Score</th>
               <th className="px-6 py-3 text-left text-xs font-semibold">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold">Submitted</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
             {results.map((result) => (
-              <tr key={result.id} className="hover:bg-white/5 transition">
+              <tr key={result.examId} className="hover:bg-white/5 transition">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <Link to={`/results/${result.id}`} className="text-sky-200 hover:text-white font-semibold">
+                  <Link
+                    to={`/results/${result.examId}`}
+                    state={{ result }}
+                    className="text-sky-200 hover:text-white font-semibold"
+                  >
                     {result.examTitle}
                   </Link>
                 </td>
-                <td className="px-6 py-4 text-center whitespace-nowrap text-slate-100">
-                  {result.objectiveScore.toFixed(2)}
-                </td>
-                <td className="px-6 py-4 text-center whitespace-nowrap text-slate-100">
-                  {result.subjectiveScore.toFixed(2)}
-                </td>
                 <td className="px-6 py-4 text-center whitespace-nowrap font-semibold text-white">
-                  {result.totalScore.toFixed(2)}
+                  {result.score.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className="tag">
                     <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
                     {result.status}
                   </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-slate-200">
+                  {result.submittedAt ? new Date(result.submittedAt).toLocaleString() : '--'}
                 </td>
               </tr>
             ))}

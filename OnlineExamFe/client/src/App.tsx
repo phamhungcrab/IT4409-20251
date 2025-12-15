@@ -1,63 +1,77 @@
 /**
- * Component gốc (root) của ứng dụng React.
+ * App.tsx - Component gốc (root) của ứng dụng React.
  *
- * App có nhiệm vụ:
- *  - Lấy cấu hình route (đường dẫn → component) từ `routes.tsx`.
- *  - Dùng hook `useRoutes` để biến cấu hình đó thành các React element.
- *  - Bọc toàn bộ kết quả trong `<Suspense>` để hỗ trợ lazy loading:
- *      + Khi một trang (component) đang được tải bất đồng bộ,
- *        Suspense sẽ hiển thị giao diện "Loading..." tạm thời.
+ * App chịu trách nhiệm:
+ *  - Nhận "bản đồ điều hướng" (routes) từ routes.tsx
+ *  - Dùng useRoutes() để tạo ra cây component tương ứng với URL hiện tại
+ *  - Bọc bằng <Suspense> để hỗ trợ lazy-loading (tải trang theo nhu cầu)
+ *
+ * Ghi chú cho người mới:
+ *  - "Route" = đường dẫn URL (ví dụ /login, /exams)
+ *  - "Lazy-loading" = chỉ tải code của trang khi người dùng thật sự truy cập trang đó
+ *  - "Suspense fallback" = giao diện tạm hiển thị trong lúc trang đang được tải
  */
 
 import React, { Suspense } from 'react';
 import { useRoutes } from 'react-router-dom';
 import { appRoutes } from './routes';
 
-// Khai báo component App kiểu React.FC (Functional Component)
 const App: React.FC = () => {
   /**
-   * useRoutes:
-   *  - Là hook của react-router-dom.
-   *  - Nhận vào một mảng cấu hình route (appRoutes).
-   *  - Trả về các React element tương ứng với URL hiện tại.
+   * useRoutes(appRoutes):
+   *  - appRoutes là mảng cấu hình route (path -> component)
+   *  - useRoutes sẽ nhìn URL hiện tại và trả về "element" tương ứng
    *
-   * Nói dễ hiểu:
-   *  - appRoutes = "bản đồ" định nghĩa: path nào → component nào.
-   *  - useRoutes(appRoutes) = "dựa vào URL hiện tại, tạo ra cây component tương ứng".
-   * 
    * Ví dụ:
-   *  - Nếu URL là /login -> useRoutes trả về element <LoginPage />.
-   *  - Nếu URL là /exams -> trả về <ExamListPage />.
+   *  - URL = /login  => element sẽ là <LoginPage /> (được định nghĩa trong routes.tsx)
+   *  - URL = /exams  => element sẽ là <ExamListPage />
    */
   const element = useRoutes(appRoutes);
 
   return (
     /**
-     * <Suspense>:
-     *  - Là component của React để hỗ trợ "lazy loading" (tải component chậm, bất đồng bộ).
-     *  - Prop `fallback` là thứ sẽ hiển thị tạm thời trong lúc một component con
-     *    đang được load (ví dụ: khi dùng React.lazy để import trang).
+     * <Suspense fallback={...}>:
+     *  - Khi bạn dùng React.lazy() để import các trang, React sẽ tải các trang đó bất đồng bộ.
+     *  - Trong lúc đang tải, React sẽ hiển thị UI trong fallback.
      *
-     * Trong app này:
-     *  - Khi người dùng mở một trang mà component của trang đó đang được tải,
-     *  - React sẽ tạm thời hiển thị khối giao diện "Loading experience..." bên dưới.
+     * Vì sao cần fallback:
+     *  - Nếu không có fallback, người dùng sẽ thấy màn hình trống/giật.
+     *  - fallback giúp UX mượt: cho biết app đang tải và chưa "đơ".
      */
     <Suspense
       fallback={
-        // Đây là giao diện loading, hiển thị khi component con chưa load xong.
-        <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100">
-          <div className="flex items-center gap-3">
-            {/* Chấm tròn nhỏ có animation "ping" để tạo cảm giác đang xử lý */}
-            <span className="h-3 w-3 animate-ping rounded-full bg-sky-400" />
-            {/* Dòng chữ thông báo đang loading trải nghiệm */}
-            <span className="text-lg font-semibold tracking-wide">
-              Loading - Please wait...
-            </span>
+        // UI loading: mục tiêu là hiển thị đẹp, rõ ràng và nhẹ nhàng
+        <div className="min-h-screen w-full flex items-center justify-center bg-slate-950 relative overflow-hidden">
+          {/* Hiệu ứng nền phát sáng để màn hình loading bớt đơn điệu */}
+          <div className="absolute top-1/4 -left-10 w-96 h-96 bg-sky-500/10 rounded-full blur-[100px] animate-pulse" />
+          <div className="absolute bottom-1/4 -right-10 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] animate-pulse delay-700" />
+
+          {/* Khung dạng "glass" (mờ nền) để chứa spinner + chữ */}
+          <div className="relative z-10 flex flex-col items-center justify-center p-8 bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-slate-800/50 shadow-2xl ring-1 ring-white/10">
+            {/* Spinner: kết hợp nhiều lớp để tạo cảm giác hiện đại */}
+            <div className="relative w-16 h-16 mb-6">
+              {/* Vòng ngoài nhấp nháy nhẹ */}
+              <div className="absolute inset-0 rounded-full border border-sky-500/30 animate-[ping_3s_ease-in-out_infinite]" />
+              {/* Vòng xoay (spinner) tạo cảm giác đang xử lý */}
+              <div className="absolute inset-2 rounded-full border-2 border-transparent border-t-sky-400 border-r-indigo-400 animate-spin" />
+              {/* Tâm phát sáng */}
+              <div className="absolute inset-6 rounded-full bg-sky-400 shadow-[0_0_20px_rgba(56,189,248,0.5)] animate-pulse" />
+            </div>
+
+            {/* Nội dung chữ: thông báo đang tải */}
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-blue-400 to-indigo-400">
+                Đang tải ứng dụng
+              </h3>
+              <p className="text-sm text-slate-400/80 font-medium tracking-wide">
+                Đang chuẩn bị trải nghiệm...
+              </p>
+            </div>
           </div>
         </div>
       }
     >
-      {/* `element` là cây component do useRoutes sinh ra, tương ứng với route hiện tại */}
+      {/* element là cây component do useRoutes sinh ra, tùy theo URL hiện tại */}
       {element}
     </Suspense>
   );

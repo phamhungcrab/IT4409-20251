@@ -7,11 +7,15 @@
  * additional plugins as needed for your project.
  */
 
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
 export default defineConfig(({ mode }) => {
+  // Load env file based on `mode` in the current working directory.
+  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
+  const env = loadEnv(mode, process.cwd(), '');
+
   return {
     plugins: [react()],
     resolve: {
@@ -38,7 +42,7 @@ export default defineConfig(({ mode }) => {
       // Example: proxy API requests to avoid CORS during development
       proxy: {
         "/api": {
-          target: "https://it4409-20251.onrender.com",
+          target: env.VITE_API_TARGET || "https://localhost:7239", // Default to local if not set
           changeOrigin: true,
           secure: false, // Handle HTTPS
         },

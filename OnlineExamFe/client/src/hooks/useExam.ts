@@ -33,6 +33,7 @@ export const useExam = ({ wsUrl, studentId, examId, onSynced, onSubmitted, onErr
     setConnectionState(prev => prev === 'disconnected' ? 'connecting' : 'reconnecting');
 
     const token = localStorage.getItem('token');
+
     const urlWithToken = token
         ? `${wsUrl}${wsUrl.includes('?') ? '&' : '?'}session=${encodeURIComponent(token)}`
         : wsUrl;

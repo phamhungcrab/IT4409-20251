@@ -23,6 +23,7 @@
     "exams": "My Exams",
     "results": "Results",
     "admin": "Admin Dashboard",
+    "dashboard": "Dashboard",
     "login": "Login"
   },
   "exam": {
@@ -36,6 +37,7 @@
     "submitExam": "Submit Exam",
     "confirmSubmit": "Are you sure you want to submit?",
     "submitted": "Exam submitted successfully!",
+    "completedMessage": "You already completed this exam.",
     "score": "Your score",
     "questions": "Questions",
     "previous": "Previous",

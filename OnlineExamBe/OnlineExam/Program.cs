@@ -21,12 +21,22 @@ using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Explicitly listen on HTTPS 7239 and HTTP 7238 (for plain WS during local dev)
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenLocalhost(7239, listenOptions =>
+    {
+        listenOptions.UseHttps();
+    });
+    options.ListenLocalhost(7238); // plain HTTP for ws://
+});
+
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.WriteIndented = true;
     });
 
@@ -64,7 +74,12 @@ builder.Services.AddSwaggerGen(c =>
 // Đăng ký DbContext
 builder.Services.AddDbContext<ExamSystemDbContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sql =>
+        {
+            // Avoid timeout when generating/inserting QuestionExam/ExamStudent
+            sql.CommandTimeout(120);
+        }
     ));
 
 //Gui email
@@ -97,7 +112,21 @@ builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IExamGradingService, ExamGradingService>();
 builder.Services.AddSingleton<IExamAnswerCache, ExamAnswerCache>();
 
+// CORS Configuration
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFE", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "https://it4409-20251-frontend.onrender.com") // Add your allowed origins
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials(); // Important for Session/Cookies if used, though token is usually Header 'Session'
+    });
+});
+
 var app = builder.Build();
+
+app.UseCors("AllowFE");
 
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
@@ -107,8 +136,6 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 app.UseSwagger();
 app.UseSwaggerUI();
 
-
-app.UseHttpsRedirection();
 
 app.UseWebSockets();
 

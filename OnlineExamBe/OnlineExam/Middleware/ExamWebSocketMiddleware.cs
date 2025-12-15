@@ -1,11 +1,15 @@
 ﻿using OnlineExam.Application.Dtos.WebSocket;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Websocket;
+using OnlineExam.Application.Services.Helpers;
 using OnlineExam.Domain.Enums;
+using OnlineExam.Domain.Entities;
+using OnlineExam.Domain.Interfaces;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 
 namespace OnlineExam.Middleware
 {
@@ -73,8 +77,25 @@ namespace OnlineExam.Middleware
                                 await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed", CancellationToken.None);
                                 break;
                             }
-                            var remainingTime = exam.DurationMinutes * 60 - (int)(DateTime.UtcNow - examStudent.StartTime).TotalSeconds;
-                            if (remainingTime <= 0 || exam.EndTime <= DateTime.UtcNow)
+                            var startUtc = examStudent.StartTime.Kind switch
+                            {
+                                DateTimeKind.Utc => examStudent.StartTime,
+                                DateTimeKind.Local => examStudent.StartTime.ToUniversalTime(),
+                                _ => DateTime.SpecifyKind(examStudent.StartTime, DateTimeKind.Utc)
+                            };
+
+                            var examEndUtc = exam.EndTime.Kind switch
+                            {
+                                DateTimeKind.Utc => exam.EndTime,
+                                DateTimeKind.Local => exam.EndTime.ToUniversalTime(),
+                                _ => DateTime.SpecifyKind(exam.EndTime, DateTimeKind.Utc)
+                            };
+
+                            var now = DateTime.UtcNow;
+                            var durationSeconds = Math.Max(60, exam.DurationMinutes * 60); // tránh duration = 0 gây auto nộp
+                            var endDeadline = MinDate(startUtc.AddSeconds(durationSeconds), examEndUtc);
+                            var remainingTime = (int)(endDeadline - now).TotalSeconds;
+                            if (remainingTime <= 0)
                             {
                                 await HandleSubmitExam(socket, examId, studentId);
                                 break;
@@ -142,7 +163,8 @@ namespace OnlineExam.Middleware
                         msg = JsonSerializer.Deserialize<WsMessageDto>(json,
                             new JsonSerializerOptions
                             {
-                                Converters = { new JsonStringEnumConverter() }
+                                Converters = { new JsonStringEnumConverter() },
+                                PropertyNameCaseInsensitive = true
                             });
                     }
                     catch
@@ -156,7 +178,49 @@ namespace OnlineExam.Middleware
                     switch (msg.Action)
                     {
                         case WebsocketAction.SubmitAnswer:
-                            cache.SaveAnswer(examId, studentId, msg.Order, msg.QuestionId, msg.Answer);
+                            try
+                            {
+                                using var scopeSubmit = _scopeFactory.CreateScope();
+                                var studentQuestionRepo = scopeSubmit.ServiceProvider.GetRequiredService<IRepository<StudentQuestion>>();
+                                var questionRepo = scopeSubmit.ServiceProvider.GetRequiredService<IRepository<Question>>();
+
+                                var question = await questionRepo.GetByIdAsync(msg.QuestionId);
+                                var rawAnswer = NormalizeIncomingAnswer(msg.Answer);
+                                var normalized = AnswerParser.NormalizeStudentAnswer(
+                                    rawAnswer,
+                                    question?.Answer ?? string.Empty);
+
+                                // Cache normalized for grading, DB l?u raw ?? truy v?t
+                                cache.SaveAnswer(examId, studentId, msg.Order, msg.QuestionId, normalized);
+
+                                var existing = await studentQuestionRepo.Query()
+                                    .FirstOrDefaultAsync(x => x.ExamId == examId && x.StudentId == studentId && x.QuestionId == msg.QuestionId);
+
+                                if (existing != null)
+                                {
+                                    existing.Answer = rawAnswer;
+                                    existing.Result = 0; // chấm khi SubmitExam
+                                    existing.CreatedAt = DateTime.Now;
+                                    studentQuestionRepo.UpdateAsync(existing);
+                                }
+                                else
+                                {
+                                    await studentQuestionRepo.AddAsync(new StudentQuestion
+                                    {
+                                        ExamId = examId,
+                                        StudentId = studentId,
+                                        QuestionId = msg.QuestionId,
+                                        Answer = rawAnswer,
+                                        Result = 0,
+                                        CreatedAt = DateTime.Now
+                                    });
+                                }
+                                await studentQuestionRepo.SaveChangesAsync();
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Failed to persist answer: {ex}");
+                            }
 
                             var msgBytes = Encoding.UTF8.GetBytes(
                                 JsonSerializer.Serialize(new { status = "submitted answer id " + msg.QuestionId + " : " + msg.Answer})
@@ -224,12 +288,12 @@ namespace OnlineExam.Middleware
             var cache = scope.ServiceProvider.GetRequiredService<IExamAnswerCache>();
             var gradingService = scope.ServiceProvider.GetRequiredService<IExamGradingService>();
 
-            float score = await gradingService.GradeAndSaveAsync(examId, studentId);
+            var grade = await gradingService.GradeAndSaveAsync(examId, studentId);
 
             cache.Clear(examId, studentId);
 
             var msgBytes = Encoding.UTF8.GetBytes(
-                JsonSerializer.Serialize(new { status = "submitted", score })
+                JsonSerializer.Serialize(new { status = "submitted", score = grade.Score, maxScore = grade.MaxScore })
             );
 
             await socket.SendAsync(msgBytes, WebSocketMessageType.Text, true, CancellationToken.None);
@@ -239,6 +303,39 @@ namespace OnlineExam.Middleware
                 "Exam submitted",
                 CancellationToken.None
             );
+        }
+
+        private static DateTime MinDate(DateTime a, DateTime b) => a <= b ? a : b;
+
+        private static string NormalizeIncomingAnswer(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
+            var trimmed = raw.Trim();
+
+            // If FE ever sends JSON array like ["A","B"], convert to A|B
+            if (trimmed.StartsWith("[") && trimmed.EndsWith("]"))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(trimmed);
+                    if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                    {
+                        var parts = new List<string>();
+                        foreach (var el in doc.RootElement.EnumerateArray())
+                        {
+                            var val = el.ToString().Trim();
+                            if (!string.IsNullOrWhiteSpace(val)) parts.Add(val);
+                        }
+                        return string.Join("|", parts);
+                    }
+                }
+                catch
+                {
+                    // fall through to raw return
+                }
+            }
+
+            return trimmed;
         }
     }
 }

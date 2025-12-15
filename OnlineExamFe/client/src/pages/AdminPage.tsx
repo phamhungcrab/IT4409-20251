@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAnnouncements } from '../hooks/useAnnouncements';
 import AnnouncementBanner from '../components/AnnouncementBanner';
 import { examService } from '../services/examService';
+import { ExamDto } from '../types/exam';
 
 /**
  * AdminPage (Trang quản trị):
@@ -14,8 +15,6 @@ import { examService } from '../services/examService';
  *
  * Lưu ý:
  *  - Nút Create/Edit/Delete hiện chỉ là UI (chưa nối endpoint backend).
- *  - Kiểu dữ liệu exam đang dùng any[] nên dễ sai field (title/duration...) nếu backend khác.
- *    Tốt nhất nên tạo interface ExamDto chuẩn.
  */
 const AdminPage: React.FC = () => {
   /**
@@ -39,9 +38,8 @@ const AdminPage: React.FC = () => {
   /**
    * exams:
    *  - Danh sách tất cả bài thi (Admin xem toàn hệ thống).
-   *  - Hiện dùng any[] để nhanh, nhưng nên typing lại để chắc chắn.
    */
-  const [exams, setExams] = useState<any[]>([]);
+  const [exams, setExams] = useState<ExamDto[]>([]);
 
   /**
    * loadingExams:
@@ -111,9 +109,13 @@ const AdminPage: React.FC = () => {
             <h2 className="text-xl font-semibold text-white">Quản lý bài thi</h2>
           </div>
 
-          {/* Nút tạo bài thi: hiện chưa gắn logic */}
-          <button className="btn btn-primary hover:-translate-y-0.5">
-            {t('admin.createExam')}
+          {/* Nút tạo bài thi: disabled vì chưa có endpoint cho Admin (dùng Teacher dashboard để tạo) */}
+          <button
+            className="btn btn-primary opacity-50 cursor-not-allowed"
+            disabled
+            title="Coming soon: API endpoint not implemented for Admin"
+          >
+            {t('admin.createExam')} (Coming Soon)
           </button>
         </div>
 
@@ -148,15 +150,6 @@ const AdminPage: React.FC = () => {
               </thead>
 
               <tbody className="divide-y divide-white/5">
-                {/**
-                 * Lặp qua danh sách exams và render từng dòng.
-                 *
-                 * Lưu ý dễ sai:
-                 *  - Bạn đang dùng exam.title và exam.duration
-                 *  - Nhưng ở các file khác, exam có thể là ex.name và ex.durationMinutes.
-                 *  -> Vì bạn dùng any[] nên TypeScript không báo lỗi.
-                 *  -> Nên chuẩn hóa field hoặc tạo interface ExamDto.
-                 */}
                 {exams.map((exam) => (
                   <tr key={exam.id} className="hover:bg-white/5 transition">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
@@ -164,7 +157,7 @@ const AdminPage: React.FC = () => {
                     </td>
 
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">
-                      {exam.title}
+                      {exam.name}
                     </td>
 
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
@@ -172,15 +165,23 @@ const AdminPage: React.FC = () => {
                     </td>
 
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {exam.duration} mins
+                      {exam.durationMinutes} mins
                     </td>
 
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      {/* Nút Edit/Delete hiện chưa gắn API */}
-                      <button className="tag hover:border-white/30 hover:text-white">
+                      {/* Nút Edit/Delete hiện chưa gắn API -> Disable */}
+                      <button
+                        className="tag text-slate-500 border-slate-700 cursor-not-allowed"
+                        disabled
+                        title="Edit feature coming soon"
+                      >
                         {t('common.edit')}
                       </button>
-                      <button className="tag hover:border-rose-300/50 hover:text-rose-100 border-rose-300/30 text-rose-100">
+                      <button
+                        className="tag text-slate-500 border-slate-700 cursor-not-allowed"
+                        disabled
+                        title="Delete feature coming soon"
+                      >
                         {t('common.delete')}
                       </button>
                     </td>

@@ -1,25 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { examService, ExamGenerateResult } from '../services/examService';
+import { examService } from '../services/examService';
+import { ExamDto, ExamGenerateResultDto } from '../types/exam';
 import useAuth from '../hooks/useAuth';
-
-/**
- * Exam (kiểu dữ liệu dùng cho danh sách bài thi):
- *  - id              : mã bài thi
- *  - name            : tên bài thi
- *  - durationMinutes : thời lượng (phút)
- *  - startTime/endTime: thời gian bắt đầu/kết thúc (chuỗi ISO từ backend)
- *  - status          : trạng thái hiển thị trên UI (Scheduled/Ongoing/Completed...)
- */
-interface Exam {
-  id: number;
-  name: string;
-  durationMinutes: number;
-  startTime: string;
-  endTime: string;
-  status: string;
-}
 
 /**
  * ExamListPage (Trang danh sách bài thi):
@@ -61,13 +45,14 @@ const ExamListPage: React.FC = () => {
    * exams:
    *  - danh sách bài thi của student.
    */
-  const [exams, setExams] = useState<Exam[]>([]);
+  const [exams, setExams] = useState<ExamDto[]>([]);
 
   /**
    * loading:
    *  - trạng thái đang tải danh sách bài thi.
    */
   const [loading, setLoading] = useState(true);
+  const [completionNotice, setCompletionNotice] = useState(false);
 
   /**
    * useEffect: tải danh sách bài thi khi đã có user.
@@ -81,7 +66,13 @@ const ExamListPage: React.FC = () => {
       try {
         // Gọi API: lấy danh sách bài thi theo studentId
         const data = await examService.getStudentExams(user.id);
-        setExams(data);
+        console.log('Fetched exams:', data);
+        if (Array.isArray(data)) {
+          setExams(data);
+        } else {
+          console.error('API response is not an array:', data);
+          setExams([]);
+        }
       } catch (error) {
         console.error('Không thể tải danh sách bài thi', error);
       } finally {
@@ -122,7 +113,7 @@ const ExamListPage: React.FC = () => {
       let wsUrl = response.wsUrl || '';
 
       // examPayload: đề thi (questions...) do backend trả
-      let examPayload: ExamGenerateResult | null = response.data ?? null;
+      let examPayload: ExamGenerateResultDto | null = response.data ?? null;
 
       /**
        * FIX wsUrl cho môi trường deploy:
@@ -132,6 +123,18 @@ const ExamListPage: React.FC = () => {
       const apiBase = (import.meta as any).env.VITE_API_BASE_URL || '';
 
       if (wsUrl) {
+        // Nếu backend trả về wss://localhost:7239 nhưng máy dev không trust cert -> chuyển sang ws://localhost:7238 (đã mở HTTP)
+        try {
+          const parsed = new URL(wsUrl);
+          if ((parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') && parsed.protocol === 'wss:' && parsed.port === '7239') {
+            parsed.protocol = 'ws:';
+            parsed.port = '7238';
+            wsUrl = parsed.toString();
+          }
+        } catch {
+          // ignore parse errors
+        }
+
         // Trường hợp wsUrl trỏ localhost nhưng apiBase là domain Render
         if (wsUrl.includes('localhost') && apiBase.includes('onrender')) {
           try {
@@ -202,8 +205,7 @@ const ExamListPage: React.FC = () => {
           }
         });
       } else if (response.status === 'completed') {
-        alert('Bạn đã hoàn thành bài thi này!');
-        navigate('/results');
+        setCompletionNotice(true);
       } else if (response.status === 'expired') {
         alert('Bài thi đã hết hạn!');
       } else {
@@ -211,7 +213,8 @@ const ExamListPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Lỗi khi bắt đầu bài thi', error);
-      alert('Error starting exam');
+      const message = error instanceof Error ? error.message : 'Error starting exam';
+      alert(message);
     }
   };
 
@@ -222,6 +225,33 @@ const ExamListPage: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
+      {completionNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-white/10 rounded-xl p-6 w-full max-w-md shadow-xl space-y-4">
+            <div className="space-y-2">
+              <p className="text-sm uppercase tracking-[0.3em] text-emerald-300/80">{t('exam.submitted')}</p>
+              <h3 className="text-xl font-semibold text-white">{t('exam.completedMessage') || 'Bạn đã hoàn thành bài thi này!'}</h3>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                className="btn btn-ghost px-4 py-2 border border-white/15"
+                onClick={() => setCompletionNotice(false)}
+              >
+                {t('common.close')}
+              </button>
+              <button
+                className="btn btn-primary px-4 py-2"
+                onClick={() => {
+                  setCompletionNotice(false);
+                  navigate('/results');
+                }}
+              >
+                {t('nav.results')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Tiêu đề trang */}
       <div className="flex flex-col gap-2">
         <p className="text-sm text-slate-300">{t('exam.listTitle')}</p>
@@ -229,7 +259,7 @@ const ExamListPage: React.FC = () => {
       </div>
 
       {/* Nếu không có bài thi -> hiển thị empty state */}
-      {exams.length === 0 ? (
+      {!Array.isArray(exams) || exams.length === 0 ? (
         <div className="glass-card p-6 text-slate-300">{t('exam.noExams')}</div>
       ) : (
         // Có bài thi -> render dạng grid cards

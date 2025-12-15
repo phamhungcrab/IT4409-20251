@@ -16,23 +16,35 @@ export interface CreateClassDto {
   subjectId: number;
 }
 
+const unwrap = <T>(res: any): T => {
+  if (res && typeof res === 'object') {
+    if ('data' in res) return res.data as T;
+    if ('Data' in res) return (res as any).Data as T;
+  }
+  return res as T;
+};
+
 export const classService = {
   getAll: async (): Promise<ClassDto[]> => {
-    return await apiClient.get<ClassDto[]>('/api/CLass/get-all') as unknown as Promise<ClassDto[]>;
+    const res = await apiClient.get<any>('/api/CLass/get-all');
+    return unwrap<ClassDto[]>(res);
   },
 
   getByTeacherAndSubject: async (teacherId: number, subjectId?: number): Promise<ClassDto[]> => {
     const url = subjectId
       ? `/api/CLass/get-by-teacher-and-subject?teacherId=${teacherId}&subjectId=${subjectId}`
       : `/api/CLass/get-by-teacher-and-subject?teacherId=${teacherId}`;
-    return await apiClient.get<ClassDto[]>(url) as unknown as Promise<ClassDto[]>;
+    const res = await apiClient.get<any>(url);
+    return unwrap<ClassDto[]>(res);
   },
 
   create: async (data: CreateClassDto): Promise<any> => {
-    return await apiClient.post<any>('/api/CLass/create', data) as unknown as Promise<any>;
+    const res = await apiClient.post<any>('/api/CLass/create', data);
+    return unwrap<any>(res);
   },
 
   getStudentsByClass: async (classId: number): Promise<any[]> => {
-    return await apiClient.get<any[]>(`/api/CLass/get-students/${classId}`) as unknown as Promise<any[]>;
+    const res = await apiClient.get<any>(`/api/CLass/get-students?classId=${classId}`);
+    return unwrap<any[]>(res);
   }
 };

@@ -108,49 +108,63 @@ namespace OnlineExam.Application.Services.Auth
 
         public async Task<ResultApiModel> Login(LoginDto login)
         {
-            if (login == null || login.Email == null || login.Password == null)
+            try
             {
+                if (login == null || string.IsNullOrEmpty(login.Email) || string.IsNullOrEmpty(login.Password))
+                {
+                    return new ResultApiModel()
+                    {
+                        Status = false,
+                        MessageCode = ResponseCode.BadRequest,
+                        Data = "Thieu thong tin dang nhap"
+                    };
+                }
+
+                var user = await _userService.GetUserByEmail(login.Email);
+                if (user == null)
+                {
+                    return new ResultApiModel()
+                    {
+                        Status = false,
+                        MessageCode = ResponseCode.NotFound,
+                        Data = "Khong ton tai Email"
+                    };
+                }
+
+                // Hash password
+                var passwordHash = HashPassword(login.Password);
+
+                // So sánh hash không phân biệt hoa thường (Hex string A = a)
+                if (!passwordHash.Equals(user.PasswordHash, StringComparison.OrdinalIgnoreCase))
+                {
+                    return new ResultApiModel()
+                    {
+                        Status = false,
+                        MessageCode = ResponseCode.Unauthorized,
+                        Data = "Sai mat khau"
+                    };
+                }
+
+                var session = await _sessionService.CreateAsync(user, 30);
+
+                return new ResultApiModel()
+                {
+                    Status = true,
+                    MessageCode = ResponseCode.Success,
+                    Data = session.SessionString
+                };
+            }
+            catch (Exception ex)
+            {
+                // Log error here if logger available
+                Console.WriteLine($"Login Error: {ex.Message}");
                 return new ResultApiModel()
                 {
                     Status = false,
-                    MessageCode = ResponseCode.BadRequest,
-                    Data = "Thieu thong tin dang nhap"
+                    MessageCode = ResponseCode.InternalServerError,
+                    Data = $"Lỗi server: {ex.Message}"
                 };
             }
-            var user = await _userService.GetUserByEmail(login.Email);
-            if (user == null)
-            {
-                return new ResultApiModel()
-                {
-                    Status = false,
-                    MessageCode = ResponseCode.NotFound,
-                    Data = "Khong ton tai Email"
-                };
-
-            }
-            //hash password de so sanh
-            var passwordHash = HashPassword(login.Password);
-
-            if (!passwordHash.Equals(user.PasswordHash))
-            {
-                return new ResultApiModel()
-                {
-                    Status = false,
-                    MessageCode = ResponseCode.Unauthorized,
-                    Data = "Sai mat khau"
-                };
-            }
-
-            var session = await _sessionService.CreateAsync(user, 30);
-
-            // Tra ve access token va refresh token
-            return new ResultApiModel()
-            {
-                Status = true,
-                MessageCode = ResponseCode.Success,
-                Data = session.SessionString
-            };
-
         }
 
         public async Task<ResultApiModel> Logout(LogoutDto logout)
@@ -303,7 +317,7 @@ namespace OnlineExam.Application.Services.Auth
         {
             using var sha256 = SHA256.Create();
             var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToHexString(bytes);
+            return Convert.ToHexString(bytes); // Trả về chữ hoa (Uppercase) để khớp với Database
         }
     }
 }

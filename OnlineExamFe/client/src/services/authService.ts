@@ -49,7 +49,7 @@ export enum UserRole {
 export interface LoginDto {
   email: string;
   password: string;
-  ipAdress?: string;
+  ipAddress?: string;
   userAgent?: string;
   deviceId?: string;
 }

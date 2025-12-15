@@ -5,6 +5,7 @@ import useAuth from '../hooks/useAuth';
 import { useExam } from '../hooks/useExam';
 import { useTimer } from '../hooks/useTimer';
 import QuestionCard from '../components/QuestionCard';
+import { examService } from '../services/examService';
 
 /**
  * Question:
@@ -129,6 +130,15 @@ const ExamRoomPage: React.FC = () => {
    *  - Dùng để next/prev và nhảy câu.
    */
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [submitResult, setSubmitResult] = useState<{ score?: number; maxScore?: number } | null>(null);
+
+  // ========================
+  // RECOVERY STATE
+  // ========================
+  const [internalWsUrl, setInternalWsUrl] = useState<string | undefined>(wsUrl);
+  const [internalDuration, setInternalDuration] = useState<number>(duration);
+  const timerStorageKey = examId ? `exam_${examId}_timer_start` : undefined;
 
   // ========================
   // WEBSOCKET HOOK: useExam
@@ -154,7 +164,7 @@ const ExamRoomPage: React.FC = () => {
    *  - onError: hiển thị lỗi.
    */
   const { connectionState, syncAnswer, submitExam } = useExam({
-    wsUrl,
+    wsUrl: internalWsUrl || '',
     studentId: user?.id || 0,
     examId: Number(examId),
 
@@ -173,7 +183,12 @@ const ExamRoomPage: React.FC = () => {
           // Ưu tiên đọc theo nhiều kiểu tên field để không bị “lệch format”
           const qId = item.questionId ?? item.QuestionId ?? item.id ?? item.Id;
           if (qId !== undefined && qId !== null) {
-            incoming[qId] = item.answer ?? item.Answer;
+            const raw = item.answer ?? item.Answer;
+            if (Array.isArray(raw)) {
+              incoming[qId] = raw.join('|');
+            } else if (raw !== undefined && raw !== null) {
+              incoming[qId] = String(raw);
+            }
           }
         });
 
@@ -188,11 +203,8 @@ const ExamRoomPage: React.FC = () => {
     },
 
     onSubmitted: (result) => {
-      // Thông báo nộp bài và điểm (nếu server trả về)
-      alert(`${t('exam.submitted')} ${t('exam.score')}: ${result?.score}`);
-
-      // Chuyển sang trang kết quả
-      navigate('/results');
+      if (timerStorageKey) sessionStorage.removeItem(timerStorageKey);
+      setSubmitResult({ score: result?.score, maxScore: result?.maxScore });
     },
 
     onError: (msg) => alert(`${t('common.error')}: ${msg}`)
@@ -210,38 +222,39 @@ const ExamRoomPage: React.FC = () => {
    *      + alert hết giờ
    *      + tự động submitExam()
    */
-  const { formattedTime } = useTimer(duration, () => {
+  const { formattedTime } = useTimer(internalDuration, () => {
     alert(t('exam.timeUp'));
     submitExam();
-  });
+  }, timerStorageKey);
 
   // ========================
   // MAP QUESTIONS + HYDRATE ANSWERS TỪ LOCALSTORAGE
   // ========================
 
-  useEffect(() => {
-    /**
-     * Nếu initialQuestions có dữ liệu (được truyền từ trang trước):
-     *  - Map về format Question chuẩn FE.
-     *  - Đồng thời đọc localStorage để khôi phục đáp án (backup phía client).
-     */
-    if (initialQuestions.length > 0) {
-      const mappedQuestions: Question[] = initialQuestions.map((q: any, idx: number) => {
-        /**
-         * opts:
-         *  - Một số backend trả danh sách đáp án ở field CleanAnswer/CleanAnswer.
-         *  - Tên field có thể khác nhau (cleanAnswer/CleanAnswer).
-         */
+  // Helper to map questions
+  const mapAndSetQuestions = (rawQuestions: any[]) => {
+      const mappedQuestions: Question[] = rawQuestions.map((q: any, idx: number) => {
         const opts = (q.cleanAnswer ?? q.CleanAnswer ?? []) as any[];
+        const rawType =
+          q.type ??
+          q.Type ??
+          q.questionType ??
+          q.QuestionType ??
+          null;
 
-        /**
-         * options:
-         *  - Chuyển opts sang mảng { id, text } để OptionList render.
-         *  - Ở đây dùng optionIdx + 1 làm id (vì backend có thể không có id cho từng option).
-         *
-         * Lưu ý:
-         *  - Nếu backend có id thật cho đáp án, nên dùng id đó để gửi lên server chính xác.
-         */
+        const correctIds = q.correctOptionIds ?? q.CorrectOptionIds ?? [];
+
+        let qType = 1; // default single/true-false (radio)
+        if (typeof rawType === 'string') {
+          const upper = rawType.toUpperCase();
+          if (upper.includes('MULTI')) qType = 2;
+          else qType = 1;
+        } else if (typeof rawType === 'number') {
+          // Backend enum: 0 = SINGLE_CHOICE, 1 = MULTIPLE_CHOICE, 2 = TRUE_FALSE
+          qType = rawType === 1 ? 2 : 1;
+        } else if (Array.isArray(correctIds) && correctIds.length > 1) {
+          qType = 2; // infer multi from multiple correct options
+        }
         const options = Array.isArray(opts)
           ? opts.map((opt: any, optionIdx: number) => ({
               id: optionIdx + 1,
@@ -252,54 +265,81 @@ const ExamRoomPage: React.FC = () => {
         return {
           id: q.id ?? q.Id,
           text: q.content ?? q.Content ?? '',
-          type: q.type ?? q.Type ?? 0,
+          type: qType,
           order: q.order ?? q.Order ?? idx + 1,
           options
         };
       });
 
-      // Cập nhật state câu hỏi
       setQuestions(mappedQuestions);
 
-      /**
-       * Khôi phục đáp án từ localStorage:
-       *  - Mỗi câu lưu theo key: exam_<examId>_q_<questionId>
-       *  - Ví dụ: exam_12_q_99
-       */
+      // Restore answers from local storage
       const savedAnswers: Record<number, any> = {};
-
       mappedQuestions.forEach((q) => {
         const saved = localStorage.getItem(`exam_${examId}_q_${q.id}`);
         if (saved) {
           try {
-            savedAnswers[q.id] = JSON.parse(saved);
-          } catch {
-            // Nếu dữ liệu bị lỗi JSON thì bỏ qua, tránh crash.
-          }
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+              const texts = q.options
+                ?.filter((opt) => parsed.includes(opt.id))
+                .map((opt) => opt.text) ?? [];
+              savedAnswers[q.id] = texts.join('|');
+            } else if (typeof parsed === 'number') {
+              const found = q.options?.find((opt) => opt.id === parsed);
+              savedAnswers[q.id] = found ? found.text : String(parsed);
+            } else {
+              savedAnswers[q.id] = parsed;
+            }
+          } catch {}
         }
       });
 
-      // Nếu có đáp án đã lưu thì merge vào state answers
       if (Object.keys(savedAnswers).length > 0) {
         setAnswers((prev) => ({ ...prev, ...savedAnswers }));
       }
-    } else {
-      /**
-       * Nếu không có initialQuestions:
-       *  - Thường xảy ra khi refresh trang làm mất location.state.
-       *  - Tạm thời set 1 câu “placeholder” để user biết cần vào từ ExamList.
-       */
-      setQuestions([
-        {
-          id: 1,
-          text: 'Không tải được câu hỏi. Hãy vào từ danh sách bài thi và bắt đầu lại.',
-          type: 1,
-          order: 1,
-          options: []
-        }
-      ]);
+  };
+
+  // ========================
+  // RECOVERY LOGIC (Handle Refresh)
+  // ========================
+
+  useEffect(() => {
+    // If we have questions from navigation, use them
+    if (initialQuestions && initialQuestions.length > 0) {
+      mapAndSetQuestions(initialQuestions);
+      return;
     }
-  }, [initialQuestions, examId]);
+
+    // Otherwise, try to recover state by calling startExam API again
+    const recoverState = async () => {
+       if (!user || !examId) return;
+       try {
+         const res = await examService.startExam({
+             examId: Number(examId),
+             studentId: user.id
+         });
+
+         if (res.wsUrl) setInternalWsUrl(res.wsUrl);
+         if (res.data) {
+             setInternalDuration(res.data.durationMinutes);
+             mapAndSetQuestions(res.data.questions);
+         }
+       } catch (e) {
+         console.error("Failed to recover exam state", e);
+         setQuestions([{
+             id: 1,
+             text: 'Không tải được câu hỏi. Vui lòng quay lại danh sách.',
+             type: 1,
+             order: 1,
+             options: []
+         }]);
+       }
+    };
+    recoverState();
+
+  }, [initialQuestions, examId, user]);
+
 
   // ========================
   // XỬ LÝ CHỌN ĐÁP ÁN + SUBMIT
@@ -314,9 +354,39 @@ const ExamRoomPage: React.FC = () => {
    *
    * Vì backend yêu cầu Order/QuestionId/Answer, ta truyền cả questionId và order.
    */
+  // Normalize option text for comparison (lowercase + strip whitespace)
+  const normalizeText = (value: string) => value.trim().replace(/\s+/g, '').toLowerCase();
+
+  const mapAnswerTextToIds = (answerText: string, question?: Question) => {
+    if (!question || !answerText) return [];
+    const tokens = answerText
+      .split('|')
+      .map((t) => normalizeText(t))
+      .filter(Boolean);
+    return (
+      question.options
+        ?.filter((opt) => tokens.includes(normalizeText(opt.text)))
+        .map((opt) => opt.id) ?? []
+    );
+  };
+
   const handleAnswer = (questionId: number, order: number, answer: any) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: answer }));
-    syncAnswer(questionId, order, answer);
+    const q = questions.find((item) => item.id === questionId);
+
+    let answerText = '';
+    if (q?.type === 3) {
+      answerText = typeof answer === 'string' ? answer : String(answer ?? '');
+    } else {
+      const ids =
+        Array.isArray(answer) ? answer : typeof answer === 'number' ? [answer] : [];
+      const selectedOpts =
+        q?.options?.filter((opt) => ids.includes(opt.id)).map((opt) => opt.text) ?? [];
+      answerText = selectedOpts.join('|');
+    }
+
+    setAnswers((prev) => ({ ...prev, [questionId]: answerText }));
+    syncAnswer(questionId, order, answerText);
+    localStorage.setItem(`exam_${examId}_q_${questionId}`, JSON.stringify(answerText));
   };
 
   /**
@@ -325,10 +395,15 @@ const ExamRoomPage: React.FC = () => {
    *  - Nếu đồng ý: submitExam() (WS gửi SubmitExam).
    */
   const handleSubmit = () => {
-    if (window.confirm(t('exam.confirmSubmit'))) {
-      submitExam();
-    }
+    setShowSubmitConfirm(true);
   };
+
+  const confirmSubmit = () => {
+    setShowSubmitConfirm(false);
+    submitExam();
+  };
+
+  const cancelSubmit = () => setShowSubmitConfirm(false);
 
   /**
    * Guard đơn giản:
@@ -354,7 +429,15 @@ const ExamRoomPage: React.FC = () => {
    *  - Một số component con (OptionList) mong muốn dạng mảng number[]
    *  - Nếu selectedValue không phải mảng thì trả về [] để tránh lỗi.
    */
-  const selectedOptions = Array.isArray(selectedValue) ? selectedValue : [];
+  const selectedOptions = (() => {
+    if (!currentQuestion || selectedValue === undefined || selectedValue === null) return [];
+    const asString = Array.isArray(selectedValue)
+      ? selectedValue.join('|')
+      : typeof selectedValue === 'number'
+        ? selectedValue.toString()
+        : String(selectedValue);
+    return mapAnswerTextToIds(asString, currentQuestion);
+  })();
 
   /**
    * Chuyển trạng thái kết nối WS sang text đa ngôn ngữ.
@@ -483,7 +566,40 @@ const ExamRoomPage: React.FC = () => {
             </div>
           </aside>
         </div>
+
       </main>
+
+
+      {submitResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-white/10 rounded-xl p-6 w-full max-w-md shadow-xl space-y-4">
+            <div className="space-y-1">
+              <p className="text-sm uppercase tracking-[0.25em] text-emerald-300/80">{t('exam.submitted')}</p>
+              <h3 className="text-2xl font-semibold text-white">{t('exam.score')}: {submitResult.score ?? 0}{submitResult.maxScore ? ` / ${submitResult.maxScore}` : ''}</h3>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setSubmitResult(null)} className="btn btn-ghost px-4 py-2 border border-white/15">{t('common.close')}</button>
+              <button onClick={() => navigate('/results')} className="btn btn-primary px-4 py-2">{t('nav.results')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-white/10 rounded-xl p-6 w-full max-w-md shadow-xl space-y-4">
+            <div className="space-y-2">
+              <h3 className="text-xl font-semibold text-white">{t('exam.submitExam')}</h3>
+              <p className="text-sm text-slate-300">{t('exam.confirmSubmit')}</p>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={cancelSubmit} className="btn btn-ghost px-4 py-2 border border-white/15">{t('common.cancel')}</button>
+              <button onClick={confirmSubmit} className="btn btn-primary px-4 py-2">{t('exam.submitExam')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

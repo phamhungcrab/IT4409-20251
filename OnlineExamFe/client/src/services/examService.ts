@@ -5,6 +5,7 @@
  */
 
 import apiClient from '../utils/apiClient';
+import { ExamDto, ExamGenerateResultDto } from '../types/exam';
 
 export interface CreateExamForTeacherOrAdmin {
   name: string;
@@ -20,30 +21,6 @@ export interface ExamStartRequest {
   studentId: number;
 }
 
-export interface GeneratedQuestion {
-  id: number;
-  order: number;
-  content: string;
-  cleanAnswer: string[];
-  type: number;
-  difficulty: number;
-  point: number;
-  chapter: number;
-  imageUrl?: string;
-}
-
-export interface ExamGenerateResult {
-  examId: number;
-  name: string;
-  totalQuestions: number;
-  startTime: string;
-  endTime: string;
-  durationMinutes: number;
-  classId: number;
-  blueprintId?: number;
-  questions: GeneratedQuestion[];
-}
-
 export interface CreateExamForStudentDto {
   examId: number;
   studentId: number;
@@ -55,17 +32,17 @@ export interface CreateExamForStudentDto {
 export interface ExamStartResponse {
   status: 'create' | 'in_progress' | 'completed' | 'expired';
   wsUrl?: string;
-  data?: ExamGenerateResult;
+  data?: ExamGenerateResultDto;
 }
 
 export interface ExamGenerateResponse {
   message: string;
-  exam: ExamGenerateResult;
+  exam: ExamGenerateResultDto;
 }
 
 export const examService = {
-  createExam: async (data: CreateExamForTeacherOrAdmin): Promise<any> => {
-    return await apiClient.post<any>('/api/Exam/create-exam', data) as unknown as Promise<any>;
+  createExam: async (data: CreateExamForTeacherOrAdmin): Promise<ExamDto> => {
+    return await apiClient.post<ExamDto>('/api/Exam/create-exam', data) as unknown as Promise<ExamDto>;
   },
 
   startExam: async (data: ExamStartRequest): Promise<ExamStartResponse> => {
@@ -76,11 +53,13 @@ export const examService = {
     return await apiClient.post<ExamGenerateResponse>('/api/Exam/generate', data) as unknown as Promise<ExamGenerateResponse>;
   },
 
-  getStudentExams: async (studentId: number): Promise<any[]> => {
-    return await apiClient.get<any[]>(`/api/Exam/get-by-student?studentId=${studentId}`) as unknown as Promise<any[]>;
+  getStudentExams: async (studentId: number): Promise<ExamDto[]> => {
+    const response = await apiClient.get<any[]>(`/api/Exam/get-by-student?studentId=${studentId}`);
+    // Ensure data is typed as ExamDto[]
+    return response as unknown as Promise<ExamDto[]>;
   },
 
-  getAllExams: async (): Promise<any[]> => {
-    return await apiClient.get<any[]>('/api/Exam/get-all') as unknown as Promise<any[]>;
+  getAllExams: async (): Promise<ExamDto[]> => {
+    return await apiClient.get<ExamDto[]>('/api/Exam/get-all') as unknown as Promise<ExamDto[]>;
   }
 };
