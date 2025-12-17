@@ -115,7 +115,7 @@ testMSSSV.json
 /OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0/OnlineExam.Application.assets.cache
 *.targets
 *.dll
-*.json
+# *.json
 *.pdb
 *.exe
 /OnlineExamBe/OnlineExam.Application/bin/Debug/net8.0/OnlineExam.Application.pdb
