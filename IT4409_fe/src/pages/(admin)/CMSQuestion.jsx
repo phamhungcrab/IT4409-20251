@@ -1,26 +1,46 @@
 // Quản lý ngân hàng câu hỏi
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DataTable } from "../../components/DataTable";
 import { CommonButton } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { Form } from "../../components/Form";
+import { createQuestion, deleteQuestion, getAllQuestions, updateQuestion } from "../../services/QuestionApi";
+import { getAllSubject } from "../../services/SubjectApi";
+import { ImportQuestionForm } from "../../components/ImportQuestionForm";
 
 export const CMSQuestions = () => {
 
-    const [questions, setQuestions] = useState([
-        { id: "1", type: "SINGLE_CHOICE", content: "Đơn vị đo cường độ dòng điện trong hệ SI là gì?", point: 1, answer: "A. Ampe (A) (đúng), B. Vôn (V), C.Oát (W), D.Jun (J)", subjectId: 2 },
-        { id: "1", type: "SINGLE_CHOICE", content: "Đơn vị đo hiệu điện thế trong hệ SI là gì?", point: 1, answer: "A. Ampe (A), B. Vôn (V) (đúng), C.Oát (W), D.Jun (J)", subjectId: 2 },
-        {
-            id: "3",
-            type: "SINGLE_CHOICE",
-            content: "Khi nói về trí tuệ nhân tạo (AI), khái niệm nào dưới đây mô tả chính xác nhất về 'Machine Learning'?",
-            point: 1,
-            answer: "A. Một nhóm phương pháp giúp máy tính tự học từ dữ liệu mà không cần lập trình rõ ràng từng bước (đúng), B. Một công nghệ giúp máy tính chỉ có thể thực hiện các tác vụ cố định được lập trình sẵn, C. Một kỹ thuật cho phép máy tính vận hành hoàn toàn không cần dữ liệu, D. Một hệ thống mô phỏng hành vi con người bằng cách sao chép trực tiếp não bộ thật",
-            subjectId: 5
-        }
-    ]);
+    const [questions, setQuestions] = useState([]);
     const [open, setOpen] = useState(false);
     const [editData, setEditData] = useState(null);
+    const [openMultiple, setOpenMultiple] = useState(false);
+    const [subjects, setSubjects] = useState([]);
+    const [deleteId, setDeleteId] = useState(null);
+    const [selectedQuestionId, setSelectedClassId] = useState(null);
+
+    const fetchAllQuestion = async () => {
+        try {
+            const questionRes = await getAllQuestions();
+            setQuestions(questionRes);
+
+            const subjectRes = await getAllSubject();
+
+            console.log(subjectRes.values);
+
+            const subjectOptions = subjectRes.$values.map(t => ({
+                value: t.id,
+                label: t.subjectCode + ' - ' + t.name
+            }))
+
+            setSubjects(subjectOptions);
+        } catch (e) {
+            console.error("Lỗi tải dữ liệu", e);
+        }
+    }
+
+    useEffect(() => {
+        fetchAllQuestion();
+    }, []);
 
     const getCorrectAnswer = (answerText) => {
         const parts = answerText.split(",");
@@ -46,18 +66,31 @@ export const CMSQuestions = () => {
     };
 
     const handleDelete = (id) => {
-        setQuestions(questions.filter(q => q.id !== id));
+        setDeleteId(id);
     };
 
-    const handleSave = (formData) => {
+    const confirmDelete = async () => {
+        const res = await deleteQuestion(deleteId);
+
+        if (res) {
+            setQuestions(prev => prev.filter(c => c.id !== deleteId));
+        }
+
+
+        setDeleteId(null);
+    };
+
+    const handleSave = async (formData) => {
         if (editData) {
             // Update
-            setQuestions(questions.map(q =>
-                q.id === editData.id ? { ...editData, ...formData } : q
-            ));
+            const updated = await updateQuestion(formData, editData.id);
+            setQuestions(prev =>
+                prev.map(c => c.id === updated.id ? updated : c)
+            );
         } else {
             // Create
-            setQuestions([...questions, { id: Date.now(), ...formData }]);
+            const created = await createQuestion(formData);
+            setQuestions([...questions, created]);
         }
         setOpen(false);
     };
@@ -72,7 +105,8 @@ export const CMSQuestions = () => {
         },
         { name: "point", label: "Điểm", type: "number" },
         { name: "answer", label: "Danh sách đáp án", type: "text" },
-        { name: "subjectId", label: "Học phần", type: "number" }
+        { name: "subjectId", label: "Học phần", type: "number" },
+        { name: "chapter", label: "Chương", type: "number" }
     ];
 
 
@@ -122,6 +156,10 @@ export const CMSQuestions = () => {
         {
             header: "Học phần",
             accessor: "subjectId"
+        },
+        {
+            header: "Chương",
+            accessor: "chapter"
         }
     ];
 
@@ -162,12 +200,24 @@ export const CMSQuestions = () => {
 
             </div>
 
-            <Modal isOpen={open} onClose={() => setOpen(false)} title={editData ? "Sửa câu hỏi" : "Thêm câu hỏi"}>
+            <Modal isOpen={open} onClose={() => setOpen(false)} title={editData ? "Sửa lớp học" : "Thêm lớp học"}>
                 <Form
                     fields={questionFields}
                     initialValues={editData || {}}
                     onSubmit={handleSave}
                     onCancel={() => setOpen(false)}
+                />
+            </Modal>
+
+            <Modal
+                isOpen={openMultiple}
+                onClose={() => setOpenMultiple(false)}
+                title="Thêm nhiều tài khoản"
+            >
+                <ImportQuestionForm
+                    onSuccess={() => {
+                        setOpenMultiple(false);
+                    }}
                 />
             </Modal>
 

@@ -10,6 +10,7 @@ import { createClass, deleteClass, getAllClasses, updateClass } from "../../serv
 import { getAllUsers } from "../../services/UserApi";
 import { getAllSubject } from "../../services/SubjectApi";
 import { ConfirmModal } from "../../components/ConfirmModal";
+import { useNavigate } from "react-router-dom";
 
 export const CMSClass = () => {
 
@@ -20,10 +21,10 @@ export const CMSClass = () => {
     const [teachers, setTeachers] = useState([]);
     const [subjects, setSubjects] = useState([]);
     const [deleteId, setDeleteId] = useState(null);
+    const [selectedClassId, setSelectedClassId] = useState(null);
 
-    useEffect(() => {
-        fetchAllData();
-    }, []);
+
+    const navigate = useNavigate();
 
     const fetchAllData = async () => {
         try {
@@ -31,6 +32,8 @@ export const CMSClass = () => {
             setClasses(classRes);
 
             const teacherRes = await getAllUsers();
+
+            console.log("teacherRes: ", teacherRes);
             const teacherOptions = teacherRes.map(t => ({
                 value: t.id,
                 label: t.fullName,
@@ -48,6 +51,10 @@ export const CMSClass = () => {
             console.error("Lỗi tải dữ liệu:", error);
         }
     };
+
+    useEffect(() => {
+        fetchAllData();
+    }, []);
 
 
     const classFields = [
@@ -77,16 +84,17 @@ export const CMSClass = () => {
         setOpen(true);
     };
 
-    const handleDelete = (row) => {
-        setDeleteId(row.id);
+    const handleDelete = (id) => {
+        setDeleteId(id);
     };
 
     const confirmDelete = async () => {
         const res = await deleteClass(deleteId);
 
         if (res) {
-            setAccounts(prev => prev.filter(acc => acc.id !== deleteId));
+            setClasses(prev => prev.filter(c => c.id !== deleteId));
         }
+
 
         setDeleteId(null);
     };
@@ -94,10 +102,11 @@ export const CMSClass = () => {
     const handleSave = async (formData) => {
         if (editData) {
             // Update
-            const edited = await updateClass(editData);
-            setClasses(classes.map(q =>
-                q.id === editData.id ? { ...editData, edited } : q
-            ));
+            const updated = await updateClass(formData, editData.id);
+            setClasses(prev =>
+                prev.map(c => c.id === updated.id ? updated : c)
+            );
+
         } else {
             // Create
             const created = await createClass(formData);
@@ -106,10 +115,11 @@ export const CMSClass = () => {
         setOpen(false);
     };
 
-    const actions = [
-        { label: "Sửa", color: "gray", onClick: handleEdit },
-        { label: "Thêm sinh viên", color: "gray", onClick: () => setOpenMultiple(true) },
-        { label: "Xóa", color: "red", onClick: handleDelete },
+    const actions = (classroom) => [
+        { label: "Xem chi tiết", color: "gray", onClick: () => navigate(`/admin/class/${classroom.id}`) },
+        { label: "Sửa", color: "gray", onClick: () => handleEdit(classroom) },
+        { label: "Thêm sinh viên", color: "gray", onClick: () => { setSelectedClassId(classroom.id); setOpenMultiple(true) } },
+        { label: "Xóa", color: "red", onClick: () => handleDelete(classroom.id) },
     ];
 
 
@@ -171,20 +181,21 @@ export const CMSClass = () => {
                 title="Thêm nhiều tài khoản"
             >
                 <AddStudentToClassForm
-                    onSuccess={(createdList) => {
-                        setClasses(prev => [...prev, ...createdList]);
+                    onSuccess={() => {
                         setOpenMultiple(false);
                     }}
+                    classId={selectedClassId}
                 />
             </Modal>
 
             <div className="grid grid-cols-4 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
                 {classes.map(classroom => (
                     <ExamCard
                         key={classroom.id}
                         title={classroom.name}
                         subtitle={`${classroom.subjectId} - ${classroom.teacherId}`}
-                        actions={actions}
+                        actions={actions(classroom)}
                     />
                 ))}
             </div>

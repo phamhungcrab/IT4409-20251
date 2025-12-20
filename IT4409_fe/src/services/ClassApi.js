@@ -37,7 +37,7 @@ const addStudentsToClass = async (jsonData, classId, fileName = "students.json")
 
         const res = await api.post(`/Class/add-users/${classId}`, formData);
 
-        return await res.json();
+        return await res.data;
     } catch (e) {
         alert("Thêm danh sách sinh viên vào lớp học thất bại");
         console.error(e);

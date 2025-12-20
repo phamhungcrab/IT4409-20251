@@ -14,12 +14,18 @@ import { CMSAccounts } from './pages/(admin)/CMSAccount';
 import { CMSSubject } from './pages/(admin)/CMSSubject';
 import { CMSSignup } from './pages/(admin)/CMSSignup';
 import { CMSStudents } from './pages/(admin)/CMSStudents';
+import { Toaster } from 'react-hot-toast';
 
 
 function App() {
 
   return (
     <BrowserRouter>
+
+      <Toaster
+        position="top-right"
+        toastOptions={{ duration: 3000 }}
+      />
       <Routes>
         <Route path="/admin/login" element={<CMSLogin />} />
         <Route path="/admin/signup" element={<CMSSignup />} />

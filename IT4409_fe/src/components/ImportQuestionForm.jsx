@@ -1,18 +1,21 @@
-import toast from "react-hot-toast";
-import { addStudentsToClass } from "../services/ClassApi";
+import { useState } from "react"
 import { parseExcel } from "../utils/parseExcel";
-import { useState } from "react";
+import { uploadManyQuestions } from "../services/QuestionApi";
 
-export const AddStudentToClassForm = ({ onSuccess, classId }) => {
+export const ImportQuestionForm = ({ onSuccess }) => {
     const [rows, setRows] = useState([]);
     const [, setFile] = useState(null);
     const [, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const [successMsg, setSuccessMsg] = useState("");
     const columns = [
-        { key: "mssv", label: "MSSV" },
-        { key: "email", label: "Email" },
-    ]
+        { key: "content", label: "Câu hỏi" },
+        { key: "answer", label: "Đáp án" },
+        { key: "point", label: "Điểm" },
+        { key: "difficulty", label: "Độ khó" },
+        { key: "type", label: "Loại câu hỏi" },
+        { key: "subjectId", label: "Môn học" },
+        { key: "chapter", label: "Chương" }
+    ];
 
     const handleFileChange = async (e) => {
         const uploadedFile = e.target.files[0];
@@ -22,8 +25,13 @@ export const AddStudentToClassForm = ({ onSuccess, classId }) => {
 
         if (result.success) {
             const mapped = result.data.map(row => ({
-                mssv: row.MSSV || row.mssv || row["Mã SV"] || "",
-                email: row.Email || row.email || "",
+                content: row.Content || row.content || row["Câu hỏi"] || "",
+                answer: row.Answer || row.answer || row["Đáp án"] || "",
+                point: row.Point || row.point || row["Điểm"] || "",
+                difficulty: row.Difficulty || row.difficulty || row["Độ khó"] || "",
+                type: row.Type || row.type || row["Loại câu hỏi"] || row["Loại"] || "",
+                subjectId: row.SubjectId || row.subjectId || row["Mã môn học"] || "",
+                chapter: row.Chapter || row.chapter || row["Chương"] || ""
             }));
 
             setRows(mapped);
@@ -44,10 +52,10 @@ export const AddStudentToClassForm = ({ onSuccess, classId }) => {
         setSuccessMsg("");
 
         try {
-            const res = await addStudentsToClass(rows, classId);
+            const res = await uploadManyQuestions(rows);
             setSuccessMsg("Gửi dữ liệu thành công!");
             onSuccess(res);
-            toast.message("Thêm sinh viên vào lớp thành công")
+            toast.message("Thêm câu hỏi thành công")
         } catch (err) {
             setError(err.message);
         }

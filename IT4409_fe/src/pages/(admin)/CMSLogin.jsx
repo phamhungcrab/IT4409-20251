@@ -4,6 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { loginApi } from "../../services/AuthApi";
 import { api } from "../../lib/axiosClient";
 
+import toast from "react-hot-toast";
+
+
 export const CMSLogin = () => {
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
@@ -35,16 +38,21 @@ export const CMSLogin = () => {
             setLoading(true);
             const data = await loginApi({ email, password });
 
-            //console.log("Login data: ", data.data);
+            console.log("Login data: ", data.data);
 
-            if (data.data) {
+            if (data.data && data.status === true) {
                 localStorage.setItem("session", data.data);
+                toast.success("Đăng nhập thành công!");
+                navigate("/admin/home", { replace: true });
+
 
             }
 
-            // api.defaults.headers.common["Authorization"] = `Bearer ${data.data}`;
+            else {
+                toast.error("Sai email hoặc mật khẩu!");
+            }
 
-            navigate("/admin/home", { replace: true });
+            // api.defaults.headers.common["Authorization"] = `Bearer ${data.data}`;
         } catch (e) {
             setError(e.message || "Có lỗi xảy ra. Vui lòng thử lại");
         } finally {
