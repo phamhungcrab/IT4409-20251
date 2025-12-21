@@ -145,5 +145,5 @@ export default ResultsPage;
  * 4) Vì sao tách resultService?
  *    - Component UI (ResultsPage) chỉ lo hiển thị và gọi service.
  *    - Service lo gọi API cụ thể (URL, headers, typing...).
- *    - Code rõ ràng, dễ bảo trì, test tốt hơn.
+ *    - Code rõ ràng, dễ bảo trì, test tốt hơn. 
  */

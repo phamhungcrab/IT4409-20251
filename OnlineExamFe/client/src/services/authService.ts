@@ -1,29 +1,34 @@
 /**
- * authService:
+ * authService (dịch vụ xác thực):
  *
- * Cung cấp các hàm làm việc với API xác thực (authentication) của backend:
- *  - login  : đăng nhập
- *  - logout : đăng xuất
- *  - refreshToken : xin token mới khi token cũ sắp/đã hết hạn
- *  - sendOtp / checkOtp : gửi và kiểm tra mã OTP
+ * File này gom tất cả hàm gọi API liên quan đến xác thực tài khoản:
+ * - login        : đăng nhập, nhận token
+ * - logout       : đăng xuất, báo cho server hủy phiên/thiết bị
+ * - refreshToken : xin token mới khi token cũ sắp/hết hạn
+ * - sendOtp      : gửi mã OTP tới email
+ * - checkOtp     : kiểm tra OTP người dùng nhập
  *
- * Tất cả các request đều dùng chung apiClient (axios đã cấu hình sẵn),
- * giúp:
- *  - Dùng cùng baseURL (VITE_API_BASE_URL)
- *  - Tự động gắn header (ví dụ Authorization)
- *  - Xử lý lỗi / unwrap response chung trong interceptor
+ * Tất cả request dùng chung apiClient (axios đã cấu hình sẵn) để:
+ * - Dùng chung baseURL (VD: VITE_API_BASE_URL)
+ * - Có thể tự gắn header Authorization: Bearer <token> (nếu bạn cấu hình)
+ * - Có thể xử lý lỗi tập trung (ví dụ: nếu 401 thì logout / refresh)
+ *
+ * Lưu ý cho người mới:
+ * - “Service” ở FE thường chỉ là một file chứa các hàm gọi API.
+ * - Nó giúp bạn không viết axios/fetch lặp lại ở nhiều nơi.
  */
 
 import apiClient from '../utils/apiClient';
 
 /**
- * UserRole:
- *  - Dùng enum để quản lý các loại vai trò người dùng trong hệ thống:
- *      + Admin   : quản trị viên
- *      + Teacher : giảng viên
- *      + Student : sinh viên
+ * UserRole (vai trò người dùng):
  *
- * enum giúp code dễ đọc hơn, tránh gõ sai string ('Admin', 'admin', 'Admim',...)
+ * Dùng enum để định nghĩa “tập giá trị cố định” cho role, ví dụ:
+ * - Admin, Teacher, Student
+ *
+ * Vì sao dùng enum?
+ * - Tránh gõ sai chuỗi: 'Admin' vs 'admin' vs 'Admim'
+ * - Code dễ đọc hơn, có gợi ý (autocomplete) trong editor
  */
 export enum UserRole {
   Admin = 'Admin',
@@ -32,19 +37,20 @@ export enum UserRole {
 }
 
 /**
- * LoginDto:
- *  - "DTO" = Data Transfer Object = kiểu dữ liệu gửi lên backend.
- *  - Đây là payload của request login.
+ * LoginDto (dữ liệu gửi lên khi đăng nhập):
  *
- * Các field chính:
- *  - email     : email người dùng
- *  - password  : mật khẩu
- *  - ipAdress  : (tùy chọn) IP của client (nếu FE thu thập được)
- *  - userAgent : (tùy chọn) thông tin trình duyệt / thiết bị
- *  - deviceId  : (tùy chọn) id thiết bị (nếu có logic multi-device)
+ * Giải thích khái niệm DTO:
+ * - DTO = Data Transfer Object = “gói dữ liệu để gửi qua lại”
+ * - Nói đơn giản: đây là shape (cấu trúc) dữ liệu mà FE gửi lên BE.
  *
- * Lưu ý: ipAdress ở đây bị viết sai chính tả (thiếu 'd' trong Address),
- * cần đồng bộ với backend, nhưng về cơ bản chỉ là tên field.
+ * Trường dữ liệu:
+ * - email    : email người dùng
+ * - password : mật khẩu
+ *
+ * Các trường “bổ sung” (không bắt buộc):
+ * - ipAddress : IP của người dùng (nếu FE lấy được)
+ * - userAgent : thông tin trình duyệt/thiết bị (Chrome/Windows…)
+ * - deviceId  : định danh thiết bị (để quản lý đăng nhập nhiều thiết bị)
  */
 export interface LoginDto {
   email: string;
@@ -55,19 +61,22 @@ export interface LoginDto {
 }
 
 /**
- * RegisterDto:
- *  - Payload dùng khi đăng ký tài khoản mới (nếu FE có form register).
+ * RegisterDto (dữ liệu gửi lên khi đăng ký):
  *
- * Các trường:
- *  - email       : email đăng nhập
- *  - password    : mật khẩu
- *  - mssv        : mã số sinh viên
- *  - role        : vai trò (Student / Teacher / Admin) dùng enum UserRole
- *  - fullName    : họ tên đầy đủ
- *  - dateOfBirth : ngày sinh, dạng string theo chuẩn ISO (vd: '2002-01-01')
- *  - ipAdress    : IP client (optional)
- *  - userAgent   : thông tin trình duyệt (optional)
- *  - deviceId    : id thiết bị (optional)
+ * Dùng khi hệ thống có form đăng ký.
+ *
+ * Trường dữ liệu:
+ * - email       : email đăng nhập
+ * - password    : mật khẩu
+ * - mssv        : mã số sinh viên
+ * - role        : vai trò (dùng enum UserRole)
+ * - fullName    : họ tên đầy đủ
+ * - dateOfBirth : ngày sinh dạng chuỗi ISO, ví dụ '2002-01-01'
+ *
+ * Lưu ý:
+ * - ipAdress đang bị sai chính tả (đúng ra là ipAddress).
+ * - Nếu backend cũng dùng ipAdress thì FE phải gửi đúng tên đó.
+ * - Nếu backend dùng ipAddress thì FE nên sửa lại cho đồng bộ.
  */
 export interface RegisterDto {
   email: string;
@@ -75,21 +84,24 @@ export interface RegisterDto {
   mssv: string;
   role: UserRole;
   fullName: string;
-  dateOfBirth: string; // Chuỗi ngày dạng ISO, ví dụ '2025-12-07'
-  ipAdress?: string;
+  dateOfBirth: string;
+  ipAdress?: string; // chú ý: field này đang khác ipAddress
   userAgent?: string;
   deviceId?: string;
 }
 
 /**
- * LogoutDto:
- *  - Payload gửi lên khi người dùng logout.
- *  - Backend có thể dùng deviceId, ipAddress, userAgent để xóa session/token đúng thiết bị.
+ * LogoutDto (dữ liệu gửi khi đăng xuất):
  *
- *  - userId    : id của user trong hệ thống
- *  - deviceId  : id thiết bị (optional)
- *  - ipAddress : IP client (optional)
- *  - userAgent : trình duyệt (optional)
+ * Tùy thiết kế, backend có thể cần các thông tin để:
+ * - Hủy refreshToken của đúng thiết bị (device)
+ * - Log audit (ai logout, từ đâu)
+ *
+ * Trường dữ liệu:
+ * - userId    : id người dùng
+ * - deviceId  : id thiết bị (nếu có)
+ * - ipAddress : IP (nếu có)
+ * - userAgent : trình duyệt/thiết bị (nếu có)
  */
 export interface LogoutDto {
   userId: number;
@@ -99,19 +111,17 @@ export interface LogoutDto {
 }
 
 /**
- * SendOtpDto:
- *  - Payload gửi khi user yêu cầu gửi OTP (ví dụ: quên mật khẩu, xác thực email,...)
- *  - email: email nhận OTP.
+ * SendOtpDto (gửi OTP):
+ * - Chỉ cần email để server gửi mã OTP tới.
  */
 export interface SendOtpDto {
   email: string;
 }
 
 /**
- * CheckOtpDto:
- *  - Payload gửi khi user nhập OTP và muốn backend kiểm tra.
- *  - otp   : mã OTP user nhập
- *  - email : email tương ứng với OTP
+ * CheckOtpDto (kiểm tra OTP):
+ * - email: email đã nhận OTP
+ * - otp  : mã OTP người dùng nhập
  */
 export interface CheckOtpDto {
   otp: string;
@@ -119,29 +129,39 @@ export interface CheckOtpDto {
 }
 
 /**
- * TokenResponse:
- *  - Kiểu dữ liệu backend trả về sau khi login/refresh token.
- *  - Có 2 khả năng:
- *      1. string: backend trả về một chuỗi token duy nhất.
- *      2. object: backend trả về { accessToken, refreshToken }.
+ * TokenResponse (phản hồi token từ server):
  *
- *  - Việc dùng `string | { ... }` là "union type" của TypeScript:
- *      + Response có thể là kiểu này HOẶC kiểu kia.
+ * Một số backend trả về:
+ * - Cách 1: chỉ trả 1 chuỗi token (string)
+ * - Cách 2: trả object chứa accessToken + refreshToken
+ *
+ * => Nên ta khai báo kiểu “có thể là 1 trong 2 dạng”.
+ *
+ * Giải thích khái niệm “union type” (TypeScript):
+ * - Union type nghĩa là biến có thể thuộc “kiểu A HOẶC kiểu B”.
+ * - Ví dụ: string | number
+ * - Ở đây: TokenResponse = string | { accessToken, refreshToken }
  */
-export type TokenResponse = string | {
-  accessToken: string;
-  refreshToken: string;
-};
+export type TokenResponse =
+  | string
+  | {
+      accessToken: string;
+      refreshToken: string;
+    };
 
 /**
- * RefreshTokenDto:
- *  - Payload gửi lên để xin token mới khi token cũ hết hạn.
+ * RefreshTokenDto (gửi lên khi xin token mới):
  *
- *  - accessToken : token hiện tại (có thể đã hoặc sắp hết hạn)
- *  - refreshToken: token dùng để xin token mới (thường sống lâu hơn)
- *  - deviceId    : id thiết bị
- *  - ipAddress   : IP client
- *  - userAgent   : trình duyệt
+ * Mục đích:
+ * - accessToken thường sống ngắn, hết hạn nhanh
+ * - refreshToken sống lâu hơn, dùng để xin accessToken mới
+ *
+ * Trường dữ liệu:
+ * - accessToken  : token hiện tại (có thể sắp hết hạn)
+ * - refreshToken : token làm mới
+ * - deviceId     : thiết bị nào đang xin refresh
+ * - ipAddress    : IP thiết bị
+ * - userAgent    : thông tin trình duyệt/thiết bị
  */
 export interface RefreshTokenDto {
   accessToken: string;
@@ -153,59 +173,87 @@ export interface RefreshTokenDto {
 
 /**
  * authService:
- *  - Tập hợp các hàm wrap việc gọi API Auth.
- *  - Mỗi hàm tương ứng với một endpoint backend.
+ * - Là một object chứa các hàm gọi API liên quan đến Auth.
+ * - Mỗi hàm thường tương ứng 1 endpoint backend.
+ *
+ * Lưu ý quan trọng cho người mới:
+ * - Các hàm dưới đây đều trả về Promise.
+ * - Promise nghĩa là “kết quả sẽ có sau” (vì gọi mạng cần thời gian).
+ * - Vì vậy ta dùng async/await để viết code dễ đọc hơn.
  */
 export const authService = {
   /**
-   * Gọi API đăng nhập.
-   *  - data: LoginDto (email, password, ...).
-   *  - Trả về Promise<TokenResponse> tức là 1 Promise
-   *    resolve ra TokenResponse (token string hoặc object chứa 2 token).
-   *
-   * Chú ý phần ép kiểu:
-   *  - apiClient.post<TokenResponse>(...) theo type Axios sẽ trả về AxiosResponse<...>,
-   *    nhưng interceptor của mình có thể đã "unwrap" để chỉ còn data.
-   *  - Vì TypeScript không biết chuyện interceptor này,
-   *    nên ép kiểu qua unknown rồi về Promise<TokenResponse> để compiler khỏi kêu.
+   * login(data):
+ * - Gửi POST /api/Auth/login kèm email/password.
+ * - Server trả về token (TokenResponse).
+ *
+ * Về mặt TypeScript:
+ * - apiClient.post<TokenResponse>(...) nghĩa là:
+ *   “tôi mong server trả về dữ liệu có dạng TokenResponse”.
+ *
+ * Vì sao lại có đoạn ép kiểu `as unknown as Promise<TokenResponse>`?
+ * - Do cách bạn cấu hình apiClient (axios interceptor) có thể đã “bóc” response,
+ *   tức là thay vì trả AxiosResponse<T>, nó trả thẳng T.
+ * - Nhưng TypeScript không tự biết điều đó, nên bạn ép kiểu để compiler không báo lỗi.
+ *
+ * Gợi ý tốt hơn:
+ * - Nên cấu hình type của apiClient để .post trả về đúng T ngay từ đầu,
+ *   để khỏi phải ép kiểu ở từng hàm.
    */
   login: async (data: LoginDto): Promise<TokenResponse> => {
-    return await apiClient.post<TokenResponse>('/api/Auth/login', data) as unknown as Promise<TokenResponse>;
+    return (await apiClient.post<TokenResponse>(
+      '/api/Auth/login',
+      data
+    )) as unknown as Promise<TokenResponse>;
   },
 
   /**
-   * Gọi API logout.
-   *  - data: LogoutDto (userId, deviceId,...).
-   *  - Trả về Promise<void> (không cần data trả về, chỉ cần biết thành công/thất bại).
+   * logout(data):
+ * - Gửi POST /api/Auth/logout để server hủy phiên/refreshToken (tùy BE).
+ * - Trả về Promise<void> nghĩa là không cần dữ liệu trả về,
+ *   chỉ cần biết “gọi thành công” hay bị lỗi.
    */
   logout: async (data: LogoutDto): Promise<void> => {
-    return await apiClient.post<void>('/api/Auth/logout', data) as unknown as Promise<void>;
+    return (await apiClient.post<void>(
+      '/api/Auth/logout',
+      data
+    )) as unknown as Promise<void>;
   },
 
   /**
-   * Gọi API refresh-token.
-   *  - data: RefreshTokenDto
-   *  - Trả về TokenResponse (tương tự login).
+   * refreshToken(data):
+ * - Gửi POST /api/Auth/refresh-token để xin token mới.
+ * - Trả về TokenResponse (giống login).
    */
   refreshToken: async (data: RefreshTokenDto): Promise<TokenResponse> => {
-    return await apiClient.post<TokenResponse>('/api/Auth/refresh-token', data) as unknown as Promise<TokenResponse>;
+    return (await apiClient.post<TokenResponse>(
+      '/api/Auth/refresh-token',
+      data
+    )) as unknown as Promise<TokenResponse>;
   },
 
   /**
-   * Gửi OTP đến email.
-   *  - data: SendOtpDto (email).
-   *  - Trả về Promise<void>, thường chỉ cần biết gọi OK là được.
+   * sendOtp(data):
+ * - Gửi POST /api/Auth/send-otp để server gửi OTP tới email.
+ * - Thường không cần body trả về => Promise<void>.
    */
   sendOtp: async (data: SendOtpDto): Promise<void> => {
-    return await apiClient.post<void>('/api/Auth/send-otp', data) as unknown as Promise<void>;
+    return (await apiClient.post<void>(
+      '/api/Auth/send-otp',
+      data
+    )) as unknown as Promise<void>;
   },
 
   /**
-   * Kiểm tra OTP.
-   *  - data: CheckOtpDto (email + otp).
-   *  - Trả về Promise<void>, nếu sai OTP backend thường trả lỗi (4xx).
+   * checkOtp(data):
+ * - Gửi POST /api/Auth/check-otp để server kiểm tra OTP.
+ * - Nếu OTP đúng -> OK
+ * - Nếu OTP sai -> server thường trả lỗi 4xx và axios sẽ throw error
    */
   checkOtp: async (data: CheckOtpDto): Promise<void> => {
-    return await apiClient.post<void>('/api/Auth/check-otp', data) as unknown as Promise<void>;
+    return (await apiClient.post<void>(
+      '/api/Auth/check-otp',
+      data
+    )) as unknown as Promise<void>;
   }
 };

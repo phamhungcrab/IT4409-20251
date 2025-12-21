@@ -34,7 +34,7 @@ export interface OptionItem {
  *  - questionType : loại câu hỏi (1 = chọn 1, 2 = chọn nhiều)
  *  - selected     : mảng id đáp án đang được chọn
  *  - onChange     : hàm callback được gọi khi user chọn/bỏ chọn đáp án
- *  - groupName    : tên nhóm input (radio/checkbox) giúp accessibility tốt hơn
+ *  - groupName    : tên nhóm input (radio/checkbox) giúp accessibility tốt hơn 
  */
 export interface OptionListProps {
   options: OptionItem[];
@@ -192,7 +192,7 @@ const OptionList: React.FC<OptionListProps> = ({
                     isSelected
                       ? 'border-sky-300 bg-sky-500/30'
                       : 'border-white/20 bg-white/5'
-                  }`} 
+                  }`}
                 role="presentation"
               >
                 {/* Nếu là MULTI_CHOICE -> hiển thị ô vuông nhỏ như checkbox */}

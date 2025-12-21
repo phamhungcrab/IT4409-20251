@@ -52,6 +52,7 @@ const ExamRoomPage = lazy(() => import('./pages/ExamRoomPage'));
 const ResultsPage = lazy(() => import('./pages/ResultsPage'));
 const ResultDetailPage = lazy(() => import('./pages/ResultDetailPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+const ForbiddenPage = lazy(() => import('./pages/ForbiddenPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 /**
@@ -177,6 +178,10 @@ export const appRoutes: RouteObject[] = [
             <AdminPage />
           </RoleGuard>
         ),
+      },
+      {
+        path: '403',
+        element: <ForbiddenPage />,
       },
       {
         /**

@@ -7,76 +7,101 @@ import useAuth from '../hooks/useAuth';
 
 /**
  * ExamListPage (Trang danh sách bài thi):
- *  - Student vào đây để xem danh sách các bài thi được giao.
- *  - Khi bấm “Start exam”, FE gọi API startExam để:
- *      + Backend trả status: create / in_progress / completed / expired
- *      + Có thể trả wsUrl để kết nối WebSocket
- *      + Có thể trả exam payload (questions + duration...)
+ *
+ * Mục tiêu:
+ * - Sinh viên vào trang này để xem danh sách bài thi được giao.
+ * - Khi bấm “Bắt đầu làm bài”, FE gọi API startExam để:
+ *   + Backend trả status: create / in_progress / completed / expired
+ *   + Có thể trả wsUrl để kết nối WebSocket (đồng bộ realtime)
+ *   + Có thể trả payload đề thi (questions + duration...)
  *
  * Luồng tổng quan:
- *  1) Khi user đăng nhập (user != null) -> gọi examService.getStudentExams(user.id)
- *  2) Render danh sách exam
- *  3) Click Start exam -> handleStartExam(examId)
- *      - Gọi examService.startExam({ examId, studentId })
- *      - Fix wsUrl nếu backend trả ws://localhost... (khi deploy trên Render)
- *      - Cache exam payload vào localStorage để hỗ trợ resume (in_progress)
- *      - navigate sang /exam/:examId và truyền state { wsUrl, duration, questions }
+ * 1) Khi user đã đăng nhập (user != null) -> gọi examService.getStudentExams(user.id)
+ * 2) Render danh sách exam
+ * 3) Click “Bắt đầu làm bài” -> handleStartExam(examId)
+ *    - Gọi examService.startExam({ examId, studentId })
+ *    - Sửa wsUrl nếu backend trả sai host (localhost khi deploy)
+ *    - Cache exam payload vào localStorage để hỗ trợ resume (in_progress)
+ *    - navigate sang /exam/:examId và truyền state { wsUrl, duration, questions }
  */
 const ExamListPage: React.FC = () => {
   /**
    * i18next:
-   *  - t(key): lấy text đa ngôn ngữ.
+   * - t('key') dùng để lấy text đa ngôn ngữ.
    */
   const { t } = useTranslation();
 
   /**
    * useAuth:
-   *  - user: thông tin user hiện tại (student).
+   * - user là thông tin người dùng hiện tại (ở đây thường là Student).
+   * - Nếu user = null/undefined nghĩa là chưa đăng nhập hoặc đang load lại session.
    */
   const { user } = useAuth();
 
   /**
    * useNavigate:
-   *  - điều hướng sang trang khác bằng code.
+   * - Dùng để chuyển trang bằng code.
+   * - Ví dụ: navigate('/results') để đi sang trang kết quả.
    */
   const navigate = useNavigate();
 
   /**
    * exams:
-   *  - danh sách bài thi của student.
+   * - Danh sách bài thi của sinh viên.
    */
   const [exams, setExams] = useState<ExamDto[]>([]);
 
   /**
    * loading:
-   *  - trạng thái đang tải danh sách bài thi.
+   * - Trạng thái đang tải danh sách bài thi (để hiển thị loading UI).
    */
   const [loading, setLoading] = useState(true);
+
+  /**
+   * completionNotice:
+   * - Bật/tắt modal thông báo “bài thi đã làm xong”.
+   * - Dùng khi backend trả status = completed.
+   */
   const [completionNotice, setCompletionNotice] = useState(false);
 
   /**
    * useEffect: tải danh sách bài thi khi đã có user.
-   *  - dependency [user] => khi user thay đổi thì tải lại.
+   *
+   * Vì sao dependency là [user]?
+   * - Vì lúc app mới mở, user có thể chưa có ngay (đang đọc localStorage / gọi API).
+   * - Khi user xuất hiện, useEffect chạy để tải danh sách bài thi.
    */
   useEffect(() => {
     const fetchExams = async () => {
-      // Nếu chưa có user thì không gọi API
+      // Nếu chưa có user thì không gọi API (tránh lỗi user.id undefined)
       if (!user) return;
 
       try {
-        // Gọi API: lấy danh sách bài thi theo studentId
+        /**
+         * Gọi API lấy danh sách bài thi theo studentId.
+         * - backend trả về mảng ExamDto[]
+         */
         const data = await examService.getStudentExams(user.id);
-        console.log('Fetched exams:', data);
+        console.log('Đã tải danh sách bài thi:', data);
+
+        /**
+         * Kiểm tra chắc chắn data là mảng.
+         * - Vì đôi khi backend lỗi hoặc trả về object => FE sẽ render sai.
+         */
         if (Array.isArray(data)) {
           setExams(data);
         } else {
-          console.error('API response is not an array:', data);
+          console.error('API không trả về mảng:', data);
           setExams([]);
         }
       } catch (error) {
         console.error('Không thể tải danh sách bài thi', error);
       } finally {
-        // Dù thành công hay thất bại, cũng tắt loading để UI không bị treo
+        /**
+         * finally:
+         * - Dù thành công hay lỗi thì cũng tắt loading.
+         * - Tránh UI bị “kẹt” loading mãi.
+         */
         setLoading(false);
       }
     };
@@ -85,13 +110,19 @@ const ExamListPage: React.FC = () => {
   }, [user]);
 
   /**
-   * handleStartExam:
-   *  - Xử lý khi user bấm nút “Start exam”.
+   * handleStartExam(examId):
    *
-   * Mục tiêu:
-   *  - Gọi backend để bắt đầu bài thi
-   *  - Nhận wsUrl + đề thi (questions)
-   *  - Điều hướng sang ExamRoomPage
+   * Nhiệm vụ khi bấm “Bắt đầu làm bài”:
+   * 1) Gọi backend startExam để lấy:
+   *    - status (create/in_progress/completed/expired)
+   *    - wsUrl (kết nối WebSocket)
+   *    - data (payload đề thi: questions, duration...)
+   * 2) Sửa wsUrl cho đúng môi trường (localhost/dev vs onrender/production)
+   * 3) Cache payload vào localStorage để resume nếu đang làm dở
+   * 4) Điều hướng:
+   *    - create/in_progress -> vào phòng thi /exam/:examId
+   *    - completed         -> hiện thông báo và gợi ý sang results
+   *    - expired           -> báo hết hạn
    */
   const handleStartExam = async (examId: number) => {
     if (!user) return;
@@ -99,91 +130,124 @@ const ExamListPage: React.FC = () => {
     try {
       /**
        * Gọi API startExam:
-       *  - Backend trả về dạng: { status, wsUrl, data }
-       *  - data là đề thi đã generate (questions, durationMinutes,...)
+       * - Backend thường trả: { status, wsUrl, data }
+       * - data có thể là null tuỳ status và cách backend tối ưu.
        */
       const response = await examService.startExam({
         examId,
         studentId: user.id
       });
 
-      console.log('[ExamListPage] Start exam response:', response);
+      console.log('[ExamListPage] Phản hồi startExam:', response);
 
-      // wsUrl: URL WebSocket để realtime sync
+      // wsUrl: URL WebSocket để đồng bộ realtime
       let wsUrl = response.wsUrl || '';
 
-      // examPayload: đề thi (questions...) do backend trả
+      // examPayload: đề thi (questions, duration...) do backend trả về
       let examPayload: ExamGenerateResultDto | null = response.data ?? null;
 
       /**
-       * FIX wsUrl cho môi trường deploy:
-       *  - Một số backend trả ws://localhost:xxxx/... (hardcode lúc dev)
-       *  - Khi deploy Render/HTTPS, FE phải dùng wss://<host>/...
+       * Sửa wsUrl cho môi trường deploy:
+       *
+       * Tình huống hay gặp:
+       * - Lúc dev backend trả ws://localhost:xxxx
+       * - Khi deploy lên Render, domain thật là https://xxx.onrender.com
+       * => FE phải đổi wsUrl để trỏ về đúng domain và đúng protocol (ws/wss).
+       *
+       * apiBase lấy từ biến môi trường VITE_API_BASE_URL (cấu hình ở .env)
        */
       const apiBase = (import.meta as any).env.VITE_API_BASE_URL || '';
 
       if (wsUrl) {
-        // Nếu backend trả về wss://localhost:7239 nhưng máy dev không trust cert -> chuyển sang ws://localhost:7238 (đã mở HTTP)
+        /**
+         * Trường hợp đặc biệt ở local dev:
+         * - Backend trả wss://localhost:7239 nhưng máy dev có thể không trust chứng chỉ HTTPS
+         * - Bạn chuyển sang ws://localhost:7238 (HTTP) để tránh lỗi cert
+         *
+         * Lưu ý:
+         * - Đây là “workaround” theo cấu hình dự án của bạn.
+         * - Nếu dự án bạn không dùng 7238/7239 thì cần chỉnh lại.
+         */
         try {
           const parsed = new URL(wsUrl);
-          if ((parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') && parsed.protocol === 'wss:' && parsed.port === '7239') {
+          if (
+            (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') &&
+            parsed.protocol === 'wss:' &&
+            parsed.port === '7239'
+          ) {
             parsed.protocol = 'ws:';
             parsed.port = '7238';
             wsUrl = parsed.toString();
           }
         } catch {
-          // ignore parse errors
+          // Nếu wsUrl không parse được thì bỏ qua, tránh crash
         }
 
-        // Trường hợp wsUrl trỏ localhost nhưng apiBase là domain Render
+        /**
+         * Trường hợp wsUrl trỏ localhost nhưng apiBase lại là domain onrender:
+         * - Ta lấy host của apiBase làm host thật.
+         * - Giữ lại pathname của wsUrl để kết nối đúng endpoint WS.
+         */
         if (wsUrl.includes('localhost') && apiBase.includes('onrender')) {
           try {
             const parsedWs = new URL(wsUrl);
             const parsedApi = new URL(apiBase);
 
-            // Lấy host từ apiBase (domain thật), giữ pathname từ wsUrl
             wsUrl = `wss://${parsedApi.host}${parsedWs.pathname}`;
           } catch (e) {
-            console.error('Không parse được URL để sửa WS', e);
+            console.error('Không sửa được wsUrl theo apiBase', e);
           }
         }
-        // Trường hợp backend trả wsUrl dạng tương đối: /ws/exam?token=...
+        /**
+         * Trường hợp backend trả wsUrl dạng tương đối:
+         * - Ví dụ: /ws/exam?token=...
+         * - Ta ghép vào apiBase:
+         *   https://domain -> wss://domain
+         */
         else if (wsUrl.startsWith('/')) {
-          // apiBase: https://domain -> chuyển thành wss://domain
           wsUrl = apiBase.replace(/^http/, 'ws') + wsUrl;
         }
       }
 
       /**
-       * Cache đề thi (examPayload) để hỗ trợ resume:
-       *  - cacheKey: exam_<examId>_payload
+       * Cache đề thi (payload) để hỗ trợ resume:
        *
-       * Nếu server trả status = in_progress mà response.data không có (null)
-       *  -> ta đọc cache để lấy lại questions/duration.
+       * Vì sao phải cache?
+       * - Nếu đang làm dở (in_progress), backend có thể chỉ trả status + wsUrl,
+       *   và không gửi lại toàn bộ questions để tiết kiệm.
+       * - FE cần questions để render, nên lưu payload vào localStorage.
        */
       const cacheKey = `exam_${examId}_payload`;
 
+      /**
+       * Nếu đang in_progress mà backend không trả data,
+       * -> thử lấy lại payload từ localStorage.
+       */
       if (!examPayload && response.status === 'in_progress') {
         const cached = localStorage.getItem(cacheKey);
         if (cached) {
           try {
             examPayload = JSON.parse(cached);
           } catch (e) {
-            console.warn('Không parse được cache payload', e);
+            console.warn('Không đọc được payload cache', e);
           }
         }
       } else if (examPayload) {
-        // Nếu server trả payload mới, ta lưu lại để lần sau resume dùng
+        /**
+         * Nếu backend có trả payload mới,
+         * -> lưu lại để lần sau resume dùng.
+         */
         localStorage.setItem(cacheKey, JSON.stringify(examPayload));
       }
 
       /**
        * Điều hướng theo status backend:
-       *  - create / in_progress: vào phòng thi
-       *  - completed          : đã làm xong -> sang results
-       *  - expired            : bài thi hết hạn
+       * - create / in_progress: vào phòng thi
+       * - completed: đã làm xong -> báo và gợi ý sang results
+       * - expired: bài thi hết hạn
        */
       if (response.status === 'create' || response.status === 'in_progress') {
+        // Nếu không có payload thì không thể vào phòng thi (không có câu hỏi để render)
         if (!examPayload) {
           alert('Không tải được đề thi. Vui lòng thử lại.');
           return;
@@ -191,11 +255,12 @@ const ExamListPage: React.FC = () => {
 
         /**
          * navigate sang ExamRoomPage:
-         *  - route: /exam/:examId
-         *  - state: truyền wsUrl, duration, questions
+         * - route: /exam/:examId
+         * - state: truyền wsUrl, duration, questions
          *
-         * Lưu ý:
-         *  - location.state sẽ mất nếu refresh (F5).
+         * Lưu ý quan trọng:
+         * - location.state sẽ mất khi refresh (F5)
+         * - Vì vậy ExamRoomPage đã có “recovery logic” để tự gọi API lấy lại nếu bị mất state.
          */
         navigate(`/exam/${examId}`, {
           state: {
@@ -205,6 +270,7 @@ const ExamListPage: React.FC = () => {
           }
         });
       } else if (response.status === 'completed') {
+        // Đã làm xong -> hiện modal thông báo
         setCompletionNotice(true);
       } else if (response.status === 'expired') {
         alert('Bài thi đã hết hạn!');
@@ -213,25 +279,37 @@ const ExamListPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Lỗi khi bắt đầu bài thi', error);
-      const message = error instanceof Error ? error.message : 'Error starting exam';
+
+      /**
+       * Đây là cách lấy message lỗi “an toàn”:
+       * - Nếu error là instance của Error thì lấy error.message
+       * - Nếu không thì dùng message mặc định
+       */
+      const message = error instanceof Error ? error.message : 'Lỗi khi bắt đầu bài thi';
       alert(message);
     }
   };
 
   /**
-   * Nếu đang tải data -> hiển thị loading.
+   * Nếu đang tải danh sách bài thi -> hiển thị loading.
    */
   if (loading) return <div>{t('common.loading')}</div>;
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
+      {/* Modal thông báo: bài thi đã hoàn thành */}
       {completionNotice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
           <div className="bg-slate-900 border border-white/10 rounded-xl p-6 w-full max-w-md shadow-xl space-y-4">
             <div className="space-y-2">
-              <p className="text-sm uppercase tracking-[0.3em] text-emerald-300/80">{t('exam.submitted')}</p>
-              <h3 className="text-xl font-semibold text-white">{t('exam.completedMessage') || 'Bạn đã hoàn thành bài thi này!'}</h3>
+              <p className="text-sm uppercase tracking-[0.3em] text-emerald-300/80">
+                {t('exam.submitted')}
+              </p>
+              <h3 className="text-xl font-semibold text-white">
+                {t('exam.completedMessage') || 'Bạn đã hoàn thành bài thi này!'}
+              </h3>
             </div>
+
             <div className="flex justify-end gap-3">
               <button
                 className="btn btn-ghost px-4 py-2 border border-white/15"
@@ -239,6 +317,7 @@ const ExamListPage: React.FC = () => {
               >
                 {t('common.close')}
               </button>
+
               <button
                 className="btn btn-primary px-4 py-2"
                 onClick={() => {
@@ -252,17 +331,18 @@ const ExamListPage: React.FC = () => {
           </div>
         </div>
       )}
+
       {/* Tiêu đề trang */}
       <div className="flex flex-col gap-2">
         <p className="text-sm text-slate-300">{t('exam.listTitle')}</p>
-        <h1 className="text-3xl font-semibold text-white">Available exams</h1>
+        <h1 className="text-3xl font-semibold text-white">Danh sách bài thi</h1>
       </div>
 
-      {/* Nếu không có bài thi -> hiển thị empty state */}
+      {/* Nếu không có bài thi -> hiển thị trạng thái rỗng */}
       {!Array.isArray(exams) || exams.length === 0 ? (
         <div className="glass-card p-6 text-slate-300">{t('exam.noExams')}</div>
       ) : (
-        // Có bài thi -> render dạng grid cards
+        // Có bài thi -> render dạng lưới card
         <div className="grid gap-4 md:grid-cols-2">
           {exams.map((exam) => (
             <div key={exam.id} className="glass-card p-5 flex flex-col gap-4 justify-between">
@@ -270,7 +350,7 @@ const ExamListPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-semibold text-white">{exam.name}</h3>
 
-                  {/* Tag trạng thái bài thi */}
+                  {/* Tag trạng thái bài thi (ví dụ: not_started / in_progress / completed...) */}
                   <span className="tag">
                     <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
                     {exam.status}
@@ -280,7 +360,7 @@ const ExamListPage: React.FC = () => {
                 {/* Thông tin thời lượng và thời gian bắt đầu */}
                 <div className="text-sm text-slate-300 space-y-1">
                   <p>
-                    {t('exam.duration')}: {exam.durationMinutes} mins
+                    {t('exam.duration')}: {exam.durationMinutes} phút
                   </p>
                   <p>
                     {t('exam.startTime')}: {new Date(exam.startTime).toLocaleString()}
@@ -311,20 +391,19 @@ export default ExamListPage;
  * Giải thích các khái niệm dễ vấp (người mới):
  *
  * 1) Vì sao phải cache examPayload?
- *    - Nếu student đang làm dở (in_progress), backend có thể chỉ trả wsUrl + status
- *      và không gửi lại toàn bộ questions.
- *    - FE lưu payload vào localStorage để khi resume vẫn có questions để render.
+ * - Vì khi đang làm dở (in_progress), backend có thể không trả lại toàn bộ questions.
+ * - FE cần questions để render phòng thi, nên lưu vào localStorage để “tự cứu” khi resume/refresh.
  *
- * 2) Vì sao phải sửa wsUrl (localhost -> Render)?
- *    - Backend deploy sau reverse proxy có thể trả wsUrl sai host.
- *    - FE phải “sanitize” URL để dùng domain thật (wss://it4409-20251.onrender.com/...)
+ * 2) Vì sao phải sửa wsUrl (localhost -> domain deploy)?
+ * - Khi deploy, backend chạy sau proxy và domain thật không phải localhost.
+ * - Nếu wsUrl vẫn là localhost => FE sẽ kết nối sai => mất realtime sync.
  *
  * 3) location.state là gì và nhược điểm?
- *    - Là dữ liệu truyền kèm khi navigate.
- *    - Nhược điểm: refresh trang mất state, nên ExamRoomPage không còn questions.
- *    - Giải pháp tốt hơn: lưu thêm vào localStorage hoặc fetch lại theo examId.
+ * - location.state là dữ liệu gửi kèm khi navigate sang trang khác.
+ * - Nhược điểm: refresh trang sẽ mất state.
+ * - Vì vậy phòng thi cần recovery logic hoặc fetch lại theo examId.
  *
- * 4) Vì sao useEffect phụ thuộc [user]?
- *    - Vì user có thể null lúc mới load app, sau đó mới set từ localStorage.
- *    - Khi user có rồi, effect chạy để tải danh sách bài thi.
+ * 4) useEffect phụ thuộc [user] nghĩa là gì?
+ * - useEffect sẽ chạy lại mỗi khi user thay đổi.
+ * - Điều này hữu ích vì lúc app mới load, user có thể chưa có; khi user có rồi thì mới gọi API.
  */

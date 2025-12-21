@@ -29,7 +29,7 @@ export function isValidEmail(email: string): boolean {
    */
   const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   return pattern.test(email);
-}
+} 
 
 // Hàm kiểm tra mật khẩu có đủ "độ mạnh tối thiểu" hay không.
 // Yêu cầu ví dụ:

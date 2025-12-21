@@ -1,78 +1,160 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useAuth from '../hooks/useAuth';
 
-// Khai báo component LoginPage dạng Function Component
+/**
+ * Kiểu dữ liệu state khi điều hướng sang /login từ RoleGuard.
+ *
+ * RoleGuard thường điều hướng kiểu:
+ * <Navigate to="/login" state={{ from: location }} replace />
+ *
+ * => Ở LoginPage, location.state sẽ có thể chứa:
+ * - from.pathname: đường dẫn người dùng đang muốn vào (vd: "/results/16")
+ */
+type LoginLocationState = {
+  from?: {
+    pathname?: string;
+  };
+};
+
+// Khai báo component LoginPage theo Function Component
 const LoginPage: React.FC = () => {
-  // useNavigate: hook của react-router-dom dùng để điều hướng (chuyển trang) bằng code
+  /**
+   * useNavigate():
+   * - Hook của react-router-dom giúp “chuyển trang” bằng code.
+   * - Ví dụ: navigate('/exams') sẽ chuyển sang trang /exams
+   */
   const navigate = useNavigate();
 
-  // useTranslation: hook của i18next, trả về hàm `t` để lấy text theo key đa ngôn ngữ
-  const { t } = useTranslation();
-
-  // useAuth: hook tự viết, quản lý logic đăng nhập/đăng xuất.
-  // Từ hook này ta lấy ra hàm login để gọi khi người dùng submit form.
-  const { login } = useAuth();
-
-  // State lưu giá trị email người dùng nhập
-  const [email, setEmail] = useState('');
-
-  // State lưu password người dùng nhập
-  const [password, setPassword] = useState('');
-
-  // State để xác định có hiển thị password dạng text hay không (true = show, false = ẩn)
-  const [showPassword, setShowPassword] = useState(false);
-
-  // State lưu thông báo lỗi (nếu có). null nghĩa là không có lỗi.
-  const [error, setError] = useState<string | null>(null);
-
-  // State cho biết form đang trong trạng thái "loading" (đợi API login trả về) hay không
-  const [loading, setLoading] = useState(false);
+  /**
+   * useLocation():
+   * - Cho biết thông tin “đang ở đâu” và đặc biệt là location.state.
+   * - location.state dùng để nhận dữ liệu “gửi kèm” khi điều hướng.
+   */
+  const location = useLocation();
 
   /**
-   * Hàm xử lý khi form được submit.
-   * - e: là sự kiện submit form (React.FormEvent).
-   * - e.preventDefault(): chặn hành vi reload trang mặc định của form.
+   * useTranslation():
+   * - Hook của i18next.
+   * - Trả về hàm t('key') để lấy chữ theo ngôn ngữ hiện tại.
+   */
+  const { t } = useTranslation();
+
+  /**
+   * useAuth():
+   * - Custom hook (hook tự viết) quản lý đăng nhập/đăng xuất.
+   * - Ở đây dùng login() để gọi khi submit form.
+   */
+  const { login } = useAuth();
+
+  /**
+   * useState():
+   * - Là hook để “lưu trạng thái” (state) trong component.
+   * - Khi state thay đổi, React sẽ render lại giao diện.
+   */
+  const [email, setEmail] = useState(''); // Lưu email người dùng nhập
+  const [password, setPassword] = useState(''); // Lưu mật khẩu người dùng nhập
+  const [showPassword, setShowPassword] = useState(false); // Bật/tắt hiển thị mật khẩu
+  const [error, setError] = useState<string | null>(null); // Lưu lỗi để hiển thị lên UI
+  const [loading, setLoading] = useState(false); // Trạng thái đang xử lý login hay không
+
+  /**
+   * Xác định trang cần quay lại sau khi login.
+   *
+   * - Nếu người dùng bị RoleGuard chặn và bị đưa về /login:
+   *   location.state.from.pathname sẽ là trang mà họ muốn vào.
+   *
+   * - Nếu không có from (vào login trực tiếp):
+   *   ta sẽ điều hướng theo role sau khi đăng nhập.
+   */
+  const fromPath =
+    (location.state as LoginLocationState | null)?.from?.pathname || '';
+
+  /**
+   * handleSubmit:
+   * - Hàm xử lý khi người dùng bấm nút "Đăng nhập" (submit form).
+   * - async/await: giúp viết code bất đồng bộ (gọi API) giống như tuần tự.
+   *
+   * Khái niệm “bất đồng bộ” (async):
+   * - Gọi API cần thời gian chờ.
+   * - Trong thời gian chờ, giao diện vẫn hoạt động.
    */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    /**
+     * preventDefault():
+     * - Form HTML mặc định sẽ reload trang khi submit.
+     * - Trong SPA (React), ta chặn reload để xử lý bằng JavaScript.
+     */
     e.preventDefault();
+
+    // Reset lỗi trước khi xử lý
     setError(null);
 
+    // Validate đơn giản: thiếu email hoặc password thì báo lỗi
     if (!email || !password) {
-      setError(t('auth.loginFailed'));
+      setError(t('auth.loginFailed')); // bạn có thể tạo key riêng: auth.missingFields
       return;
     }
 
     try {
+      // Bật loading để disable nút và hiển thị “đang tải”
       setLoading(true);
 
-      // Thu thập thông tin thiết bị
+      /**
+       * Thu thập thông tin thiết bị (dùng cho logging/giám sát).
+       *
+       * userAgent:
+       * - Chuỗi mô tả trình duyệt + hệ điều hành (Chrome/Windows/iOS...)
+       *
+       * deviceId:
+       * - Ở đây đang “tự chế” 1 chuỗi tương đối ổn định.
+       * - Lưu ý: cách này KHÔNG phải định danh thiết bị chuẩn (có thể thay đổi),
+       *   chỉ phù hợp để log tương đối.
+       */
       const userAgent = navigator.userAgent;
       const deviceId = `device-${navigator.platform}-${navigator.language}-${screen.width}x${screen.height}`;
 
-      // Lấy IP nếu có thể, hoặc dùng placeholder
+      /**
+       * Lấy IP public (nếu được):
+       * - Trình duyệt không dễ lấy IP public trực tiếp.
+       * - Bạn đang gọi 1 dịch vụ bên ngoài (ipify) để lấy IP.
+       *
+       * Lưu ý quan trọng cho người mới:
+       * - Có thể thất bại do mạng, do CORS, hoặc do policy của trình duyệt.
+       * - Nếu thất bại thì vẫn login bình thường (không chặn luồng).
+       */
       let ipAddress = 'Unknown IP';
       try {
-        // Thử lấy IP public (nếu có mạng internet và không bị chặn CORS)
-        // Nếu thất bại thì vẫn login bình thường
         const ipRes = await fetch('https://api.ipify.org?format=json').catch(() => null);
         if (ipRes && ipRes.ok) {
-           const ipData = await ipRes.json();
-           ipAddress = ipData.ip;
+          const ipData = await ipRes.json();
+          ipAddress = ipData.ip;
         }
       } catch {
-        // Ignore error
+        // Không làm gì: lỗi IP không ảnh hưởng login
       }
 
+      /**
+       * Gọi login() từ useAuth:
+       * - Thường sẽ gọi API backend để xác thực.
+       * - Nếu thành công: backend trả token + user, FE lưu lại (localStorage/context).
+       * - Nếu thất bại: throw error => rơi vào catch.
+       */
       await login({
         email,
         password,
         userAgent,
         deviceId,
-        ipAddress: ipAddress
+        ipAddress,
       });
 
+      /**
+       * Lấy role để điều hướng.
+       *
+       * Cách “đẹp” hơn: login() nên trả về user (hoặc useAuth có user ngay).
+       * Nhưng vì bạn đang đọc từ localStorage, ta giữ nguyên theo hệ thống hiện tại.
+       */
       const stored = localStorage.getItem('user');
       let role = '';
       if (stored) {
@@ -83,17 +165,41 @@ const LoginPage: React.FC = () => {
         }
       }
 
+      /**
+       * Điều hướng sau login:
+       *
+       * Ưu tiên 1: nếu có fromPath (đến từ RoleGuard) => quay lại đúng trang bị chặn.
+       * Ưu tiên 2: nếu không có fromPath => điều hướng theo role.
+       *
+       * replace: true
+       * - Giúp người dùng bấm “Back” không quay lại /login nữa.
+       */
+      if (fromPath) {
+        navigate(fromPath, { replace: true });
+        return;
+      }
+
       if (role === 'Admin') {
-        navigate('/admin');
+        navigate('/admin', { replace: true });
       } else if (role === 'Teacher') {
-        navigate('/');
+        navigate('/', { replace: true });
       } else {
-        navigate('/exams');
+        navigate('/exams', { replace: true });
       }
     } catch (err) {
+      /**
+       * catch:
+       * - Nếu login() thất bại (sai mật khẩu, lỗi mạng, lỗi server...)
+       * - Ta setError để hiển thị lên UI.
+       */
       setError(t('auth.loginFailed'));
       console.error(err);
     } finally {
+      /**
+       * finally:
+       * - Dù thành công hay thất bại, luôn tắt loading.
+       * - Tránh UI bị “kẹt” ở trạng thái loading.
+       */
       setLoading(false);
     }
   };
@@ -102,76 +208,77 @@ const LoginPage: React.FC = () => {
     // Khung ngoài: chiếm toàn bộ chiều cao màn hình, canh giữa nội dung
     <div className="min-h-screen flex items-center justify-center px-4">
       {/* Thẻ bao: card login, chia 2 cột (trái: giới thiệu, phải: form).
-          Ở màn hình nhỏ (mobile) sẽ là 1 cột, màn hình md trở lên mới chia 2 cột. */}
+          Màn hình nhỏ: 1 cột; từ md trở lên: 2 cột. */}
       <div className="grid w-full max-w-4xl grid-cols-1 overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl shadow-slate-900/50 md:grid-cols-2">
-        {/* Cột bên trái: phần giới thiệu (hidden trên mobile, chỉ hiện trên md trở lên) */}
+        {/* Cột trái: giới thiệu (ẩn trên mobile) */}
         <div className="relative hidden bg-gradient-to-br from-sky-600 via-blue-700 to-slate-900 p-8 text-white md:flex md:flex-col">
-          {/* Lớp phủ background với hiệu ứng gradient nhẹ để trang trí */}
+          {/* Lớp nền trang trí (không liên quan logic) */}
           <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.2),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.2),transparent_35%)]" />
+
           <div className="relative z-10 space-y-4">
             <p className="text-sm uppercase tracking-[0.35em] text-white/80">
               Online Exam
             </p>
+
+            {/* Bạn có thể đưa các text này vào i18n để đa ngôn ngữ */}
             <h2 className="text-3xl font-semibold leading-tight">
-              Secure sign-in for students and staff
+              Đăng nhập an toàn cho sinh viên và cán bộ giảng viên
             </h2>
+
             <p className="text-sm text-white/90">
-              Access your exams, track progress, and stay updated with the latest announcements in a focused workspace.
+              Truy cập bài thi, theo dõi tiến độ và cập nhật thông báo mới trong một không gian làm việc tập trung.
             </p>
+
             <div className="flex gap-2 flex-wrap pt-2">
-              {/* Các tag nhỏ mô tả tính năng (chỉ là UI, không có logic) */}
-              <span className="tag bg-white/10 border-white/20 text-white">Real-time sync</span>
-              <span className="tag bg-white/10 border-white/20 text-white">Proctor ready</span>
-              <span className="tag bg-white/10 border-white/20 text-white">Multi-language</span>
+              <span className="tag bg-white/10 border-white/20 text-white">Đồng bộ thời gian thực</span>
+              <span className="tag bg-white/10 border-white/20 text-white">Hỗ trợ giám sát thi</span>
+              <span className="tag bg-white/10 border-white/20 text-white">Đa ngôn ngữ</span>
             </div>
           </div>
         </div>
 
-        {/* Cột bên phải: form đăng nhập */}
+        {/* Cột phải: form đăng nhập */}
         <div className="p-8 space-y-6">
-          {/* Phần tiêu đề nhỏ phía trên form */}
+          {/* Tiêu đề form */}
           <div>
-            {/* Dòng chữ chào lại, lấy từ i18n nếu có, nếu không thì fallback 'Welcome back' */}
-            <p className="text-sm text-slate-300">
-              {t('auth.welcomeBack')}
-            </p>
-            <h1 className="text-2xl font-semibold text-white">
-              {t('auth.loginTitle')}
-            </h1>
+            <p className="text-sm text-slate-300">{t('auth.welcomeBack')}</p>
+            <h1 className="text-2xl font-semibold text-white">{t('auth.loginTitle')}</h1>
           </div>
 
-          {/* Nếu state error có giá trị thì hiển thị khung báo lỗi */}
+          {/* Hiển thị lỗi nếu có */}
           {error && (
             <div className="border border-rose-400/40 bg-rose-500/10 text-rose-100 px-4 py-3 rounded-xl">
               {error}
             </div>
           )}
 
-          {/* Form đăng nhập. onSubmit gọi tới handleSubmit ở trên */}
+          {/* Form: submit sẽ gọi handleSubmit */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Nhóm input email */}
+            {/* Email (input điều khiển - controlled input) */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-slate-200">
                 {t('auth.email')}
               </label>
+
               <input
                 type="email"
                 className="w-full px-3 py-2 bg-white text-slate-900 rounded-lg focus:ring-2 focus:ring-sky-500 outline-none placeholder:text-slate-400"
-                value={email}                           // value gắn với state email
-                onChange={(e) => setEmail(e.target.value)} // mỗi lần gõ sẽ cập nhật state
-                required                                // bắt buộc phải nhập
-                placeholder="name@example.com"          // gợi ý định dạng email
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="name@example.com"
               />
             </div>
 
-            {/* Nhóm input password */}
+            {/* Password */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-slate-200">
                 {t('auth.password')}
               </label>
+
               <div className="relative">
                 <input
-                  // Nếu showPassword = true thì type="text", ngược lại type="password"
+                  // showPassword = true => hiển thị dạng text; false => ẩn dạng password
                   type={showPassword ? 'text' : 'password'}
                   className="w-full px-3 py-2 bg-white text-slate-900 rounded-lg focus:ring-2 focus:ring-sky-500 outline-none placeholder:text-slate-400 pr-10"
                   value={password}
@@ -179,14 +286,16 @@ const LoginPage: React.FC = () => {
                   required
                   placeholder="••••••••"
                 />
-                {/* Nút bật/tắt chế độ hiển thị password (mắt mở / mắt đóng) */}
+
+                {/* Nút bật/tắt hiển thị mật khẩu */}
                 <button
-                  type="button" // type="button" để bấm không submit form
-                  onClick={() => setShowPassword(!showPassword)} // đảo ngược trạng thái showPassword
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                 >
                   {showPassword ? (
-                    // Icon "mắt bị gạch" (ẩn mật khẩu)
+                    // Icon ẩn mật khẩu
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
@@ -202,7 +311,7 @@ const LoginPage: React.FC = () => {
                       />
                     </svg>
                   ) : (
-                    // Icon "mắt mở" (hiển thị mật khẩu)
+                    // Icon hiện mật khẩu
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
@@ -227,13 +336,12 @@ const LoginPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Nút submit form */}
+            {/* Nút đăng nhập */}
             <button
               type="submit"
               className="w-full btn btn-primary text-base hover:-translate-y-0.5"
-              disabled={loading} // Khi loading=true sẽ disable nút để tránh bấm nhiều lần
+              disabled={loading}
             >
-              {/* Nếu loading thì hiện text loading, ngược lại hiện text login */}
               {loading ? t('common.loading') : t('auth.loginButton')}
             </button>
           </form>

@@ -49,7 +49,7 @@ const NotFoundPage: React.FC = () => {
       {/**
        * Link quay về trang chủ:
        *  - Dùng <Link> của react-router-dom để điều hướng trong SPA
-       *  - Không reload lại trang như thẻ <a href="...">
+       *  - Không reload lại trang như thẻ <a href="..."> 
        */}
       <Link to="/" className="btn btn-primary hover:-translate-y-0.5">
         Về trang chủ

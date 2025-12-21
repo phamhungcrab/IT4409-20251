@@ -7,60 +7,70 @@ import { ExamDto } from '../types/exam';
 
 /**
  * AdminPage (Trang quản trị):
- *  - Đây là dashboard dành cho Admin.
- *  - Hiện tại trang làm 3 việc chính:
- *      1) Hiển thị thông báo (announcements) để “truyền thông” tới học sinh.
- *      2) Hiển thị bảng danh sách tất cả bài thi (lấy từ API getAllExams).
- *      3) Khu vực “Student management” hiện chỉ là placeholder (Coming soon).
+ *
+ * Đây là dashboard dành cho Admin. Hiện tại trang làm 3 việc chính:
+ * 1) Hiển thị thông báo (announcements) để truyền thông tới học sinh.
+ * 2) Hiển thị bảng danh sách tất cả bài thi (lấy từ API getAllExams).
+ * 3) Khu vực “Quản lý sinh viên” hiện chỉ là placeholder (chưa làm).
  *
  * Lưu ý:
- *  - Nút Create/Edit/Delete hiện chỉ là UI (chưa nối endpoint backend).
+ * - Nút Tạo/Sửa/Xoá hiện chỉ là UI minh hoạ (chưa nối API backend).
  */
 const AdminPage: React.FC = () => {
   /**
    * i18next:
-   *  - t(key): lấy text theo đa ngôn ngữ.
+   * - t('key') để lấy text đa ngôn ngữ.
    */
   const { t } = useTranslation();
 
   /**
    * useAnnouncements:
-   *  - Hook lấy danh sách thông báo.
-   *  - Trả về:
-   *      + announcements: danh sách thông báo
-   *      + loading      : trạng thái đang tải
+   * - Hook (tự viết) để lấy danh sách thông báo.
    *
-   * Ở các trang khác (Layout/HomePage), hook này có thể nhận user để lọc theo role.
-   * Ở AdminPage, gọi không truyền gì nghĩa là lấy chung.
+   * Trả về:
+   * - announcements: mảng thông báo
+   * - loading: đang tải hay không
+   *
+   * Ghi chú:
+   * - Ở một số nơi, hook có thể nhận user để lọc theo role.
+   * - Ở AdminPage, gọi không truyền gì nghĩa là lấy danh sách chung.
    */
   const { announcements, loading: announcementsLoading } = useAnnouncements();
 
   /**
    * exams:
-   *  - Danh sách tất cả bài thi (Admin xem toàn hệ thống).
+   * - Danh sách tất cả bài thi của hệ thống (Admin có quyền xem toàn bộ).
    */
   const [exams, setExams] = useState<ExamDto[]>([]);
 
   /**
    * loadingExams:
-   *  - Trạng thái đang tải danh sách exams.
+   * - Trạng thái đang tải danh sách bài thi.
    */
   const [loadingExams, setLoadingExams] = useState(true);
 
   /**
-   * useEffect: tải danh sách bài thi khi trang AdminPage được mount (vào trang lần đầu).
-   *  - dependency [] => chỉ chạy 1 lần.
+   * useEffect (tải dữ liệu ban đầu):
+   *
+   * - useEffect chạy khi component “mount” (vào trang lần đầu).
+   * - dependency [] nghĩa là: chỉ chạy đúng 1 lần.
+   *
+   * Tại sao hay dùng [] để gọi API?
+   * - Vì bạn muốn tải dữ liệu ngay khi trang được mở.
+   * - Nếu không có dependency [], effect sẽ chạy lại nhiều lần gây gọi API liên tục.
    */
   useEffect(() => {
     const fetchExams = async () => {
       try {
         // Gọi API lấy toàn bộ bài thi
         const data = await examService.getAllExams();
+
+        // Cập nhật state => React render lại bảng
         setExams(data);
       } catch (error) {
         console.error('Không thể tải danh sách bài thi', error);
       } finally {
-        // Dù lỗi hay thành công vẫn tắt loading
+        // Dù lỗi hay thành công vẫn tắt loading để UI không bị “kẹt”
         setLoadingExams(false);
       }
     };
@@ -70,14 +80,14 @@ const AdminPage: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
-      {/* Header trang */}
+      {/* PHẦN 1: Header trang */}
       <div>
         <p className="text-sm text-slate-300">{t('admin.dashboard')}</p>
-        <h1 className="text-3xl font-semibold text-white">Control & monitor exams</h1>
+        <h1 className="text-3xl font-semibold text-white">Điều khiển và giám sát bài thi</h1>
       </div>
 
       {/* =========================
-          KHU THÔNG BÁO (ANNOUNCEMENTS)
+          PHẦN 2: KHU THÔNG BÁO (ANNOUNCEMENTS)
           ========================= */}
       <section className="glass-card p-5">
         <div className="flex items-center justify-between mb-4">
@@ -85,13 +95,15 @@ const AdminPage: React.FC = () => {
             <p className="text-sm text-slate-300">{t('admin.announcements')}</p>
             <h2 className="text-xl font-semibold text-white">Gửi thông báo tới học sinh</h2>
           </div>
+
+          {/* Tag “Đang hoạt động” chỉ là UI trang trí */}
           <span className="tag">
             <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
-            Live
+            Đang hoạt động
           </span>
         </div>
 
-        {/* Nếu đang loading announcements thì hiện loading, ngược lại render AnnouncementBanner */}
+        {/* Nếu đang tải thông báo => hiện loading; tải xong => render AnnouncementBanner */}
         {announcementsLoading ? (
           <div>{t('common.loading')}</div>
         ) : (
@@ -100,7 +112,7 @@ const AdminPage: React.FC = () => {
       </section>
 
       {/* =========================
-          KHU QUẢN LÝ BÀI THI (EXAM MANAGEMENT)
+          PHẦN 3: KHU QUẢN LÝ BÀI THI (EXAM MANAGEMENT)
           ========================= */}
       <section className="glass-card p-5">
         <div className="flex justify-between items-center mb-4 gap-3">
@@ -109,13 +121,15 @@ const AdminPage: React.FC = () => {
             <h2 className="text-xl font-semibold text-white">Quản lý bài thi</h2>
           </div>
 
-          {/* Nút tạo bài thi: disabled vì chưa có endpoint cho Admin (dùng Teacher dashboard để tạo) */}
+          {/* Nút tạo bài thi:
+              - disabled vì hiện tại chưa có API endpoint cho Admin
+              - (Trong dự án của bạn, có thể Teacher mới là người tạo đề) */}
           <button
             className="btn btn-primary opacity-50 cursor-not-allowed"
             disabled
-            title="Coming soon: API endpoint not implemented for Admin"
+            title="Chức năng sẽ được bổ sung sau (chưa có API cho Admin)"
           >
-            {t('admin.createExam')} (Coming Soon)
+            {t('admin.createExam')} (Sắp có)
           </button>
         </div>
 
@@ -125,7 +139,13 @@ const AdminPage: React.FC = () => {
         ) : (
           /**
            * Bảng danh sách bài thi:
-           *  - overflow-hidden + rounded + border: tạo khung bảng đẹp
+           * - overflow-hidden + rounded + border: tạo khung bảng đẹp
+           *
+           * Lưu ý cho người mới:
+           * - <table> là bảng HTML truyền thống
+           * - <thead> là phần tiêu đề
+           * - <tbody> là phần dữ liệu
+           * - map(exams) để render mỗi exam thành 1 hàng <tr>
            */
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
             <table className="min-w-full">
@@ -135,7 +155,7 @@ const AdminPage: React.FC = () => {
                     ID
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-200/90 uppercase tracking-wide">
-                    Name
+                    Tên bài thi
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-200/90 uppercase tracking-wide">
                     {t('exam.startTime')}
@@ -149,6 +169,7 @@ const AdminPage: React.FC = () => {
                 </tr>
               </thead>
 
+              {/* divide-y: tạo đường kẻ mờ giữa các hàng */}
               <tbody className="divide-y divide-white/5">
                 {exams.map((exam) => (
                   <tr key={exam.id} className="hover:bg-white/5 transition">
@@ -165,22 +186,24 @@ const AdminPage: React.FC = () => {
                     </td>
 
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {exam.durationMinutes} mins
+                      {exam.durationMinutes} phút
                     </td>
 
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      {/* Nút Edit/Delete hiện chưa gắn API -> Disable */}
+                      {/* Nút Sửa/Xoá:
+                          - hiện tại chỉ là UI => disabled
+                          - sau này muốn chạy thật phải có API update/delete */}
                       <button
                         className="tag text-slate-500 border-slate-700 cursor-not-allowed"
                         disabled
-                        title="Edit feature coming soon"
+                        title="Chức năng sửa sẽ được bổ sung sau"
                       >
                         {t('common.edit')}
                       </button>
                       <button
                         className="tag text-slate-500 border-slate-700 cursor-not-allowed"
                         disabled
-                        title="Delete feature coming soon"
+                        title="Chức năng xoá sẽ được bổ sung sau"
                       >
                         {t('common.delete')}
                       </button>
@@ -194,7 +217,7 @@ const AdminPage: React.FC = () => {
       </section>
 
       {/* =========================
-          KHU QUẢN LÝ SINH VIÊN (COMING SOON)
+          PHẦN 4: KHU QUẢN LÝ SINH VIÊN (CHƯA LÀM)
           ========================= */}
       <section className="glass-card p-5">
         <div className="flex items-center justify-between mb-3">
@@ -203,9 +226,10 @@ const AdminPage: React.FC = () => {
             <h2 className="text-xl font-semibold text-white">Quản lý sinh viên</h2>
           </div>
 
+          {/* Tag “Sắp có” chỉ là UI */}
           <span className="tag">
             <span className="h-2 w-2 rounded-full bg-amber-400" aria-hidden />
-            Coming soon
+            Sắp có
           </span>
         </div>
 
@@ -223,22 +247,22 @@ export default AdminPage;
  * Giải thích các khái niệm dễ vấp (người mới):
  *
  * 1) useEffect với [] nghĩa là gì?
- *    - [] nghĩa là effect chỉ chạy đúng 1 lần khi component mount.
- *    - Phù hợp để gọi API tải dữ liệu ban đầu.
+ * - [] nghĩa là effect chỉ chạy đúng 1 lần khi component được render lần đầu.
+ * - Thường dùng để gọi API lấy dữ liệu ban đầu (initial data).
  *
- * 2) Vì sao nên bỏ any[]?
- *    - any làm TypeScript mất tác dụng kiểm tra lỗi.
- *    - Ví dụ: exam.title vs exam.name, exam.duration vs exam.durationMinutes
- *      TypeScript sẽ không báo gì => rất dễ bug.
+ * 2) Hook (custom hook) là gì?
+ * - Hook là hàm bắt đầu bằng chữ “use...” (useState, useEffect, useAuth, useAnnouncements...).
+ * - Custom hook là hook do bạn tự viết để gom logic lại cho gọn, dễ tái sử dụng.
  *
- * 3) AnnouncementBanner hoạt động thế nào?
- *    - Nó nhận announcements[] và render các banner.
- *    - Người dùng có thể đóng (dismiss) banner và nó sẽ ẩn trong state nội bộ.
+ * 3) Vì sao dùng state loading?
+ * - Vì gọi API có thời gian chờ.
+ * - Nếu không có loading, người dùng sẽ thấy màn hình trống và không biết đang xảy ra gì.
  *
- * 4) Nút Create/Edit/Delete hiện làm gì?
- *    - Chỉ là UI. Muốn hoạt động phải có endpoint backend tương ứng:
- *      - POST /api/Exam/create-exam
- *      - PUT/PATCH /api/Exam/update
- *      - DELETE /api/Exam/delete
- *    Sau đó gọi qua examService và cập nhật state exams.
+ * 4) Vì sao nút Tạo/Sửa/Xoá đang disabled?
+ * - Vì hiện tại chưa có API backend tương ứng.
+ * - Khi muốn làm thật, bạn cần:
+ *   + API tạo bài thi: POST ...
+ *   + API sửa bài thi: PUT/PATCH ...
+ *   + API xoá bài thi: DELETE ...
+ *   Sau đó gọi qua examService và cập nhật lại state exams để bảng refresh.
  */

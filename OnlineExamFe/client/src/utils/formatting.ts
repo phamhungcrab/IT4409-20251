@@ -19,7 +19,7 @@ export function formatDate(value: Date | string, locale = 'en-US'): string {
    * date.toLocaleDateString(locale, options):
    *  - Chuyển Date thành chuỗi theo ngôn ngữ/vùng được chỉ định.
    *  - locale:
-   *      + 'en-US'  : tiếng Anh (Mỹ)
+   *      + 'en-US'  : tiếng Anh (Mỹ) 
    *      + 'vi-VN'  : tiếng Việt
    *  - options:
    *      + year : 'numeric'  -> năm đầy đủ (ví dụ 2025)

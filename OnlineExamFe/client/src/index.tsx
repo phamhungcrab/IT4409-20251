@@ -33,7 +33,7 @@ if (!container) {
   throw new Error('Không tìm thấy phần tử root. Hãy chắc chắn index.html có div với id="root".');
 }
 
-// Tạo một React root gắn với phần tử container vừa tìm được
+// Tạo một React root gắn với phần tử container vừa tìm được 
 const root = ReactDOM.createRoot(container);
 
 // Render ứng dụng React vào root
@@ -48,7 +48,7 @@ root.render(
       {/* AuthProvider là một Context Provider tự viết để quản lý trạng thái đăng nhập.
           Ví dụ: lưu thông tin user, token, hàm login(), logout().
           Bao bọc <App /> bên trong để mọi component con có thể dùng useAuth() lấy thông tin user. */}
-      <AuthProvider> 
+      <AuthProvider>
         {/* App là component gốc của ứng dụng, chứa layout chính, router, các page,... */}
         <App />
       </AuthProvider>

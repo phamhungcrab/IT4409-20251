@@ -3,10 +3,29 @@ import { classService, ClassDto } from '../../services/classService';
 import { examService } from '../../services/examService';
 import { ExamDto } from '../../types/exam';
 
+/**
+ * TeacherDashboardProps:
+ * - Props truyền vào component TeacherDashboard.
+ *
+ * user:
+ * - Thông tin giáo viên đang đăng nhập.
+ * - Hiện bạn đang để kiểu any (nghĩa là “bất kỳ kiểu gì cũng được”).
+ * - Người mới học nên hiểu: any dùng nhanh nhưng dễ lỗi vì TS không cảnh báo.
+ */
 interface TeacherDashboardProps {
   user: any;
 }
 
+/**
+ * StudentDto:
+ * - Kiểu dữ liệu sinh viên hiển thị trong bảng danh sách sinh viên của lớp.
+ *
+ * Giải thích trường:
+ * - id: ID nội bộ (trong DB hệ thống)
+ * - fullName: họ và tên
+ * - email: email
+ * - mssv: mã số sinh viên (nếu hệ thống có)
+ */
 interface StudentDto {
   id: number;
   fullName: string;
@@ -14,13 +33,67 @@ interface StudentDto {
   mssv: string;
 }
 
+/**
+ * TeacherDashboard:
+ *
+ * Mục tiêu của trang (giáo viên):
+ * 1) Xem danh sách lớp mà giáo viên phụ trách
+ * 2) Xem danh sách sinh viên trong một lớp (khi bấm “Xem sinh viên”)
+ * 3) Xem danh sách bài thi thuộc các lớp của giáo viên
+ * 4) Tạo kỳ thi cho một lớp (mở modal -> nhập form -> gọi API createExam)
+ *
+ * Lưu ý:
+ * - Trang này đang làm theo mô hình “gọi API -> lưu vào state -> render UI”.
+ */
 const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
+  // =========================================================
+  // 1) STATE: DỮ LIỆU + TRẠNG THÁI UI
+  // =========================================================
+
+  /**
+   * teacherClasses:
+   * - Danh sách lớp mà giáo viên đang phụ trách.
+   */
   const [teacherClasses, setTeacherClasses] = useState<ClassDto[]>([]);
+
+  /**
+   * teacherExams:
+   * - Danh sách bài thi thuộc các lớp của giáo viên.
+   */
   const [teacherExams, setTeacherExams] = useState<ExamDto[]>([]);
+
+  /**
+   * selectedClassStudents:
+   * - Danh sách sinh viên của lớp đang xem.
+   * - Khi bấm “Xem sinh viên” ở một lớp -> gọi API -> đổ dữ liệu vào đây.
+   */
   const [selectedClassStudents, setSelectedClassStudents] = useState<StudentDto[]>([]);
+
+  /**
+   * viewingClassId:
+   * - Lưu classId hiện đang được chọn để xem sinh viên.
+   * - null nghĩa là chưa chọn lớp nào.
+   */
   const [viewingClassId, setViewingClassId] = useState<number | null>(null);
+
+  /**
+   * showCreateModal:
+   * - Bật/tắt modal tạo kỳ thi.
+   */
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  /**
+   * creatingClassId:
+   * - ClassId mà giáo viên đang muốn tạo kỳ thi cho lớp đó.
+   * - Ví dụ: bấm “+ Tạo kỳ thi” ở lớp 5 -> creatingClassId = 5.
+   */
   const [creatingClassId, setCreatingClassId] = useState<number | null>(null);
+
+  /**
+   * createForm:
+   * - State lưu dữ liệu form tạo kỳ thi.
+   * - Người mới học nên hiểu: input value liên kết với state => gọi là “controlled inputs”.
+   */
   const [createForm, setCreateForm] = useState({
     name: '',
     durationMinutes: 60,
@@ -28,25 +101,77 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
     startTime: '',
     endTime: ''
   });
+
+  /**
+   * creating:
+   * - Trạng thái “đang tạo kỳ thi” (để disable nút và hiển thị text “Đang tạo...”).
+   */
   const [creating, setCreating] = useState(false);
+
+  /**
+   * createError:
+   * - Lưu thông báo lỗi khi tạo kỳ thi thất bại.
+   */
   const [createError, setCreateError] = useState<string | null>(null);
 
+  // =========================================================
+  // 2) HÀM LOAD BÀI THI THEO CÁC LỚP CỦA GIÁO VIÊN
+  // =========================================================
+
+  /**
+   * loadExamsForClasses(classes):
+   *
+   * Mục tiêu:
+   * - Lấy tất cả exam trong hệ thống (getAllExams)
+   * - Lọc ra những exam thuộc các classId mà giáo viên phụ trách
+   * - Set vào teacherExams để render
+   *
+   * Vì sao cần lọc?
+   * - Vì API getAllExams trả toàn bộ exam, bao gồm exam của giáo viên khác.
+   * - Giáo viên chỉ cần xem exam của lớp mình.
+   *
+   * Ghi chú:
+   * - Cách tối ưu hơn là backend có API riêng: getExamsByTeacher(teacherId)
+   *   để khỏi phải tải “toàn bộ hệ thống” rồi lọc ở FE.
+   */
   const loadExamsForClasses = async (classes: ClassDto[]) => {
+    // Tạo Set chứa danh sách classId để kiểm tra nhanh (has() nhanh hơn)
     const classIds = new Set(classes.map((c) => c.id));
+
+    // Lấy toàn bộ exam từ server
     const allExams = await examService.getAllExams();
+
+    // Lọc exam có classId thuộc Set classIds
     const filteredExams = allExams.filter((ex) => ex.classId && classIds.has(ex.classId));
+
+    // Cập nhật state để UI render danh sách bài thi
     setTeacherExams(filteredExams);
   };
 
+  // =========================================================
+  // 3) useEffect: TẢI DỮ LIỆU BAN ĐẦU CHO GIÁO VIÊN
+  // =========================================================
+
+  /**
+   * useEffect này chạy khi:
+   * - component được render lần đầu
+   * - hoặc khi user thay đổi
+   *
+   * Vì dependency là [user].
+   */
   useEffect(() => {
     const fetchTeacherData = async () => {
+      /**
+       * Kiểm tra user tồn tại và có user.id
+       * - Tránh gọi API khi user chưa load xong.
+       */
       if (user && user.id) {
         try {
-          // 1) Lấy các lớp mà teacher phụ trách
+          // 1) Lấy các lớp mà giáo viên phụ trách
           const classes = await classService.getByTeacherAndSubject(user.id);
           setTeacherClasses(classes);
 
-          // 2) Lấy exam thuộc các lớp của teacher
+          // 2) Lấy các bài thi thuộc các lớp đó
           await loadExamsForClasses(classes);
         } catch (error) {
           console.error('Không thể tải dữ liệu lớp/bài thi của giáo viên', error);
@@ -57,10 +182,25 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
     fetchTeacherData();
   }, [user]);
 
+  // =========================================================
+  // 4) XỬ LÝ XEM SINH VIÊN CỦA 1 LỚP
+  // =========================================================
+
+  /**
+   * handleViewStudents(classId):
+   * - Khi bấm “Xem sinh viên” ở một lớp:
+   *   1) setViewingClassId để UI biết đang xem lớp nào
+   *   2) gọi API getStudentsByClass(classId)
+   *   3) đổ dữ liệu vào selectedClassStudents để render bảng
+   */
   const handleViewStudents = async (classId: number) => {
     try {
       setViewingClassId(classId);
+
+      // Gọi API lấy danh sách sinh viên của lớp
       const students = await classService.getStudentsByClass(classId);
+
+      // Cập nhật state để render danh sách sinh viên
       setSelectedClassStudents(students);
     } catch (error) {
       console.error('Không thể tải danh sách sinh viên', error);
@@ -68,9 +208,21 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
     }
   };
 
+  // =========================================================
+  // 5) MỞ MODAL TẠO KỲ THI
+  // =========================================================
+
+  /**
+   * openCreateModal(classId):
+   * - Lưu classId đang tạo kỳ thi
+   * - Reset lỗi và reset form
+   * - Bật modal
+   */
   const openCreateModal = (classId: number) => {
     setCreatingClassId(classId);
     setCreateError(null);
+
+    // Reset form về mặc định để tránh dữ liệu cũ
     setCreateForm({
       name: '',
       durationMinutes: 60,
@@ -78,19 +230,51 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
       startTime: '',
       endTime: ''
     });
+
     setShowCreateModal(true);
   };
 
+  // =========================================================
+  // 6) TẠO KỲ THI (GỌI API)
+  // =========================================================
+
+  /**
+   * handleCreateExam():
+   * - Validate dữ liệu form (đủ trường hay chưa)
+   * - Gọi examService.createExam(payload)
+   * - Reload danh sách bài thi của giáo viên để UI cập nhật ngay
+   * - Đóng modal nếu tạo thành công
+   */
   const handleCreateExam = async () => {
+    // Nếu chưa có lớp đang tạo -> không làm gì
     if (!creatingClassId) return;
+
+    // Lấy dữ liệu từ form ra cho dễ đọc
     const { name, durationMinutes, blueprintId, startTime, endTime } = createForm;
+
+    /**
+     * Kiểm tra input cơ bản:
+     * - thiếu trường nào thì báo lỗi
+     *
+     * Gợi ý:
+     * - Bạn có thể kiểm tra thêm: endTime phải > startTime, duration phải > 0...
+     */
     if (!name || !durationMinutes || !blueprintId || !startTime || !endTime) {
       setCreateError('Vui lòng nhập đầy đủ thông tin.');
       return;
     }
+
     setCreating(true);
     setCreateError(null);
+
     try {
+      /**
+       * payload gửi lên backend:
+       * - classId: lớp đang tạo kỳ thi
+       * - blueprintId: id “khung đề / template đề” (tuỳ hệ thống bạn)
+       * - durationMinutes: thời lượng làm bài
+       * - startTime/endTime: thời gian mở/đóng kỳ thi
+       */
       const payload = {
         name,
         classId: creatingClassId,
@@ -99,28 +283,39 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
         startTime,
         endTime
       };
+
+      // Gọi API tạo kỳ thi
       await examService.createExam(payload);
-      // Reload exam list for teacher's classes to ensure data chính xác
+
+      // Tạo xong thì load lại danh sách bài thi để đảm bảo dữ liệu “chuẩn”
       await loadExamsForClasses(teacherClasses);
+
+      // Đóng modal
       setShowCreateModal(false);
     } catch (err: any) {
+      // Lỗi từ server hoặc lỗi mạng
       setCreateError(err?.message || 'Tạo kỳ thi thất bại.');
     } finally {
       setCreating(false);
     }
   };
 
+  // =========================================================
+  // 7) UI RENDER
+  // =========================================================
+
   return (
     <div className="space-y-6">
+      {/* Header trang */}
       <div>
-        <h1 className="text-3xl font-semibold text-white">Teacher Dashboard</h1>
+        <h1 className="text-3xl font-semibold text-white">Bảng điều khiển giáo viên</h1>
         <p className="text-slate-300">Quản lý lớp và bài thi</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Danh sách lớp của giáo viên */}
+        {/* KHỐI 1: Danh sách lớp của giáo viên */}
         <div className="glass-card p-5">
-          <h2 className="text-xl font-semibold text-white mb-4">Your Classes</h2>
+          <h2 className="text-xl font-semibold text-white mb-4">Các lớp của bạn</h2>
 
           {teacherClasses.length === 0 ? (
             <p className="text-slate-400">Không có lớp được phân công.</p>
@@ -133,17 +328,19 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
                 >
                   <div>
                     <p className="font-medium text-white">{cls.name}</p>
-                    <p className="text-xs text-slate-400">Subject ID: {cls.subjectId}</p>
+                    <p className="text-xs text-slate-400">Mã môn học (Subject ID): {cls.subjectId}</p>
                   </div>
 
                   <div className="flex gap-2">
+                    {/* Xem danh sách sinh viên của lớp */}
                     <button
                       onClick={() => handleViewStudents(cls.id)}
                       className="btn btn-ghost text-xs px-2 py-1 border border-white/20 hover:bg-white/10"
                     >
-                      View Users
+                      Xem sinh viên
                     </button>
 
+                    {/* Mở modal tạo kỳ thi cho lớp */}
                     <button
                       onClick={() => openCreateModal(cls.id)}
                       className="btn btn-primary text-xs px-2 py-1"
@@ -157,21 +354,22 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
           )}
         </div>
 
-        {/* Danh sách sinh viên của lớp đang xem */}
+        {/* KHỐI 2: Danh sách sinh viên của lớp đang xem */}
         <div className="glass-card p-5">
           <h2 className="text-xl font-semibold text-white mb-4">
             {viewingClassId
-              ? `Students in Class #${viewingClassId}`
+              ? `Sinh viên trong lớp #${viewingClassId}`
               : 'Chọn một lớp để xem danh sách sinh viên'}
           </h2>
 
+          {/* Chỉ render bảng khi đã chọn lớp */}
           {viewingClassId && (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm text-slate-300">
                 <thead className="border-b border-white/10 text-xs uppercase text-slate-400">
                   <tr>
                     <th className="py-2">ID/MSSV</th>
-                    <th className="py-2">Name</th>
+                    <th className="py-2">Họ tên</th>
                     <th className="py-2">Email</th>
                   </tr>
                 </thead>
@@ -201,11 +399,11 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
           )}
         </div>
 
-        {/* Danh sách bài thi thuộc các lớp của giáo viên */}
+        {/* KHỐI 3: Danh sách bài thi thuộc các lớp của giáo viên */}
         <div className="glass-card p-5 md:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-sm text-slate-300">Exams</p>
+              <p className="text-sm text-slate-300">Bài thi</p>
               <h2 className="text-xl font-semibold text-white">Bài thi trong các lớp của bạn</h2>
             </div>
           </div>
@@ -221,9 +419,11 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-lg font-semibold text-white">{ex.name}</h3>
+
+                    {/* Tag hiển thị lớp mà bài thi thuộc về */}
                     <span className="tag">
                       <span className="h-2 w-2 rounded-full bg-sky-400" aria-hidden />
-                      Class #{ex.classId}
+                      Lớp #{ex.classId}
                     </span>
                   </div>
 
@@ -243,23 +443,33 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
         </div>
       </div>
 
-      {/* Modal tạo kỳ thi */}
+      {/* =====================================================
+          MODAL TẠO KỲ THI
+          ===================================================== */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-slate-900 border border-white/10 rounded-xl p-6 w-full max-w-lg shadow-xl space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-semibold text-white">Tạo kỳ thi</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-slate-300 hover:text-white">
+
+              {/* Nút đóng modal */}
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-slate-300 hover:text-white"
+                aria-label="Đóng"
+              >
                 ×
               </button>
             </div>
 
+            {/* Nếu createError có giá trị thì hiển thị khung lỗi */}
             {createError && (
               <div className="text-rose-200 text-sm border border-rose-400/40 bg-rose-500/10 rounded-lg p-3">
                 {createError}
               </div>
             )}
 
+            {/* Form nhập thông tin kỳ thi */}
             <div className="space-y-3">
               <div>
                 <label className="block text-sm text-slate-300 mb-1">Tên kỳ thi</label>
@@ -267,9 +477,10 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
                   className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white"
                   value={createForm.name}
                   onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Midterm CSDL"
+                  placeholder="Giữa kỳ CSDL"
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-slate-300 mb-1">Thời lượng (phút)</label>
@@ -278,9 +489,12 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
                     min={1}
                     className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white"
                     value={createForm.durationMinutes}
-                    onChange={(e) => setCreateForm((f) => ({ ...f, durationMinutes: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setCreateForm((f) => ({ ...f, durationMinutes: Number(e.target.value) }))
+                    }
                   />
                 </div>
+
                 <div>
                   <label className="block text-sm text-slate-300 mb-1">Blueprint ID</label>
                   <input
@@ -288,13 +502,16 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
                     min={1}
                     className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white"
                     value={createForm.blueprintId}
-                    onChange={(e) => setCreateForm((f) => ({ ...f, blueprintId: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setCreateForm((f) => ({ ...f, blueprintId: Number(e.target.value) }))
+                    }
                   />
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-slate-300 mb-1">Start Time</label>
+                  <label className="block text-sm text-slate-300 mb-1">Thời gian bắt đầu</label>
                   <input
                     type="datetime-local"
                     className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white"
@@ -302,8 +519,9 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
                     onChange={(e) => setCreateForm((f) => ({ ...f, startTime: e.target.value }))}
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm text-slate-300 mb-1">End Time</label>
+                  <label className="block text-sm text-slate-300 mb-1">Thời gian kết thúc</label>
                   <input
                     type="datetime-local"
                     className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white"
@@ -314,6 +532,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
               </div>
             </div>
 
+            {/* Nút hành động */}
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowCreateModal(false)}
@@ -322,6 +541,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
               >
                 Hủy
               </button>
+
               <button
                 onClick={handleCreateExam}
                 className="btn btn-primary px-4 py-2"
@@ -338,3 +558,24 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
 };
 
 export default TeacherDashboard;
+
+/**
+ * Giải thích các khái niệm dễ vấp (người mới):
+ *
+ * 1) “State” là gì?
+ * - State là biến “trạng thái” mà khi thay đổi thì React sẽ render lại UI.
+ * - Ví dụ: setTeacherClasses(...) -> danh sách lớp thay đổi -> UI cập nhật.
+ *
+ * 2) Vì sao loadExamsForClasses dùng Set?
+ * - Set giúp kiểm tra “có thuộc danh sách lớp không” nhanh hơn:
+ *   classIds.has(ex.classId) chạy nhanh và code gọn.
+ *
+ * 3) Modal là gì?
+ * - Modal là “cửa sổ nổi” (popup) nằm trên UI.
+ * - Thường dùng cho form tạo/sửa để không rời khỏi trang.
+ *
+ * 4) Controlled input là gì?
+ * - Input được “điều khiển” bởi state:
+ *   value={createForm.name} và onChange={() => setCreateForm(...)}
+ * - Lợi ích: dữ liệu form luôn nằm trong state, dễ validate và gửi lên server.
+ */

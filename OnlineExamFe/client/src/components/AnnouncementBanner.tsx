@@ -1,25 +1,18 @@
 /**
  * AnnouncementBanner:
- *  - Component hiển thị danh sách các thông báo ở đầu trang.
- *  - Mỗi thông báo có thể được học sinh/giáo viên tự đóng lại (dismiss).
- *  - Dùng cho các thông báo quan trọng: lịch thi, bảo trì hệ thống, thông báo khẩn,...
+ * - Component hiển thị danh sách thông báo ở đầu trang.
+ * - Mỗi thông báo có thể được người dùng đóng (ẩn) ngay trên giao diện.
+ * - Phù hợp cho thông báo lịch thi, bảo trì hệ thống, cảnh báo quan trọng,...
  */
 
- // dùng cho thông báo tới học sinh
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 /**
- * Kiểu dữ liệu cho một thông báo (Announcement):
- *  - id      : mã định danh duy nhất cho từng thông báo (dùng làm key khi render).
- *  - message : nội dung thông báo hiển thị cho người dùng.
- *  - type    : loại thông báo (tùy chọn), quyết định màu sắc:
- *      + 'info'    : thông tin chung
- *      + 'success' : thông báo thành công
- *      + 'warning' : cảnh báo
- *      + 'error'   : lỗi, sự cố
- *
- * Có thể bổ sung thêm các trường khác nếu cần (vd: createdAt, creator, link,...).
+ * Kiểu dữ liệu cho 1 thông báo.
+ * - id: mã duy nhất (React dùng làm key khi render danh sách)
+ * - message: nội dung thông báo hiển thị
+ * - type: loại thông báo (tùy chọn) để đổi màu theo mức độ
  */
 export interface Announcement {
   id: number;
@@ -28,39 +21,50 @@ export interface Announcement {
 }
 
 /**
- * Props của component AnnouncementBanner:
- *  - announcements: mảng các thông báo cần hiển thị.
+ * Props của AnnouncementBanner:
+ * - announcements: danh sách thông báo do component cha truyền xuống
  */
 export interface AnnouncementBannerProps {
   announcements: Announcement[];
 }
 
 /**
- * Component AnnouncementBanner:
- *  - Nhận props là mảng thông báo.
- *  - Lưu bản sao mảng thông báo vào state local để cho phép người dùng "đóng" từng thông báo
- *    mà KHÔNG ảnh hưởng đến dữ liệu gốc ở component cha.
+ * AnnouncementBanner:
+ * - Nhận props announcements từ cha.
+ * - Tạo state visible để quản lý “những thông báo đang hiện”.
+ * - Khi người dùng đóng một thông báo, ta chỉ cập nhật state visible
+ *   (không sửa trực tiếp props, vì props là dữ liệu “đọc” từ cha).
  */
 const AnnouncementBanner: React.FC<AnnouncementBannerProps> = ({ announcements }) => {
-  // useTranslation: hook của i18next để lấy text đa ngôn ngữ (dùng cho aria-label nút đóng)
+  /**
+   * useTranslation:
+   * - Hook của i18next.
+   * - t('key') sẽ trả ra text theo ngôn ngữ hiện tại.
+   * - Ở đây dùng cho aria-label của nút đóng (phục vụ accessibility).
+   */
   const { t } = useTranslation();
 
   /**
-   * State `visible`:
-   *  - Lưu danh sách các thông báo đang hiển thị.
-   *  - Khởi tạo bằng giá trị từ props `announcements`.
-   *  - Khi người dùng bấm nút "×" để đóng một thông báo,
-   *    ta sẽ cập nhật `visible` để loại bỏ thông báo đó.
+   * State visible:
+   * - Lưu danh sách thông báo đang hiển thị.
+   * - Khởi tạo bằng announcements từ props.
    *
-   * Lưu ý:
-   *  - Dùng state riêng thay vì chỉnh sửa trực tiếp props (props là "readonly").
+   * Lưu ý quan trọng:
+   * - Việc khởi tạo state từ props chỉ chạy ở lần render đầu tiên (lúc component mount).
+   * - Sau này props announcements có đổi, state visible không tự đổi theo (trừ khi bạn tự xử lý).
+   * - Điều này “có chủ đích” trong nhiều trường hợp: vì ta muốn người dùng đóng rồi thì nó vẫn ẩn.
    */
   const [visible, setVisible] = useState<Announcement[]>(announcements);
 
   /**
-   * Hàm map `type` của thông báo sang các class Tailwind CSS tương ứng.
-   *  - Mỗi loại (info/success/warning/error) sẽ có màu nền + màu chữ khác nhau.
-   *  - Nếu type không xác định, mặc định dùng kiểu 'info'.
+   * typeToClass:
+   * - Chuyển type (info/success/warning/error) thành chuỗi class Tailwind tương ứng.
+   * - Nếu type không có (undefined), mặc định coi như 'info'.
+   *
+   * Giải thích cú pháp Announcement['type']:
+   * - Đây là cách TypeScript “lấy kiểu” của thuộc tính type trong interface Announcement.
+   * - Nghĩa là tham số type chỉ được nhận các giá trị:
+   *   'info' | 'success' | 'warning' | 'error' | undefined
    */
   const typeToClass = (type: Announcement['type']) => {
     switch (type) {
@@ -78,48 +82,56 @@ const AnnouncementBanner: React.FC<AnnouncementBannerProps> = ({ announcements }
 
   /**
    * handleClose:
-   *  - Được gọi khi người dùng bấm nút "×" trên một thông báo.
-   *  - Tham số `id` là id của thông báo muốn đóng.
-   *  - Cập nhật state `visible` bằng cách filter bỏ phần tử có id tương ứng.
+   * - Được gọi khi người dùng bấm nút "×".
+   * - Dùng filter để tạo mảng mới loại bỏ thông báo có id tương ứng.
+   *
+   * Giải thích setVisible((prev) => ...):
+   * - Đây là “cách cập nhật theo trạng thái trước đó” (functional update).
+   * - An toàn khi nhiều lần setState xảy ra gần nhau (tránh lấy nhầm state cũ).
    */
   const handleClose = (id: number) => {
     setVisible((prev) => prev.filter((a) => a.id !== id));
   };
 
   /**
-   * Nếu không còn thông báo nào trong `visible`:
-   *  - Trả về null để React không render gì cả.
-   *  - Đây là pattern phổ biến: component tự "ẩn" khi không có dữ liệu.
+   * Nếu không còn thông báo nào:
+   * - return null nghĩa là không render gì (component tự biến mất).
+   * - Đây là pattern rất phổ biến trong React.
    */
-  if (visible.length === 0) {
-    return null;
-  }
+  if (visible.length === 0) return null;
 
   return (
     <div className="space-y-3">
       {visible.map((ann) => (
         <div
-          key={ann.id} // key giúp React nhận diện từng phần tử trong danh sách
-          className={
-            'glass-card flex items-start gap-3 p-4 border ' + typeToClass(ann.type)
-          }
+          /**
+           * key:
+           * - React cần key để nhận diện từng phần tử trong danh sách.
+           * - key nên là giá trị ổn định, không trùng (id là tốt nhất).
+           */
+          key={ann.id}
+          className={'glass-card flex items-start gap-3 p-4 border ' + typeToClass(ann.type)}
         >
-          {/* Icon tròn chứa dấu "!" để nhấn mạnh rằng đây là thông báo */}
+          {/* Biểu tượng để nhấn mạnh đây là thông báo */}
           <div className="h-10 w-10 flex items-center justify-center rounded-full bg-white/10 text-lg font-bold text-white">
             !
           </div>
 
-          {/* Phần nội dung thông báo */}
+          {/* Nội dung thông báo */}
           <div className="flex-1">
             <p className="text-sm leading-relaxed">{ann.message}</p>
           </div>
 
-          {/* Nút đóng (×) để người dùng ẩn thông báo */}
+          {/* Nút đóng thông báo */}
           <button
             type="button"
             onClick={() => handleClose(ann.id)}
             className="btn btn-ghost px-3 py-2 text-sm hover:-translate-y-0.5"
-            // aria-label giúp tăng khả năng truy cập (accessibility) cho screen reader
+            /**
+             * aria-label:
+             * - Nhãn mô tả cho người dùng dùng trình đọc màn hình (screen reader).
+             * - Ví dụ: "Đóng", "Close", tùy ngôn ngữ.
+             */
             aria-label={t('common.close')}
           >
             ×

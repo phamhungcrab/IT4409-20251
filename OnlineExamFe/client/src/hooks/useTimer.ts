@@ -49,10 +49,17 @@ export const useTimer = (
     return () => clearInterval(timerId);
   }, [timeLeft, onExpire]);
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  const formatTime = (totalSec: number) => {
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+
+    const hh = h.toString().padStart(2, '0');
+    const mm = m.toString().padStart(2, '0');
+    const ss = s.toString().padStart(2, '0');
+
+    if (h > 0) return `${hh}:${mm}:${ss}`;
+    return `${mm}:${ss}`;
   };
 
   return {
