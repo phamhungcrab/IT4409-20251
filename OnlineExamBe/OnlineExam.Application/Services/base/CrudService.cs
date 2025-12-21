@@ -22,9 +22,9 @@ namespace OnlineExam.Application.Services.Base
             return await _repository.GetAllAsync(includes);
         }
 
-        public virtual async Task<T?> GetByIdAsync(int id)
+        public virtual async Task<T?> GetByIdAsync(int id, params string[] includes)
         {
-            return await _repository.GetByIdAsync(id);
+            return await _repository.GetByIdAsync(id,includes);
         }
 
         public virtual async Task CreateAsync(T enity)

@@ -32,8 +32,8 @@ namespace OnlineExam.Infrastructure.Repositories
         }
            
 
-        public async Task<T?> GetByIdAsync(int id)
-            => await _dbSet.FindAsync(id);
+        public async Task<T?> GetByIdAsync(int id, params string[] includes)
+            => await _dbSet.FindAsync(id,includes);
          
 
         public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, params string[] includes)
