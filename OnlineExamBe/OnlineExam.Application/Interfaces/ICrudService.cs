@@ -10,7 +10,8 @@ namespace OnlineExam.Application.Interfaces
     {
 
         Task<IEnumerable<T>> GetAllAsync(params string[] includes);
-        Task<T?> GetByIdAsync(int id, params string[] includes);
+        Task<T?> GetByIdAsync(int id);
+        Task<T?> GetByIdAsync(int id, string[] includes);
         Task CreateAsync(T entity);
         Task<bool> UpdateAsync(T entity);
         Task<bool> DeleteAsync(int id);

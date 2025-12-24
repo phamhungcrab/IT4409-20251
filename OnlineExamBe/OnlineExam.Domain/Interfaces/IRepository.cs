@@ -11,7 +11,8 @@ namespace OnlineExam.Domain.Interfaces
     {
 
         Task<IEnumerable<T>> GetAllAsync(params string[]  includes );
-        Task<T?> GetByIdAsync(int id, params string[] includes);
+        Task<T?> GetByIdAsync(int id);
+        Task<T?> GetByIdAsync(int id, string[] includes);
         Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, params string[] includes);
         Task AddAsync(T entity);
         Task AddRangeAsync(IEnumerable<T> entities);

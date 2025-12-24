@@ -6,12 +6,11 @@ using System.Threading.Tasks;
 
 namespace OnlineExam.Domain.Enums
 {
-    public enum UserRole
+    public enum GroupType
     {
-        ADMIN,
-        TEACHER,
-        STUDENT,
-        PROCTOR, // GIAM THI
-        ASSISTANT // TRO GIANG
+        CLASS,
+        EXAM,
+        SUBJECT,
+        COMPOSITE // hon hop nhieu loai
     }
 }
