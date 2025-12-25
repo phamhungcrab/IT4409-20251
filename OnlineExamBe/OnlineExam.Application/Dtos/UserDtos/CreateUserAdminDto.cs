@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OnlineExam.Application.Dtos.RequestDtos.User
+namespace OnlineExam.Application.Dtos.RequestDtos.UserDtos
 {
     public class CreateUserAdminDto
     {

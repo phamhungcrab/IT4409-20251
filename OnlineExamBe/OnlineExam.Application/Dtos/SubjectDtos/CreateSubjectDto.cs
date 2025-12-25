@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OnlineExam.Application.Dtos.Subject
+namespace OnlineExam.Application.Dtos.SubjectDtos
 {
     public class CreateSubjectDto
     {
@@ -16,10 +16,19 @@ namespace OnlineExam.Application.Dtos.Subject
 
     public class ResponseSubjectDto
     {
-        public required int Id { get; set; }
-        public required string Name { get; set; }
-        public required string SubjectCode { get; set; }
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string SubjectCode { get; set; }
         public int TotalChapters { get; set; }
+
+        public ResponseSubjectDto(Subject s)
+        {
+            Id = s.Id;
+            Name = s.Name;
+            SubjectCode = s.SubjectCode;
+            TotalChapters = s.TotalChapters;
+        }
+        public ResponseSubjectDto() { }
     }
 
     public class UpdateSubjectDto

@@ -1,7 +1,8 @@
 ﻿
-using OnlineExam.Application.Dtos.RequestDtos.User;
+using OnlineExam.Application.Dtos.RequestDtos.UserDtos;
 using OnlineExam.Application.Dtos.ResponseDtos;
-using OnlineExam.Application.Dtos.User;
+using OnlineExam.Application.Dtos.UserDtos;
+using OnlineExam.Application.Dtos.UserDtos;
 using OnlineExam.Domain.Entities;
 using System;
 using System.Collections.Generic;

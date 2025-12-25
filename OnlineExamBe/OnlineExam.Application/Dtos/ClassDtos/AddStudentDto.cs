@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OnlineExam.Application.Dtos.Class
+namespace OnlineExam.Application.Dtos.ClassDtos
 {
     public class AddStudentDto
     {

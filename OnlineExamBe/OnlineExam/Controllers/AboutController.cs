@@ -16,9 +16,9 @@ namespace OnlineExam.Controllers
 
         [HttpGet]
         [Route("about")]
-        public async Task<IActionResult> GetAbout()
+        public IActionResult GetAbout()
         {
-            var result = await  _aboutService.GetAboutAsync();
+            var result = _aboutService.GetAboutAsync();
             if (result == null) 
             {
                 return NotFound("Không tìm thấy tài khoản");

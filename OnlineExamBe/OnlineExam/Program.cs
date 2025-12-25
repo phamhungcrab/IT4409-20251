@@ -18,6 +18,10 @@ using OnlineExam.Infrastructure.Repositories;
 using OnlineExam.Middleware;
 using System.Text;
 using Microsoft.AspNetCore.HttpOverrides;
+using OnlineExam.Application.Interfaces.PermissionService;
+using OnlineExam.Application.Services.PermissionService;
+using OnlineExam.Application.Services.PermissionFolder;
+using OnlineExam.Application.Interfaces.PermissionFolder;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,7 +30,6 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
         options.JsonSerializerOptions.WriteIndented = true;
     });
 
@@ -81,6 +84,8 @@ builder.Services.AddSession(option =>
     option.IdleTimeout = TimeSpan.FromMinutes(30);
     option.Cookie.IsEssential = true;
 });
+
+
 builder.Services.AddHttpContextAccessor();
 
 
@@ -92,6 +97,11 @@ builder.Services.AddScoped<IAuthService,AuthService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<IUserService,UserService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<IGroupPermissionService, GroupPermissionService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IUserPermissionService, UserPermissionService>();
+builder.Services.AddScoped<IAboutService, AboutService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IQuestionService, QuestionService>();
 builder.Services.AddScoped<IExamBlueprintService, ExamBlueprintService>();
@@ -99,6 +109,7 @@ builder.Services.AddScoped<IExamService, ExamService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IExamGradingService, ExamGradingService>();
 builder.Services.AddSingleton<IExamAnswerCache, ExamAnswerCache>();
+
 
 var app = builder.Build();
 
@@ -115,7 +126,7 @@ app.UseHttpsRedirection();
 
 app.UseWebSockets();
 
-//app.UseMiddleware<SessionMiddleware>();
+app.UseMiddleware<SessionMiddleware>();
 
 app.UseSession();
 

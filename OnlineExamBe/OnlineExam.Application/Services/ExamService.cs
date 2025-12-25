@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using OnlineExam.Application.Dtos.Exam;
+using OnlineExam.Application.Dtos.ExamDtos;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services.Base;
 using OnlineExam.Domain.Entities;

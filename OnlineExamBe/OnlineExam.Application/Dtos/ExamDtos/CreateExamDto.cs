@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OnlineExam.Application.Dtos.Exam
+namespace OnlineExam.Application.Dtos.ExamDtos
 {
     public class CreateExamForStudentDto
     {

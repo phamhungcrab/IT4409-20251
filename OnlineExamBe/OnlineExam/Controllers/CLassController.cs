@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using OnlineExam.Application.Dtos.Class;
-using OnlineExam.Application.Dtos.RequestDtos.User;
+using OnlineExam.Application.Dtos.ClassDtos;
+using OnlineExam.Application.Dtos.RequestDtos.UserDtos;
 using OnlineExam.Application.Dtos.ResponseDtos;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Attributes;
@@ -26,7 +26,8 @@ namespace OnlineExam.Controllers
         {
             ResultApiModel apiResultModel = new ResultApiModel();
             apiResultModel.Status = true;
-            apiResultModel.Data = await _classService.GetAllAsync("Teacher", "Subject", "StudentClasses", "Exams");
+            var classes = await _classService.GetAllAsync("Teacher", "Subject", "Exams");
+            apiResultModel.Data = classes.Select(c => new ClassDto(c)).ToList();
             return Ok(apiResultModel);
         }
         [HttpGet]

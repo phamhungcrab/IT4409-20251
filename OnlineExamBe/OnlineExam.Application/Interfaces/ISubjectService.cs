@@ -1,4 +1,4 @@
-﻿using OnlineExam.Application.Dtos.Subject;
+﻿using OnlineExam.Application.Dtos.SubjectDtos;
 using OnlineExam.Domain.Entities;
 using System;
 using System.Collections.Generic;

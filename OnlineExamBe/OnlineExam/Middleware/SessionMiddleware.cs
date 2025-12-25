@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Auth;
 using OnlineExam.Domain.Enums;
@@ -11,11 +12,9 @@ namespace OnlineExam.Middleware
     public class SessionMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly IUserService _userService;
-        public SessionMiddleware(RequestDelegate next, IUserService userService )
+        public SessionMiddleware(RequestDelegate next )
         {
             _next = next;
-            _userService = userService;
         }
 
         public async Task InvokeAsync(HttpContext context, ISessionService _sessionService) 
@@ -46,23 +45,23 @@ namespace OnlineExam.Middleware
             }
 
             await _sessionService.ExtendSessionAsync(sessionString);
-            var user = await _userService.GetByIdAsync(session.UserId);
-            if (user == null) 
-            {
-                await context.Response.WriteAsync("User is deleted!");
-                return;
-            }
+
+
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, session.UserId.ToString()),
                 new Claim(ClaimTypes.Role, session.UserRole.ToString()),
-                new Claim(ClaimTypes.Name, user.FullName),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim("MSSV", user.MSSV)
+                new Claim(ClaimTypes.Name, session.FullName),
+                new Claim(ClaimTypes.Email, session.Email),
+                new Claim(ClaimTypes.DateOfBirth, session.DateOfBirth.ToString()),
+                new Claim("MSSV", session.MSSV),
+                new Claim("Permissions",string.Join(",", session.UserPermission))
+
             };
 
             var identity = new ClaimsIdentity(claims, "SessionAuth");
             context.User = new ClaimsPrincipal(identity);
+            context.Items["UserSession"] = session; 
             await _next(context);
         }
     }

@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.RequestDtos.Auth;
-using OnlineExam.Application.Dtos.RequestDtos.User;
+using OnlineExam.Application.Dtos.RequestDtos.UserDtos;
 using OnlineExam.Application.Dtos.ResponseDtos;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Auth;

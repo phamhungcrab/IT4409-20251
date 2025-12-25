@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Caching.Memory;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Win32;
 using OnlineExam.Application.Dtos.ReponseDtos;
@@ -33,13 +34,15 @@ namespace OnlineExam.Application.Services.Auth
         private readonly IMemoryCache _cache;
         private readonly SmtpSettings _smtp;
         private readonly Random _random = new();
+        private readonly IHttpContextAccessor _httpContextAccessor;
         public AuthService(IRepository<User> userRepository,
                            ISessionService sessionService,
                            IEmailService emailService,
                            IRepository<Session> sessionRepository,
                            IMemoryCache cache,
                            IOptions<SmtpSettings> smtp,
-                           IUserService userService) : base(userRepository)
+                           IUserService userService,
+                           IHttpContextAccessor httpContextAccessor) : base(userRepository)
         {
 
             _userService = userService;
@@ -48,6 +51,7 @@ namespace OnlineExam.Application.Services.Auth
             _sessionService = sessionService;
             _cache = cache;
             _smtp = smtp.Value;
+            _httpContextAccessor = httpContextAccessor;
         }
 
 
@@ -114,7 +118,7 @@ namespace OnlineExam.Application.Services.Auth
                 {
                     Status = false,
                     MessageCode = ResponseCode.BadRequest,
-                    Data = "Thieu thong tin dang nhap"
+                    Data = "Thiếu thông tin đăng nhập"
                 };
             }
             var user = await _userService.GetUserByEmail(login.Email);
@@ -124,7 +128,7 @@ namespace OnlineExam.Application.Services.Auth
                 {
                     Status = false,
                     MessageCode = ResponseCode.NotFound,
-                    Data = "Khong ton tai Email"
+                    Data = "Không tồn tại email"
                 };
 
             }
@@ -137,11 +141,13 @@ namespace OnlineExam.Application.Services.Auth
                 {
                     Status = false,
                     MessageCode = ResponseCode.Unauthorized,
-                    Data = "Sai mat khau"
+                    Data = "Sai mật khẩu"
                 };
             }
 
             var session = await _sessionService.CreateAsync(user, 30);
+
+
 
             // Tra ve access token va refresh token
             return new ResultApiModel()

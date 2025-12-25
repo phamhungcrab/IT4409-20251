@@ -1,6 +1,7 @@
 ﻿using Microsoft.Identity.Client;
-using OnlineExam.Application.Dtos.Class;
+using OnlineExam.Application.Dtos.ClassDtos;
 using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Dtos.UserDtos;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services.Base;
 using OnlineExam.Domain.Entities;
@@ -43,10 +44,13 @@ namespace OnlineExam.Application.Services
         public async Task<ResultApiModel> GetByTeacherAndSubject(int? teacherId = null, int? subjectId = null)
         {
             
-            var sClass = await _repository.FindAsync(c => (subjectId == null ? true : c.SubjectId.Equals(subjectId))
-                                                     &&(teacherId) == null ? true: c.TeacherId.Equals(teacherId),
-                                                     "Teacher", "Subject", "StudentClasses", "Exams"
-                                                     );
+            var sClass = (await _repository.FindAsync(c => (subjectId == null ? true : c.SubjectId.Equals(subjectId))
+                                                     &&((teacherId) == null ? true: c.TeacherId.Equals(teacherId)),
+                                                     "Teacher", "Subject", "Exams"
+                                                     ))
+                                                     .Select(c => new ClassDto(c))
+                                                     .ToList();
+           
            
             return new ResultApiModel
             {
@@ -83,7 +87,7 @@ namespace OnlineExam.Application.Services
             {
                 Status = true,
                 MessageCode = ResponseCode.Success,
-                Data = student
+                Data = student.Select(c => new UserDto(c))
             };
 
         }
@@ -170,7 +174,7 @@ namespace OnlineExam.Application.Services
             {
                 Status = true,
                 MessageCode = ResponseCode.Success,
-                Data = nClass
+                Data = newClass
             };
         }
 

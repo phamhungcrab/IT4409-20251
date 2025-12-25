@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.Question;
-using OnlineExam.Application.Dtos.Subject;
+using OnlineExam.Application.Dtos.SubjectDtos;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Domain.Entities;
 using System.Text.Json;

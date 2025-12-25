@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OnlineExam.Application.Dtos.User
+namespace OnlineExam.Application.Dtos.UserDtos
 {
     public class SearchForAdminDto : SearchBaseDto
     {

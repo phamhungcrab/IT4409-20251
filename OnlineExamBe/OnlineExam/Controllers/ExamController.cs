@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using OnlineExam.Application.Dtos.Exam;
+using OnlineExam.Application.Dtos.ExamDtos;
 using OnlineExam.Application.Dtos.ExamStudent;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Domain.Entities;
