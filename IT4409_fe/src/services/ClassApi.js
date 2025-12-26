@@ -4,7 +4,7 @@ const getAllClasses = async () => {
     try {
         const classes = await api.get("/Class/get-all");
         console.log("[classapi] Classes: ", classes);
-        return classes.data.data;
+        return classes.data;
     } catch (e) {
         console.error("Lấy danh sách lớp học thất bại", e);
         return
@@ -16,7 +16,7 @@ const getClassesByTeacherSubject = async (teacherId, subjectId) => {
         const classes = await api.get("/Class/get-by-teacher-and-subject",
             { params: { teacherId, subjectId } }
         );
-        return classes.data
+        return classes.data;
     } catch (e) {
         alert("Không tìm thấy lớp học với giáo viên/môn học tương ứng");
         console.error(e);
@@ -83,8 +83,21 @@ const deleteClass = async (classId) => {
         return res.data;
     } catch (e) {
         alert("Không thể xóa lớp học");
-        console.log(e);
+        console.error(e);
         return;
+    }
+}
+
+const getStudentsOfClass = async (classId) => {
+    try {
+        const res = await api.get(`/Class/get-students`,
+            { params: { classId } }
+        )
+        return res.data;
+    } catch (e) {
+        alert("Không thế lấy danh sách sinh viên");
+        console.error(e);
+        return
     }
 }
 
@@ -94,5 +107,6 @@ export {
     createClass,
     updateClass,
     deleteClass,
-    addStudentsToClass
+    addStudentsToClass,
+    getStudentsOfClass
 }

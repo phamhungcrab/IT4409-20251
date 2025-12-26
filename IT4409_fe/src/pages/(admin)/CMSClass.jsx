@@ -29,19 +29,19 @@ export const CMSClass = () => {
     const fetchAllData = async () => {
         try {
             const classRes = await getAllClasses();
-            setClasses(classRes);
+            setClasses(classRes.data.$values);
 
             const teacherRes = await getAllUsers();
 
             console.log("teacherRes: ", teacherRes);
-            const teacherOptions = teacherRes.map(t => ({
+            const teacherOptions = teacherRes.data.$values.map(t => ({
                 value: t.id,
                 label: t.fullName,
             }));
             setTeachers(teacherOptions);
 
             const subjectRes = await getAllSubject();
-            const subjectOptions = subjectRes.map(s => ({
+            const subjectOptions = subjectRes.$values.map(s => ({
                 value: s.id,
                 label: s.subjectCode + ' - ' + s.name,
             }));

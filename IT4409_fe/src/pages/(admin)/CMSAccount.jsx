@@ -16,8 +16,9 @@ export const CMSAccounts = () => {
 
     useEffect(() => {
         const getUsers = async () => {
-            const data = await getAllUsers();
-            const formatted = data.map(u => ({
+            const accountData = await getAllUsers();
+            // console.log("Data account: ", data)
+            const formatted = accountData.data.$values.map(u => ({
                 ...u,
                 dateOfBirth: u.dateOfBirth
                     ? new Date(u.dateOfBirth).toLocaleDateString("vi-VN")

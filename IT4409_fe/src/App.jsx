@@ -13,7 +13,7 @@ import { Layout } from './layouts/(admin)/Layout';
 import { CMSAccounts } from './pages/(admin)/CMSAccount';
 import { CMSSubject } from './pages/(admin)/CMSSubject';
 import { CMSSignup } from './pages/(admin)/CMSSignup';
-import { CMSStudents } from './pages/(admin)/CMSStudents';
+import { CMSClassDetail } from './pages/(admin)/CMSClassDetail';
 import { Toaster } from 'react-hot-toast';
 
 
@@ -45,7 +45,8 @@ function App() {
           <Route path="questions" element={<CMSQuestions />} />
           <Route path="results/:examId" element={<CMSResults />} />
           <Route path="subject" element={<CMSSubject />} />
-          <Route path="class/students" element={<CMSStudents />} />
+
+          <Route path="class/:id" element={<CMSClassDetail />} />
         </Route>
       </Routes>
     </BrowserRouter>

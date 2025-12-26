@@ -17,7 +17,7 @@ export const CMSSubject = () => {
     useEffect(() => {
         const getSubjects = async () => {
             const res = await getAllSubject();
-            setSubjects(res);
+            setSubjects(res.$values);
         }
 
         getSubjects();

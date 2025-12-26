@@ -7,25 +7,45 @@ import { Modal } from "../../components/Modal";
 import { DataTable } from "../../components/DataTable";
 import { ExamCard } from "../../components/Card";
 import { useNavigate } from "react-router-dom";
+import { createExam, generateExam, getAllExams } from "../../services/ExamApi";
+import { getAllClasses } from "../../services/ClassApi";
 
 
 export const CMSExam = () => {
 
-    const [exams, setExams] = useState([
-        { id: 1, name: "Công nghệ web 20251", teacherId: "1", subjectId: "2", teacherName: "Đỗ Bá Lâm", subjectCode: "IT4409", status: "ACTIVE" },
-        { id: "2", name: "IOT và ứng dụng 20251", teacherId: "2", subjectId: "3", teacherName: "Đặng Tuấn Linh", subjectCode: "IT4321", status: "INACTIVE" },
-        { id: "3", name: "Công nghệ web 20251", teacherId: "1", subjectId: "2", teacherName: "Đỗ Bá Lâm", subjectCode: "IT4409", status: "ACTIVE" },
-        { id: "4", name: "Công nghệ web 20251", teacherId: "1", subjectId: "2", teacherName: "Đỗ Bá Lâm", subjectCode: "IT4409", status: "ACTIVE" },
-    ]);
+    const [exams, setExams] = useState([]);
     const [open, setOpen] = useState(false);
     const [editData, setEditData] = useState(null);
+    const [classes, setClasses] = useState([]);
+    const [deleteId, setDeleteId] = useState(null);
+    const [selectedExamId, setSelectedExamId] = useState(null);
 
     const navigate = useNavigate();
 
+    const fetchAllExams = async () => {
+        try {
+            const examRes = await getAllExams();
+            setExams(examRes.data.$values);
+
+            const classRes = await getAllClasses();
+            const classOptions = classRes.data.$values.map(t => ({
+                value: t.id,
+                label: t.name
+            }));
+            setClasses(classOptions);
+        } catch (e) {
+            console.error("Lỗi tải dữ liệu", e);
+        }
+    }
+
+    useEffect(() => {
+        fetchAllExams();
+    }, []);
+
     const activeExams = exams.filter(e => e.status === "ACTIVE");
 
-    const classFields = [
-        { name: "name", label: "Tên lớp học", type: "text" },
+    const examFields = [
+        { name: "name", label: "Tên bài kiểm tra", type: "text" },
         {
             name: "subjectId", label: "Mã học phần", type: "select", options: [
                 { value: "2", label: "IT4409" },
@@ -33,11 +53,10 @@ export const CMSExam = () => {
             ]
         },
         {
-            name: "teacherId", label: "Giảng viên", type: "select", options: [
-                { value: "1", label: "Đỗ Bá Lâm" },
-                { value: "2", label: "Đặng Tuấn Linh" }
-            ]
-        }
+            name: "durationMinutes", label: "Thời gian làm bài", type: "number"
+        },
+        { name: "startTime", label: "Thời gian bắt đầu", type: "date" },
+        { name: "endTime", label: "Thời gian kết thúc", type: "date" }
     ];
 
     const handleAdd = () => {
@@ -51,24 +70,36 @@ export const CMSExam = () => {
     };
 
     const handleDelete = (id) => {
-        setExams(exams.filter(q => q.id !== id));
+        setDeleteId(id);
     };
 
-    const handleSave = (formData) => {
+    const confirmDelete = async () => {
+        const res = await deleteExam(deleteId);
+
+        if (res) {
+            setClasses(prev => prev.filter(t => t.id !== deleteId))
+        }
+
+        setDeleteId(null)
+    }
+
+    const handleSave = async (formData) => {
         if (editData) {
             // Update
+            const edited = await editExam(editData);
             setExams(exams.map(q =>
-                q.id === editData.id ? { ...editData, ...formData } : q
+                q.id === editData.id ? { ...editData, edited } : q
             ));
         } else {
             // Create
-            setExams([...exams, { id: Date.now(), ...formData }]);
+            const created = await createExam(formData);
+            setExams([...exams, created]);
         }
         setOpen(false);
     };
 
     const actions = (exam) => [
-        { label: "Xem", color: "gray", onClick: () => navigate(`/admin/results/${exam.id}`) },
+        { label: "Xem chi tiết", color: "gray", onClick: () => navigate(`/admin/results/${exam.id}`) },
         { label: "Sửa", color: "gray", onClick: () => handleEdit(exam) },
         { label: "Xóa", color: "red", onClick: () => handleDelete(exam.id) },
     ];
@@ -87,7 +118,7 @@ export const CMSExam = () => {
                       focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none 
                       placeholder-gray-400 shadow-sm"
                     />
-                    <select
+                    {/* <select
                         className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white 
                       focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none 
                       shadow-sm"
@@ -95,7 +126,7 @@ export const CMSExam = () => {
                         <option value="">Học phần</option>
                         <option value="2">IT4409</option>
                         <option value="3">IT4321</option>
-                    </select>
+                    </select> */}
                 </div>
 
                 <CommonButton
@@ -140,8 +171,10 @@ export const CMSExam = () => {
                         <ExamCard
                             key={exam.id}
                             title={exam.name}
-                            subtitle={`${exam.subjectCode} - ${exam.teacherName}`}
-                            status={exam.status}
+                            subtitle={`Mã lớp học: ${exam.classId}`}
+                            durations={exam.durationMinutes}
+                            startTime={exam.startTime}
+                            endTime={exam.endTime}
                             actions={actions(exam)}
                         />
                     ))}

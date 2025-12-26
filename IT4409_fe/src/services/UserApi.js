@@ -3,8 +3,8 @@ import { api } from "../lib/axiosClient";
 const getAllUsers = async () => {
     try {
         const users = await api.get("/User/get-all");
-        console.log("User data (api): ", users.data);
-        return users.data.data;
+        console.log("User data (api): ", users.data.data);
+        return users.data;
     } catch (e) {
         alert("Lấy danh sách người dùng thất bại");
         return;
@@ -25,7 +25,7 @@ const uploadUsersJson = async (jsonData, fileName = "users.json") => {
 
         if (!res.o) throw new Error("Lỗi API");
 
-        return await res.json();
+        return await res.data;
     } catch (e) {
         alert("Thêm danh sách người dùng mới thất bại");
         return;
@@ -43,7 +43,7 @@ const createSingleUser = async (credentials) => {
             role: credentials.role
         });
 
-        return user.data.data;
+        return user.data;
     } catch (e) {
         alert("Thêm người dùng thất bại");
         return;
@@ -61,7 +61,7 @@ const editUser = async (credentials) => {
             role: credentials.role
         });
 
-        return editedUser.data.data;
+        return editedUser.data;
     } catch (e) {
         alert("Sửa thông tin người dùng thất bại");
         return;

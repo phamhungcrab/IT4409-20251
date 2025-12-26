@@ -18,6 +18,8 @@ export const CMSQuestions = () => {
     const [deleteId, setDeleteId] = useState(null);
     const [selectedQuestionId, setSelectedClassId] = useState(null);
 
+    const total = questions?.length ?? 0;
+
     const fetchAllQuestion = async () => {
         try {
             const questionRes = await getAllQuestions();
@@ -224,12 +226,15 @@ export const CMSQuestions = () => {
             <DataTable columns={columns} data={questions} actions={actions} />
 
             <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
-                <p>Hiển thị {questions.length > 0 ? `1–${questions.length}` : "0"} trong {questions.length} câu hỏi</p>
+                <p>
+                    Hiển thị {total > 0 ? `1–${total}` : "0"} trong {total} câu hỏi
+                </p>
                 <div className="flex items-center gap-2">
                     <button className="px-3 py-1 border rounded hover:bg-gray-100">Trước</button>
                     <button className="px-3 py-1 border rounded hover:bg-gray-100">Sau</button>
                 </div>
             </div>
+
         </div>
     )
 }

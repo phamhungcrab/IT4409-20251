@@ -3,6 +3,7 @@ import { api } from "../lib/axiosClient";
 const getAllSubject = async () => {
     try {
         const res = await api.get("/Subject/get-all");
+        console.log("Subject data: ", res)
         return res.data;
     } catch (e) {
         alert("Không thể lấy danh sách học phần!\n", e);
@@ -13,7 +14,7 @@ const getAllSubject = async () => {
 const getSubjectByCode = async (code) => {
     try {
         const res = await api.get(`/Subject/get-with-${code}`);
-        return res.data.data;
+        return res.data;
     } catch (e) {
         alert(`Không tìm thấy học phần mã ${code}\n`, e);
         return;
