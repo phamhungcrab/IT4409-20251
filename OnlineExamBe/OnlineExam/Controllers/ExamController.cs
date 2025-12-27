@@ -52,81 +52,74 @@ namespace OnlineExam.Controllers
             var host = req.Host.Value;
             var websocketUrl = $"{wsScheme}://{host}/ws?examId={dto.ExamId}&studentId={dto.StudentId}";
 
-            var state = await _examService.GetExamStudent(dto.ExamId, dto.StudentId);
             var exam = await _examService.GetByIdAsync(dto.ExamId);
-
             if (exam == null) return BadRequest("Exam not found");
+
+            var state = await _examService.GetExamStudent(dto.ExamId, dto.StudentId);
 
             if (state != null)
             {
                 if (state.Status == ExamStatus.IN_PROGRESS)
                 {
-                    return Ok(new
-                    {
-                        status = "in_progress",
-                        wsUrl = websocketUrl
-                    });
+                    var deadline = state.StartTime!.AddMinutes(exam.DurationMinutes);
+                    if (DateTime.Now > deadline)
+                        return Ok(new { status = "expired" });
+
+                    return Ok(new { status = "in_progress", wsUrl = websocketUrl });
                 }
 
-
-                //Trả kết quả
-                else if (state.Status == ExamStatus.COMPLETED)
+                if (state.Status == ExamStatus.COMPLETED)
                 {
-                    var result = new ResponseResultExamDto
-                    {
-                        ExamId = state.ExamId,
-                        StudentId = state.StudentId,
-                        StartTime = state.StartTime,
-                        EndTime = state.EndTime,
-                        Points = state.Points,
-                        Status = state.Status
-                    };
                     return Ok(new
                     {
                         status = "completed",
-                        data = result
+                        data = new ResponseResultExamDto
+                        {
+                            ExamId = state.ExamId,
+                            StudentId = state.StudentId,
+                            StartTime = state.StartTime,
+                            EndTime = state.EndTime,
+                            Points = state.Points,
+                            Status = state.Status
+                        }
                     });
                 }
 
-                //Hết hạn
-                else if (state.Status == ExamStatus.EXPIRED)
-                {
-                    return Ok(new
-                    {
-                        status = "expired"
-                    });
-                }
-                else return BadRequest("Không có status bài thi tương ứng");
+                return Ok(new { status = "expired" });
             }
-            else
+
+            if (DateTime.Now < exam.StartTime)
+                return BadRequest(new { status = "not_started" });
+
+            if (DateTime.Now > exam.EndTime)
+                return BadRequest(new { status = "expired" });
+
+            var examStudent = new ExamStudent
             {
-                var examStudent = new ExamStudent
-                {
-                    ExamId = dto.ExamId,
-                    StudentId = dto.StudentId,
-                    StartTime = DateTime.Now,
-                    Status = ExamStatus.IN_PROGRESS
-                };
+                ExamId = dto.ExamId,
+                StudentId = dto.StudentId,
+                StartTime = DateTime.Now,
+                Status = ExamStatus.IN_PROGRESS
+            };
 
-                await _examStudentRepo.AddAsync(examStudent);
-                await _examStudentRepo.SaveChangesAsync();
+            var deadlineSubmit = examStudent.StartTime.AddMinutes(exam.DurationMinutes);
 
-                var examForStudent = await _examService.GenerateExamAsync(new CreateExamForStudentDto
-                {
-                    ExamId = dto.ExamId,
-                    StudentId = dto.StudentId,
-                    DurationMinutes = exam.DurationMinutes,
-                    StartTime = exam.StartTime,
-                    EndTime = exam.EndTime,
-                });
-                return Ok(new
-                {   
-                    status = "create",
-                    wsUrl = websocketUrl,
-                    data = examForStudent
-                });
-            }
-                
+            await _examStudentRepo.AddAsync(examStudent);
+            await _examStudentRepo.SaveChangesAsync();
+
+            var examForStudent = await _examService.GenerateExamAsync(new CreateExamForStudentDto
+            {
+                ExamId = dto.ExamId,
+                StudentId = dto.StudentId
+            });
+
+            return Ok(new
+            {
+                status = "create",
+                wsUrl = websocketUrl,
+                data = examForStudent
+            });
+
         }
 
         [HttpPost("generate")]
@@ -145,6 +138,24 @@ namespace OnlineExam.Controllers
             {
                 return BadRequest(new { error = ex.Message });
             }
+        }
+
+        [HttpGet("exams/{examId}/current-question")]
+        public async Task<IActionResult> GetCurrentQuestion(
+            int examId,
+            [FromQuery] int studentId
+        )
+        {
+            try
+            {
+                var result = await _examService.GetCurrentQuestionForExam(examId, studentId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"{ex.Message}");
+            }
+            
         }
     }
 }

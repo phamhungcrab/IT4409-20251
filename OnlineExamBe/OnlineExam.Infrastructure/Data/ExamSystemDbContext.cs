@@ -131,6 +131,9 @@ namespace OnlineExam.Infrastructure.Data
                 // Index tối ưu hóa truy vấn
                 entity.HasIndex(qe => new { qe.ExamId, qe.StudentId })
                     .HasDatabaseName("IX_QuestionExam_Exam_Student");
+
+                entity.Property(qe => qe.Order)
+                    .IsRequired();
             });
 
             // ExamStudent

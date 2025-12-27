@@ -45,6 +45,48 @@ namespace OnlineExam.Application.Services
             return exis;
         }
 
+        public async Task<ExamGenerateResultDto> GetCurrentQuestionForExam(int examId, int studentId)
+        {
+            var exam = await base.GetByIdAsync(examId);
+            if (exam == null) throw new Exception("Không tồn tại bài thi này");
+
+            var questions = await _questionExamRepo.Query()
+                .Where(qe => qe.ExamId == examId && qe.StudentId == studentId)
+                .Include(qe => qe.Question)
+                .OrderBy(qe => qe.Order)
+                .Select(qe => qe.Question!)
+                .ToListAsync();
+
+            int order = 1;
+
+            var result = new ExamGenerateResultDto
+            {
+                ExamId = exam.Id,
+                Name = exam.Name,
+                TotalQuestions = questions.Count,
+                ClassId = exam.ClassId,
+                StartTime = exam.StartTime,
+                EndTime = exam.EndTime,
+                DurationMinutes = exam.DurationMinutes,
+                BlueprintId = exam.BlueprintId,
+
+                Questions = questions.Select(q => new GeneratedQuestionDto
+                {
+                    Id = q.Id,
+                    Type = q.Type,
+                    Difficulty = q.Difficulty,
+                    Order = order++,
+                    Content = q.Content,
+                    ImageUrl = q.ImageUrl,
+                    Point = q.Point,
+                    Chapter = q.Chapter,
+                    CleanAnswer = CleanAnswer(q.Answer)
+                }).ToList()
+            };
+
+            return result;
+        }
+
         public async Task<ExamGenerateResultDto> GenerateExamAsync(CreateExamForStudentDto dto)
         {
             var exam = await base.GetByIdAsync(dto.ExamId);
@@ -142,6 +184,8 @@ namespace OnlineExam.Application.Services
 
         private void BuildQuestionExam(List<QuestionExam> list, Exam? exam, List<Question> questions, int StudentId)
         {
+            int order = 1;
+
             if (exam == null) throw new Exception("Không tìm thấy bài thi from build");
             foreach (var q in questions)
             {
@@ -151,7 +195,8 @@ namespace OnlineExam.Application.Services
                     QuestionId = q.Id,
                     StudentId = StudentId,
                     CorrectAnswer = GetCorrectAnswer(q.Answer), // Lấy correct từ chuỗi
-                    Point = q.Point
+                    Point = q.Point,
+                    Order = order++
                 });
             }
         }
