@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OnlineExam.Domain.Enums
+namespace OnlineExam.Application.Dtos.ExamBlueprint
 {
     public class CreateExamBlueprintDto
     {
