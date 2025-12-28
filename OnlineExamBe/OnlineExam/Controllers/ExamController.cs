@@ -36,41 +36,7 @@ namespace OnlineExam.Controllers
             return Ok(exam);
         }
 
-        [HttpPut("update/{id}")]
-        public async Task<IActionResult> UpdateExam(int id, [FromBody] UpdateExamDto dto)
-        {
-            var exam = await _examService.GetByIdAsync(id);
-            if (exam == null)
-                return NotFound("Exam not found");
 
-            exam.Name = dto.Name;
-            exam.BlueprintId = dto.BlueprintId;
-            exam.ClassId = dto.ClassId;
-            exam.DurationMinutes = dto.DurationMinutes;
-            exam.StartTime = dto.StartTime;
-            exam.EndTime = dto.EndTime;
-
-            await _examService.UpdateAsync(exam);
-            return Ok(new
-            {
-                message = "Update exam successfully",
-                exam
-            });
-        }
-
-        [HttpDelete("delete/{id}")]
-        public async Task<IActionResult> DeleteExam(int id)
-        {
-            var exam = await _examService.GetByIdAsync(id);
-            if (exam == null)
-                return NotFound("Exam not found");
-
-            await _examService.DeleteAsync(id);
-            return Ok(new
-            {
-                message = "Delete exam successfully"
-            });
-        }
 
         [HttpPost("create-exam")]
         public async Task<IActionResult> CreateExam([FromBody] CreateExamForTeacherOrAdmin dto)

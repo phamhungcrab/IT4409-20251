@@ -12,5 +12,7 @@ namespace OnlineExam.Application.Interfaces
     public interface IExamBlueprintService : ICrudService<ExamBlueprint>
     {
         Task<ExamBlueprintDto> CreateBlueprintAsync(CreateExamBlueprintDto dto);
+        Task<ExamBlueprintDto> GetDetailAsync(int blueprintId);
+        Task<ExamBlueprintDto> UpdateBlueprintAsync(int blueprintId, CreateExamBlueprintDto dto);
     }
 }
