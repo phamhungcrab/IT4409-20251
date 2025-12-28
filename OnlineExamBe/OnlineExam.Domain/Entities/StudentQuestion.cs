@@ -12,6 +12,7 @@ public class StudentQuestion
     public float? Result { get; set; }
     public int? TimeSpent { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public float QuestionPoint { get; set; }
 
     // Navigation properties
     public User? Student { get; set; }

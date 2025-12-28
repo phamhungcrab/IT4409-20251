@@ -79,7 +79,6 @@ namespace OnlineExam.Controllers
                             StudentId = state.StudentId,
                             StartTime = state.StartTime,
                             EndTime = state.EndTime,
-                            Points = state.Points,
                             Status = state.Status
                         }
                     });
@@ -156,6 +155,32 @@ namespace OnlineExam.Controllers
                 return BadRequest($"{ex.Message}");
             }
             
+        }
+
+        [HttpGet("detail")]
+        public async Task<IActionResult> GetExamResultDetail(
+            [FromQuery] int examId,
+            [FromQuery] int studentId)
+        {
+            try
+            {
+                var result = await _examService.GetDetailResultExam(examId, studentId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("exams/{examId}/result-summary")]
+        public async Task<IActionResult> GetResultSummary(int examId, [FromQuery] int studentId)
+        {
+            var result = await _examService.GetResultSummary(examId, studentId);
+            return Ok(result);
         }
     }
 }

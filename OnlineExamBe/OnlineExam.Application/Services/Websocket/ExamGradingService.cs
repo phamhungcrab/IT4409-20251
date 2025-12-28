@@ -63,7 +63,8 @@ namespace OnlineExam.Application.Services.Websocket
                     QuestionId = qe.QuestionId,
                     Answer = normalizedStudentAnswer,      
                     Result = isCorrect ? qe.Point : 0,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTime.Now,
+                    QuestionPoint = qe.Point
                 });
             }
 
