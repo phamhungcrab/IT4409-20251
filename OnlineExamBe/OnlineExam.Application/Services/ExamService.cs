@@ -156,9 +156,13 @@ namespace OnlineExam.Application.Services
 
                 StudentId = studentId,
 
-                StartTime = examStudent.StartTime,
-                EndTime = examStudent.EndTime!.Value,
+                StartTimeStudent = examStudent.StartTime,
+                EndTimeStudent = examStudent.EndTime!.Value,
 
+                StartTimeExam = exam.StartTime,
+                EndTimeExam = exam.EndTime,
+
+                DurationMinutes = exam.DurationMinutes,
                 TotalPoint = finalScore,
                 TotalQuestions = details.Count,
                 CorrectCount = correctCount,

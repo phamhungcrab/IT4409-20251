@@ -14,9 +14,12 @@ namespace OnlineExam.Application.Dtos.ExamDtos
 
         public int StudentId { get; set; }
 
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
+        public DateTime StartTimeStudent { get; set; }
+        public DateTime EndTimeStudent { get; set; }
+        public DateTime StartTimeExam { get; set; }
+        public DateTime EndTimeExam { get; set; }
 
+        public int DurationMinutes { get; set; }
         public double TotalPoint { get; set; }
         public int TotalQuestions { get; set; }
         public int CorrectCount { get; set; }
