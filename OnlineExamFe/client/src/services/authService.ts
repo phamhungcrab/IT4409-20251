@@ -129,6 +129,23 @@ export interface CheckOtpDto {
 }
 
 /**
+ * LoginResponse:
+ * - Cấu trúc phản hồi mới từ Backend khi login thành công.
+ * - Chứa cả token (sessionString) và thông tin user.
+ */
+export interface LoginResponse {
+  sessionString: string;
+  user: {
+    id: number;
+    mssv: string;
+    fullName: string;
+    email: string;
+    role: string | UserRole; // Backend trả về string 'TEACHER', 'ADMIN'...
+    dateOfBirth: string;
+  };
+}
+
+/**
  * TokenResponse (phản hồi token từ server):
  *
  * Một số backend trả về:
@@ -136,11 +153,6 @@ export interface CheckOtpDto {
  * - Cách 2: trả object chứa accessToken + refreshToken
  *
  * => Nên ta khai báo kiểu “có thể là 1 trong 2 dạng”.
- *
- * Giải thích khái niệm “union type” (TypeScript):
- * - Union type nghĩa là biến có thể thuộc “kiểu A HOẶC kiểu B”.
- * - Ví dụ: string | number
- * - Ở đây: TokenResponse = string | { accessToken, refreshToken }
  */
 export type TokenResponse =
   | string
@@ -200,11 +212,8 @@ export const authService = {
  * - Nên cấu hình type của apiClient để .post trả về đúng T ngay từ đầu,
  *   để khỏi phải ép kiểu ở từng hàm.
    */
-  login: async (data: LoginDto): Promise<TokenResponse> => {
-    return (await apiClient.post<TokenResponse>(
-      '/api/Auth/login',
-      data
-    )) as unknown as Promise<TokenResponse>;
+  login: async (data: LoginDto): Promise<LoginResponse> => {
+    return await apiClient.post<LoginResponse>('/api/Auth/login', data);
   },
 
   /**

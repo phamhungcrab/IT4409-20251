@@ -118,95 +118,77 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const login = async (data: LoginDto) => {
     try {
+      // response lúc này có kiểu LoginResponse (sessionString + user)
+      // hoặc TokenResponse cũ (string / {accessToken...}) tuỳ vào runtime thực tế nếu BE chưa chuẩn.
+      // Nhưng theo code mới BE thì response sẽ là LoginResponse.
       const response = await authService.login(data);
-      let sessionToken = '';
 
-      /**
-       * Backend có thể trả về:
-       * - string: token trực tiếp
-       * - object: { accessToken, refreshToken }
-       *
-       * FE phải xử lý cả 2 kiểu để không bị lỗi.
-       */
-      if (typeof response === 'string') {
+      let sessionToken = '';
+      let userRes = null;
+
+      // Check kiểu dữ liệu trả về để lấy token và user info
+      if (typeof response === 'object' && 'sessionString' in response && 'user' in response) {
+        // Case mới: LoginResponse chuẩn { sessionString, user }
+        sessionToken = response.sessionString;
+        userRes = response.user;
+      } else if (typeof response === 'string') {
+        // Case cũ (dự phòng): chỉ trả string token
         sessionToken = response;
       } else if (response && typeof response === 'object' && 'accessToken' in response) {
-        sessionToken = response.accessToken;
+        // Case cũ (dự phòng): { accessToken, refreshToken }
+        sessionToken = (response as any).accessToken;
       }
 
       // Nếu lấy được token thì lưu lại
       if (sessionToken) {
         setToken(sessionToken);
         localStorage.setItem('token', sessionToken);
+        localStorage.removeItem('refreshToken'); // Xoá refreshToken cũ nếu có
 
-        // Trong dự án hiện tại bạn chưa dùng refreshToken ổn định nên xoá để tránh rác
-        localStorage.removeItem('refreshToken');
+        // Xử lý thông tin user
+        if (userRes) {
+          // Chuẩn hoá role
+          let roleStr = String(userRes.role);
+          const roleLower = roleStr.toLowerCase();
 
-        /**
-         * Bước 2: tìm user theo email để lấy id và role.
-         * - Nếu BE có endpoint /me thì sẽ tốt hơn
-         * - Nhưng hiện tại bạn dùng findByEmail(email) để tìm user
-         */
-        try {
-          const currentUser = await userService.findByEmail(data.email);
+          if (roleStr === '1' || roleLower === 'teacher') roleStr = UserRole.Teacher;
+          else if (roleStr === '0' || roleLower === 'admin') roleStr = UserRole.Admin;
+          else if (roleStr === '2' || roleLower === 'student') roleStr = UserRole.Student;
 
-          if (currentUser) {
-            /**
-             * currentUser.role có thể là:
-             * - số enum: 0/1/2
-             * - hoặc string: 'Admin'/'Teacher'/'Student'
-             * => Chuẩn hoá về đúng UserRole enum của FE
-             */
-            let roleStr = String(currentUser.role);
-            const roleLower = roleStr.toLowerCase();
-
-            if (roleStr === '1' || roleLower === 'teacher') roleStr = UserRole.Teacher;
-            else if (roleStr === '0' || roleLower === 'admin') roleStr = UserRole.Admin;
-            else if (roleStr === '2' || roleLower === 'student') roleStr = UserRole.Student;
-
-            // Tạo userObj theo format FE cần
-            const userObj: User = {
-              id: currentUser.id,
-              email: currentUser.email,
-              role: roleStr,
-            };
-
-            // Lưu vào state + localStorage để refresh trang không mất thông tin
-            setUser(userObj);
-            localStorage.setItem('user', JSON.stringify(userObj));
-          } else {
-            /**
-             * Trường hợp không tìm thấy user (API lỗi logic / dữ liệu chưa seed)
-             * => tạo user tạm để app vẫn chạy được
-             * (nhưng có thể RoleGuard sẽ chặn nếu role không đúng)
-             */
-            console.warn('Không tìm thấy user theo email, mặc định role Student');
-            const dummyUser: User = {
-              id: 0,
-              email: data.email,
-              role: UserRole.Student,
-            };
-            setUser(dummyUser);
-            localStorage.setItem('user', JSON.stringify(dummyUser));
-          }
-        } catch (e) {
-          /**
-           * Nếu gọi userService fail:
-           * - Vẫn cho login thành công để user vào hệ thống,
-           * - Nhưng role sẽ fallback về Student.
-           */
-          console.error('Lỗi lấy thông tin user sau khi login', e);
-          const fallbackUser: User = {
-            id: 0,
-            email: data.email,
-            role: UserRole.Student,
+          const userObj: User = {
+            id: userRes.id,
+            email: userRes.email,
+            role: roleStr,
           };
-          setUser(fallbackUser);
-          localStorage.setItem('user', JSON.stringify(fallbackUser));
+
+          setUser(userObj);
+          localStorage.setItem('user', JSON.stringify(userObj));
+        } else {
+          // Fallback cũ: Nếu response không có user (BE cũ), phải gọi API tìm user
+          // (Logic này giữ lại chỉ để đề phòng, thực tế BE mới đã trả user rồi)
+          try {
+            const currentUser = await userService.findByEmail(data.email);
+            if (currentUser) {
+              let roleStr = String(currentUser.role);
+              const roleLower = roleStr.toLowerCase();
+              if (roleStr === '1' || roleLower === 'teacher') roleStr = UserRole.Teacher;
+              else if (roleStr === '0' || roleLower === 'admin') roleStr = UserRole.Admin;
+              else if (roleStr === '2' || roleLower === 'student') roleStr = UserRole.Student;
+
+              const userObj: User = {
+                id: currentUser.id,
+                email: currentUser.email,
+                role: roleStr,
+              };
+              setUser(userObj);
+              localStorage.setItem('user', JSON.stringify(userObj));
+            }
+          } catch (e) {
+            console.error('Không lấy được user info sau login (fallback)', e);
+          }
         }
       }
     } catch (error) {
-      // Nếu login fail thì ném lỗi lên để LoginPage xử lý (show message)
       console.error('Login thất bại', error);
       throw error;
     }
