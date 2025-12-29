@@ -3,6 +3,7 @@ node_modules/
 **/node_modules/
 .agent/
 .vs/
+AGENTS.md
 # --- Frontend specific ---
 .env
 *.local
