@@ -1,7 +1,13 @@
 # --- Dependencies ---
 node_modules/
 **/node_modules/
-
+.agent/
+.vs/
+# --- Frontend specific ---
+.env
+*.local
+.eslintcache
+.vite/
 # --- Build Output ---
 dist/
 build/
