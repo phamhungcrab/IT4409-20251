@@ -154,8 +154,13 @@ namespace OnlineExam.Application.Services.Auth
             {
                 Status = true,
                 MessageCode = ResponseCode.Success,
-                Data = session.SessionString
+                Data = new
+                {
+                    SessionString = session.SessionString,
+                    User = user
+                }
             };
+
 
         }
 
