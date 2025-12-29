@@ -16,9 +16,9 @@ namespace OnlineExam.Domain.Entities
         public required UserRole Role { get; set; }
 
         // Navigation properties
-        [JsonIgnore]
+        
         public ICollection<Class> TaughtClasses { get; set; } = new List<Class>();
-        [JsonIgnore]
+        
         public ICollection<StudentClass> StudentClasses { get; set; } = new List<StudentClass>();
         [JsonIgnore]
         public ICollection<Session> Session { get; set; } = new List<Session>();
@@ -26,5 +26,6 @@ namespace OnlineExam.Domain.Entities
         public ICollection<QuestionExam> QuestionExams { get; set; } = new List<QuestionExam>();
         [JsonIgnore]
         public ICollection<StudentQuestion> StudentQuestions { get; set; } = new List<StudentQuestion>();
+        public ICollection<UserPermission> UserPermissions { get; set; } = new List<UserPermission>();
     }
 }

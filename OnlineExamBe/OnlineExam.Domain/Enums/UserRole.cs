@@ -10,6 +10,8 @@ namespace OnlineExam.Domain.Enums
     {
         ADMIN,
         TEACHER,
-        STUDENT
+        STUDENT,
+        PROCTOR, // GIAM THI
+        ASSISTANT // TRO GIANG
     }
 }

@@ -1,5 +1,6 @@
-﻿using OnlineExam.Application.Dtos.Class;
-using OnlineExam.Application.Dtos.RequestDtos.User;
+﻿using OnlineExam.Application.Dtos.ClassDtos;
+using OnlineExam.Application.Dtos.ClassDtos;
+using OnlineExam.Application.Dtos.RequestDtos.UserDtos;
 using OnlineExam.Application.Dtos.ResponseDtos;
 using OnlineExam.Domain.Entities;
 using System;

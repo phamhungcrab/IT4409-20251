@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Auth;
@@ -11,32 +8,23 @@ using OnlineExam.Application.Services.Auth;
 using OnlineExam.Application.Services.Base;
 using OnlineExam.Application.Services.Websocket;
 using OnlineExam.Application.Settings;
-using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Interfaces;
 using OnlineExam.Infrastructure.Data;
 using OnlineExam.Infrastructure.Repositories;
 using OnlineExam.Middleware;
-using System.Text;
 using Microsoft.AspNetCore.HttpOverrides;
+using OnlineExam.Application.Interfaces.PermissionService;
+using OnlineExam.Application.Services.PermissionService;
+using OnlineExam.Application.Services.PermissionFolder;
+using OnlineExam.Application.Interfaces.PermissionFolder;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Explicitly listen on HTTPS 7239 and HTTP 7238 (for plain WS during local dev)
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ListenLocalhost(7239, listenOptions =>
-    {
-        listenOptions.UseHttps();
-    });
-    options.ListenLocalhost(7238); // plain HTTP for ws://
-});
 
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.WriteIndented = true;
     });
 
@@ -50,11 +38,14 @@ builder.Services.AddSwaggerGen(c =>
         In = ParameterLocation.Header,
         Description = "Session token header"
     });
+
     c.AddServer(new OpenApiServer
     {
-        Url = "https://localhost:7239"
-
+        Url = builder.Environment.IsDevelopment()
+        ? "https://localhost:7239"
+        : "https://it4409-20251.onrender.com"
     });
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
          {
@@ -74,12 +65,7 @@ builder.Services.AddSwaggerGen(c =>
 // Đăng ký DbContext
 builder.Services.AddDbContext<ExamSystemDbContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        sql =>
-        {
-            // Avoid timeout when generating/inserting QuestionExam/ExamStudent
-            sql.CommandTimeout(120);
-        }
+        builder.Configuration.GetConnectionString("DefaultConnection")
     ));
 
 //Gui email
@@ -93,6 +79,8 @@ builder.Services.AddSession(option =>
     option.IdleTimeout = TimeSpan.FromMinutes(30);
     option.Cookie.IsEssential = true;
 });
+
+
 builder.Services.AddHttpContextAccessor();
 
 
@@ -104,6 +92,11 @@ builder.Services.AddScoped<IAuthService,AuthService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<IUserService,UserService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<IGroupPermissionService, GroupPermissionService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IUserPermissionService, UserPermissionService>();
+builder.Services.AddScoped<IAboutService, AboutService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IQuestionService, QuestionService>();
 builder.Services.AddScoped<IExamBlueprintService, ExamBlueprintService>();
@@ -112,21 +105,8 @@ builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IExamGradingService, ExamGradingService>();
 builder.Services.AddSingleton<IExamAnswerCache, ExamAnswerCache>();
 
-// CORS Configuration
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFE", policy =>
-    {
-        policy.WithOrigins("http://localhost:5173", "https://it4409-20251-frontend.onrender.com") // Add your allowed origins
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials(); // Important for Session/Cookies if used, though token is usually Header 'Session'
-    });
-});
 
 var app = builder.Build();
-
-app.UseCors("AllowFE");
 
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
@@ -136,6 +116,8 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 app.UseSwagger();
 app.UseSwaggerUI();
 
+
+app.UseHttpsRedirection();
 
 app.UseWebSockets();
 

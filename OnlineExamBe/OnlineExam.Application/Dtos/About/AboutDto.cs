@@ -1,4 +1,5 @@
-﻿using OnlineExam.Domain.Enums;
+﻿using OnlineExam.Domain.Entities;
+using OnlineExam.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -16,6 +17,6 @@ namespace OnlineExam.Application.Dtos.About
         [EmailAddress]
         public required string Email { get; set; }
         public required UserRole Role { get; set; }
-
+        public List<Permission> UserPermission { get; set; }
     }
 }

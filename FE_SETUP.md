@@ -1,7 +1,3 @@
-# Frontend Setup Instructions (Vite + React)
-
-## 1. Prerequisites
-- **Node.js** (v16+) and **npm** installed.
 
 ## 2. Configuration (`.env.local`)
 The Frontend uses `vite.config.ts` to proxy requests to the Backend during development.

@@ -1,11 +1,16 @@
 ﻿using Microsoft.AspNetCore.Http;
 using OnlineExam.Application.Dtos.About;
+using OnlineExam.Application.Dtos.Cache_Memory;
 using OnlineExam.Application.Interfaces;
+using OnlineExam.Application.Interfaces.PermissionFolder;
 using OnlineExam.Application.Services.Base;
 using OnlineExam.Domain.Entities;
+using OnlineExam.Domain.Enums;
+using OnlineExam.Domain.Interfaces;
 using OnlineExam.Infrastructure.Repositories;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
@@ -15,33 +20,34 @@ namespace OnlineExam.Application.Services
 {
     public class AboutService : CrudService<User> , IAboutService
     {
-        HttpContextAccessor _httpContextAccessor;
-        public AboutService(Repository<User> repository,
-                            HttpContextAccessor httpContextAccessor) : base(repository) 
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private IRoleService _roleService;
+        private IUserPermissionService _userPermissionService;  
+        public AboutService(IRepository<User> repository,
+                            IHttpContextAccessor httpContextAccessor,
+                            IRoleService roleService,
+                            IUserPermissionService userPermissionService) : base(repository) 
         {
             _httpContextAccessor = httpContextAccessor;
+            _roleService = roleService;
+            _userPermissionService = userPermissionService;
         }
 
-        public async Task<AboutDto> GetAboutAsync()
+        public AboutDto GetAboutAsync()
         {
-            var userId = _httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if(userId == null)
-            {
-                return null;
-            }
-
-            var user = await _repository.GetByIdAsync(int.Parse(userId));
-            if (user == null) 
-            {
+            var session = _httpContextAccessor.HttpContext.Items["UserSession"] as SessionCacheDto;
+            if (session == null) {
                 return null;
             }
             return new AboutDto
             {
-                MSSV = user.MSSV,
-                FullName = user.FullName,
-                DateOfBirth = user.DateOfBirth,
-                Email = user.Email,
-                Role = user.Role,
+
+                MSSV = session.MSSV,
+                FullName = session.FullName,
+                DateOfBirth = session.DateOfBirth,
+                Email = session.Email,
+                Role = session.UserRole,
+                UserPermission = session.UserPermission,
             };
 
         }

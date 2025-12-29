@@ -13,6 +13,7 @@ import { UserRole } from './authService';
  * - email       : email đăng nhập
  * - role        : vai trò người dùng (Admin/Teacher/Student)
  */
+
 export interface UserDto {
   id: number;
   mssv: string;
@@ -58,6 +59,7 @@ export interface SearchUserPayload {
  * - totalItems: tổng số user thỏa điều kiện (toàn hệ thống), để UI biết có bao nhiêu trang
  * - users     : danh sách user của trang hiện tại
  */
+
 export interface SearchUserResult {
   totalItems: number;
   users: UserDto[];
@@ -81,6 +83,7 @@ export interface SearchUserResult {
  * => Có thể đúng nếu apiClient interceptor đã tự bóc response.data.data.
  * => Nếu chưa bóc, thì đoạn này sẽ sai (vì response vẫn là object bọc).
  */
+
 const getAll = async (): Promise<UserDto[]> => {
   const response = await apiClient.get<ResultApiModel<UserDto[]>>('/api/User/get-all');
   return response as unknown as UserDto[];

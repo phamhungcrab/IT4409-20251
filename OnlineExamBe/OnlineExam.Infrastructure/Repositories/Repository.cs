@@ -35,7 +35,17 @@ namespace OnlineExam.Infrastructure.Repositories
         public async Task<T?> GetByIdAsync(int id)
             => await _dbSet.FindAsync(id);
          
+        public async Task<T?> GetByIdAsync(int id, string[] includes)
+        {
+            IQueryable<T> query = _dbSet;
 
+            foreach (var item in includes)
+            {
+                query = query.Include(item);
+            }
+
+            return await query.FirstOrDefaultAsync(e => EF.Property<int>(e, "Id") == id);
+        }
         public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, params string[] includes)
         
         {

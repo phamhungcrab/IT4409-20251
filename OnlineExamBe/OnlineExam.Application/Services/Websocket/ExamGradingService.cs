@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OnlineExam.Application.Interfaces.Websocket;
-using OnlineExam.Application.Services.Helpers;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
@@ -31,134 +30,52 @@ namespace OnlineExam.Application.Services.Websocket
             _examStudentRepo = examStudentRepo;
         }
 
-        public async Task<GradeResult> GradeAndSaveAsync(int examId, int studentId)
+        public async Task<float> GradeAndSaveAsync(int examId, int studentId)
         {
-            var cacheAnswers = _cache.GetAnswers(examId, studentId)
-                .ToDictionary(x => x.QuestionId, x => x.Answer ?? string.Empty);
+            var answers = _cache.GetAnswers(examId, studentId)
+                .ToDictionary(x => x.QuestionId, x => x.Answer ?? "");
 
-            var questionExams = await _questionExamRepo
-                .Query()
-                .Include(qe => qe.Question)
-                .Where(x => x.ExamId == examId && x.StudentId == studentId)
-                .ToListAsync();
-
-            // Fallback: nếu không có bộ câu hỏi riêng cho student, dùng bộ theo exam
-            if (questionExams.Count == 0)
-            {
-                questionExams = await _questionExamRepo
-                    .Query()
-                    .Include(qe => qe.Question)
-                    .Where(x => x.ExamId == examId)
-                    .ToListAsync();
-            }
-
-            // Tránh double-count khi dùng bộ câu hỏi chung (nhiều StudentId)
-            questionExams = questionExams
-                .GroupBy(qe => qe.QuestionId)
-                .Select(g => g.First())
-                .ToList();
-
-            if (questionExams.Count == 0)
-            {
-                Console.WriteLine($"[GRADING] No QuestionExams for exam={examId} student={studentId}");
-                return new GradeResult(0, 0);
-            }
-
-            var existingStudentAnswers = await _studentQuestionRepo
+            var correctList = await _questionExamRepo
                 .Query()
                 .Where(x => x.ExamId == examId && x.StudentId == studentId)
                 .ToListAsync();
-
-            var existingByQuestion = existingStudentAnswers.ToDictionary(x => x.QuestionId, x => x);
 
             float totalScore = 0;
-            float maxScore = questionExams.Sum(qe => qe.Point);
-            bool updatedCorrect = false;
-            var toInsert = new List<StudentQuestion>();
+            var saveList = new List<StudentQuestion>();
 
-
-            static List<string> ParseTokens(string value)
+            foreach (var qe in correctList)
             {
-                if (string.IsNullOrWhiteSpace(value)) return new List<string>();
-                return value.Split('|', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(t => t.Trim().ToLowerInvariant())
-                    .Where(t => !string.IsNullOrWhiteSpace(t))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-            }
+                answers.TryGetValue(qe.QuestionId, out string? studentAnswer);
 
-            foreach (var qe in questionExams)
-            {
+                studentAnswer = studentAnswer ?? "";
 
-                cacheAnswers.TryGetValue(qe.QuestionId, out string? studentAnswerRaw);
-                if (string.IsNullOrWhiteSpace(studentAnswerRaw) && existingByQuestion.TryGetValue(qe.QuestionId, out var existingRow))
-                {
-                    studentAnswerRaw = existingRow.Answer ?? string.Empty;
-                }
-                studentAnswerRaw ??= string.Empty;
+                string normalizedStudentAnswer = NormalizeAnswer(studentAnswer);
 
-                var correctTokens = ParseTokens(qe.CorrectAnswer ?? string.Empty);
-                if (correctTokens.Count == 0)
-                {
-                    var source = qe.Question?.Answer ?? string.Empty;
-                    correctTokens = source.Contains("*") ? AnswerParser.ParseCorrectTokens(source) : ParseTokens(source);
-
-                    var normalizedCorrect = AnswerParser.NormalizeTokens(correctTokens);
-                    if (!string.IsNullOrWhiteSpace(normalizedCorrect) && !string.Equals(qe.CorrectAnswer, normalizedCorrect, StringComparison.OrdinalIgnoreCase))
-                    {
-                        qe.CorrectAnswer = normalizedCorrect;
-                        _questionExamRepo.UpdateAsync(qe);
-                        updatedCorrect = true;
-                    }
-                    correctTokens = ParseTokens(qe.CorrectAnswer ?? string.Empty);
-                }
-
-                var studentTokens = ParseTokens(studentAnswerRaw);
-
-                bool isCorrect = correctTokens.Count > 0 && correctTokens.Count == studentTokens.Count && !correctTokens.Except(studentTokens, StringComparer.OrdinalIgnoreCase).Any();
-
-                Console.WriteLine($"[GRADING] exam={examId} student={studentId} q={qe.QuestionId} correct=[{string.Join("|", correctTokens)}] student=[{string.Join("|", studentTokens)}] => {(isCorrect ? "OK" : "FAIL")}");
+                bool isCorrect = CheckMultipleCorrect(qe.CorrectAnswer, normalizedStudentAnswer);
 
                 if (isCorrect)
                     totalScore += qe.Point;
 
-                if (existingByQuestion.TryGetValue(qe.QuestionId, out var existed))
+                saveList.Add(new StudentQuestion
                 {
-                    existed.Answer = studentAnswerRaw;
-                    existed.Result = isCorrect ? qe.Point : 0;
-                    existed.CreatedAt = DateTime.Now;
-                    _studentQuestionRepo.UpdateAsync(existed);
-                }
-                else
-                {
-                    toInsert.Add(new StudentQuestion
-                    {
-                        ExamId = examId,
-                        StudentId = studentId,
-                        QuestionId = qe.QuestionId,
-                        Answer = studentAnswerRaw,
-                        Result = isCorrect ? qe.Point : 0,
-                        CreatedAt = DateTime.Now
-                    });
-                }
-
+                    ExamId = examId,
+                    StudentId = studentId,
+                    QuestionId = qe.QuestionId,
+                    Answer = normalizedStudentAnswer,      
+                    Result = isCorrect ? qe.Point : 0,
+                    CreatedAt = DateTime.Now,
+                    QuestionPoint = qe.Point
+                });
             }
 
-            if (toInsert.Count > 0)
-            {
-                await _studentQuestionRepo.AddRangeAsync(toInsert);
-            }
+            await _studentQuestionRepo.AddRangeAsync(saveList);
             await _studentQuestionRepo.SaveChangesAsync();
 
-            if (updatedCorrect)
-            {
-                await _questionExamRepo.SaveChangesAsync();
-            }
-
+            //Lưu bảng kết quả
             var examStudent = await _examStudentRepo
                 .Query()
                 .FirstOrDefaultAsync(x => x.ExamId == examId && x.StudentId == studentId);
+
 
             if (examStudent != null)
             {
@@ -169,11 +86,37 @@ namespace OnlineExam.Application.Services.Websocket
                 _examStudentRepo.UpdateAsync(examStudent);
                 await _examStudentRepo.SaveChangesAsync();
             }
-            else { throw new Exception("Khong tim thay bang tien trinh lam bai"); }
+            else
+            {
+                throw new Exception("Không tìm thấy bảng tiến trình làm bài");
+            }
 
             _cache.Clear(examId, studentId);
 
-            return new GradeResult(totalScore, maxScore);
+            return totalScore;
         }
+
+        private bool CheckMultipleCorrect(string correct, string student)
+        {
+            return string.Equals(correct, student, StringComparison.Ordinal);
+        }
+
+        private string NormalizeAnswer(string answer)
+        {
+            if (string.IsNullOrWhiteSpace(answer))
+                return "";
+
+            var parts = answer
+                .Split('|', StringSplitOptions.RemoveEmptyEntries)
+                .Select(p => p.Trim())
+                .Where(p => p.Length > 0)
+                .Select(p => p.ToLowerInvariant())
+                .Distinct(StringComparer.InvariantCultureIgnoreCase)
+                .OrderBy(p => p, StringComparer.InvariantCultureIgnoreCase)
+                .ToList();
+
+            return string.Join("|", parts);
+        }
+
     }
 }

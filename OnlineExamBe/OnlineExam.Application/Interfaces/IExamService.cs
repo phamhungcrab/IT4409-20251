@@ -1,4 +1,5 @@
-﻿using OnlineExam.Application.Dtos.Exam;
+﻿using OnlineExam.Application.Dtos.ExamDtos;
+using OnlineExam.Application.Dtos.ExamStudent;
 using OnlineExam.Application.Services.Base;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
@@ -14,6 +15,8 @@ namespace OnlineExam.Application.Interfaces
     {
         Task<ExamGenerateResultDto> GenerateExamAsync(CreateExamForStudentDto dto);
         Task<ExamStudent?> GetExamStudent(int examId, int studentId);
-        Task<IEnumerable<Exam>> GetExamsByStudentId(int studentId);
+        Task<ExamGenerateResultDto> GetCurrentQuestionForExam(int examId, int studentId);
+        Task<ExamResultPreviewDto> GetDetailResultExam(int examId, int studentId);
+        Task<ExamResultSummaryDto> GetResultSummary(int examId, int studentId);
     }
 }

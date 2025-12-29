@@ -12,7 +12,7 @@ namespace OnlineExam.Domain.Entities
         public int StudentId { get; set; }
         public int ClassId { get; set; }
 
-        
+          
         public User Student { get; set; }
        
         public Class Class { get; set; }

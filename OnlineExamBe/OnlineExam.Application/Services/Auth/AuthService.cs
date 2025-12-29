@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Caching.Memory;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Win32;
 using OnlineExam.Application.Dtos.ReponseDtos;
@@ -33,13 +34,15 @@ namespace OnlineExam.Application.Services.Auth
         private readonly IMemoryCache _cache;
         private readonly SmtpSettings _smtp;
         private readonly Random _random = new();
+        private readonly IHttpContextAccessor _httpContextAccessor;
         public AuthService(IRepository<User> userRepository,
                            ISessionService sessionService,
                            IEmailService emailService,
                            IRepository<Session> sessionRepository,
                            IMemoryCache cache,
                            IOptions<SmtpSettings> smtp,
-                           IUserService userService) : base(userRepository)
+                           IUserService userService,
+                           IHttpContextAccessor httpContextAccessor) : base(userRepository)
         {
 
             _userService = userService;
@@ -48,6 +51,7 @@ namespace OnlineExam.Application.Services.Auth
             _sessionService = sessionService;
             _cache = cache;
             _smtp = smtp.Value;
+            _httpContextAccessor = httpContextAccessor;
         }
 
 
@@ -108,63 +112,51 @@ namespace OnlineExam.Application.Services.Auth
 
         public async Task<ResultApiModel> Login(LoginDto login)
         {
-            try
+            if (login == null || login.Email == null || login.Password == null)
             {
-                if (login == null || string.IsNullOrEmpty(login.Email) || string.IsNullOrEmpty(login.Password))
-                {
-                    return new ResultApiModel()
-                    {
-                        Status = false,
-                        MessageCode = ResponseCode.BadRequest,
-                        Data = "Thieu thong tin dang nhap"
-                    };
-                }
-
-                var user = await _userService.GetUserByEmail(login.Email);
-                if (user == null)
-                {
-                    return new ResultApiModel()
-                    {
-                        Status = false,
-                        MessageCode = ResponseCode.NotFound,
-                        Data = "Khong ton tai Email"
-                    };
-                }
-
-                // Hash password
-                var passwordHash = HashPassword(login.Password);
-
-                // So sánh hash không phân biệt hoa thường (Hex string A = a)
-                if (!passwordHash.Equals(user.PasswordHash, StringComparison.OrdinalIgnoreCase))
-                {
-                    return new ResultApiModel()
-                    {
-                        Status = false,
-                        MessageCode = ResponseCode.Unauthorized,
-                        Data = "Sai mat khau"
-                    };
-                }
-
-                var session = await _sessionService.CreateAsync(user, 30);
-
-                return new ResultApiModel()
-                {
-                    Status = true,
-                    MessageCode = ResponseCode.Success,
-                    Data = session.SessionString
-                };
-            }
-            catch (Exception ex)
-            {
-                // Log error here if logger available
-                Console.WriteLine($"Login Error: {ex.Message}");
                 return new ResultApiModel()
                 {
                     Status = false,
-                    MessageCode = ResponseCode.InternalServerError,
-                    Data = $"Lỗi server: {ex.Message}"
+                    MessageCode = ResponseCode.BadRequest,
+                    Data = "Thiếu thông tin đăng nhập"
                 };
             }
+            var user = await _userService.GetUserByEmail(login.Email);
+            if (user == null)
+            {
+                return new ResultApiModel()
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.NotFound,
+                    Data = "Không tồn tại email"
+                };
+
+            }
+            //hash password de so sanh
+            var passwordHash = HashPassword(login.Password);
+
+            if (!passwordHash.Equals(user.PasswordHash))
+            {
+                return new ResultApiModel()
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.Unauthorized,
+                    Data = "Sai mật khẩu"
+                };
+            }
+
+            var session = await _sessionService.CreateAsync(user, 30);
+
+
+
+            // Tra ve access token va refresh token
+            return new ResultApiModel()
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = session.SessionString
+            };
+
         }
 
         public async Task<ResultApiModel> Logout(LogoutDto logout)
@@ -317,7 +309,7 @@ namespace OnlineExam.Application.Services.Auth
         {
             using var sha256 = SHA256.Create();
             var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToHexString(bytes); // Trả về chữ hoa (Uppercase) để khớp với Database
+            return Convert.ToHexString(bytes);
         }
     }
 }

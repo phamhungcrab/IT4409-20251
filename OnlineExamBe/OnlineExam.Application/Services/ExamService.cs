@@ -1,12 +1,19 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using OnlineExam.Application.Dtos.Exam;
+using OnlineExam.Application.Dtos.ExamDtos;
+using OnlineExam.Application.Dtos.ExamStudent;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services.Base;
-using OnlineExam.Application.Services.Helpers;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Runtime.Intrinsics.X86;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace OnlineExam.Application.Services
 {
@@ -16,231 +23,241 @@ namespace OnlineExam.Application.Services
         private readonly IRepository<ExamBlueprint> _blueprintRepo;
         private readonly IRepository<QuestionExam> _questionExamRepo;
         private readonly IRepository<ExamStudent> _examStudentRepo;
-        private readonly IRepository<StudentClass> _studentClassRepo;
+        private readonly IRepository<StudentQuestion> _studentQuesRepo;
 
         public ExamService(
             IRepository<Exam> examRepo,
             IRepository<Question> questionRepo,
             IRepository<ExamBlueprint> blueprintRepo,
             IRepository<QuestionExam> questionExamRepo,
-            IRepository<ExamStudent> examStudentRepo,
-            IRepository<StudentClass> studentClassRepo) : base(examRepo)
+            IRepository<StudentQuestion> studentQuesRepo,
+            IRepository<ExamStudent> examStudentRepo
+
+            ) : base(examRepo)
         {
             _questionRepo = questionRepo;
             _blueprintRepo = blueprintRepo;
             _questionExamRepo = questionExamRepo;
             _examStudentRepo = examStudentRepo;
-            _studentClassRepo = studentClassRepo;
-        }
-
-        public async Task<IEnumerable<Exam>> GetExamsByStudentId(int studentId)
-        {
-            var classIds = await _studentClassRepo.Query()
-                .Where(sc => sc.StudentId == studentId)
-                .Select(sc => sc.ClassId)
-                .ToListAsync();
-
-            if (!classIds.Any()) return new List<Exam>();
-
-            return await _repository.Query()
-                .Where(e => classIds.Contains(e.ClassId))
-                .ToListAsync();
+            _studentQuesRepo = studentQuesRepo;
         }
 
         public async Task<ExamStudent?> GetExamStudent(int examId, int studentId)
         {
-            return await _examStudentRepo
+            var exis = await _examStudentRepo
                 .Query()
                 .FirstOrDefaultAsync(x => x.StudentId == studentId && x.ExamId == examId);
+            return exis;
+        }
+
+        public async Task<ExamResultSummaryDto> GetResultSummary(int examId, int studentId)
+        {
+            var studentQuestions = await _studentQuesRepo.Query()
+                .Where(x => x.ExamId == examId && x.StudentId == studentId)
+                .ToListAsync();
+
+            if (!studentQuestions.Any())
+                throw new Exception("Không tìm thấy dữ liệu làm bài của sinh viên");
+
+            int totalQuestions = studentQuestions.Count;
+
+            int correctCount = studentQuestions.Count(x => x.Result.HasValue && x.Result > 0);
+
+            float totalExamPoint = studentQuestions.Sum(x => x.QuestionPoint);
+            float studentEarnedPoint = studentQuestions.Sum(x => x.Result ?? 0);
+
+            // Tính điểm thang 10, làm tròn 0.5
+            double rawScore = totalExamPoint == 0 ? 0 : (studentEarnedPoint / totalExamPoint) * 10;
+
+            float finalScore = (float)(Math.Round(rawScore * 2, MidpointRounding.AwayFromZero) / 2);
+
+            return new ExamResultSummaryDto
+            {
+                ExamId = examId,
+                StudentId = studentId,
+
+                TotalQuestions = totalQuestions,
+                CorrectCount = correctCount,
+
+                TotalQuestionPoint = totalExamPoint,
+                StudentEarnedPoint = studentEarnedPoint,
+
+                FinalScore = finalScore
+            };
+        }
+
+        public async Task<ExamResultPreviewDto> GetDetailResultExam(int examId, int studentId)
+        {
+            var exam = await this.GetByIdAsync(examId);
+            if (exam == null)
+                throw new Exception("Không tìm thấy bài thi");
+
+            var examStudent = _examStudentRepo.Query()
+                .Where(x => x.ExamId == examId && x.StudentId == studentId)
+                .FirstOrDefault();
+
+            if (examStudent == null)
+                throw new Exception("Không tìm thấy kết quả làm bài của sinh viên");
+
+            if (examStudent.Status != ExamStatus.COMPLETED)
+                throw new Exception("Bài thi chưa được hoàn thành");
+
+            var detailResult = await _studentQuesRepo.Query()
+                .Where(x => x.ExamId == examId && x.StudentId == studentId)
+                .Include(x => x.QuestionExam!)
+                    .ThenInclude(qe => qe.Question)
+                .OrderBy(x => x.QuestionExam!.Order)
+                .ToListAsync();
+
+            var details = new List<ExamQuestionResultDto>();
+            int correctCount = 0;
+            float totalExamPoint = 0; //Tổng điểm đề
+            float studentEarnedPoint = 0; //Tổng điểm làm được
+
+            foreach (var sq in detailResult)
+            {
+                var question = sq.QuestionExam!.Question!;
+                var questionPoint = question.Point;
+
+                bool isCorrect = sq.Result.HasValue && sq.Result > 0;
+
+                totalExamPoint += questionPoint;
+
+                float earned = isCorrect ? questionPoint : 0;
+                studentEarnedPoint += earned;
+
+                if (isCorrect) correctCount++;
+
+                details.Add(new ExamQuestionResultDto
+                {
+                    QuestionId = question.Id,
+                    Order = sq.QuestionExam.Order,
+
+                    Content = question.Content,
+                    StudentAnswer = sq.Answer,
+                    CorrectAnswer = sq.QuestionExam.CorrectAnswer,
+                    CleanAnswer = CleanAnswer(question.Answer),
+
+                    IsCorrect = isCorrect,
+                    QuestionPoint = questionPoint,
+                    StudentPoint = earned
+                });
+            }
+
+            //Tính điểm
+            double rawScore = totalExamPoint == 0 ? 0 : (studentEarnedPoint / totalExamPoint) * 10;
+
+            float finalScore = (float)(Math.Round(rawScore * 2, MidpointRounding.AwayFromZero) / 2); //Làm tròn 0.5
+
+            return new ExamResultPreviewDto
+            {
+                ExamId = exam.Id,
+                ExamName = exam.Name,
+
+                StudentId = studentId,
+
+                StartTimeStudent = examStudent.StartTime,
+                EndTimeStudent = examStudent.EndTime!.Value,
+
+                StartTimeExam = exam.StartTime,
+                EndTimeExam = exam.EndTime,
+
+                DurationMinutes = exam.DurationMinutes,
+                TotalPoint = finalScore,
+                TotalQuestions = details.Count,
+                CorrectCount = correctCount,
+
+                Details = details
+            };
+        }
+
+        public async Task<ExamGenerateResultDto> GetCurrentQuestionForExam(int examId, int studentId)
+        {
+            var exam = await base.GetByIdAsync(examId);
+            if (exam == null) throw new Exception("Không tồn tại bài thi này");
+
+            var questions = await _questionExamRepo.Query()
+                .Where(qe => qe.ExamId == examId && qe.StudentId == studentId)
+                .Include(qe => qe.Question)
+                .OrderBy(qe => qe.Order)
+                .Select(qe => qe.Question!)
+                .ToListAsync();
+
+            int order = 1;
+
+            var result = new ExamGenerateResultDto
+            {
+                ExamId = exam.Id,
+                Name = exam.Name,
+                TotalQuestions = questions.Count,
+                ClassId = exam.ClassId,
+                StartTime = exam.StartTime,
+                EndTime = exam.EndTime,
+                DurationMinutes = exam.DurationMinutes,
+                BlueprintId = exam.BlueprintId,
+
+                Questions = questions.Select(q => new GeneratedQuestionDto
+                {
+                    Id = q.Id,
+                    Type = q.Type,
+                    Difficulty = q.Difficulty,
+                    Order = order++,
+                    Content = q.Content,
+                    ImageUrl = q.ImageUrl,
+                    Point = q.Point,
+                    Chapter = q.Chapter,
+                    CleanAnswer = CleanAnswer(q.Answer)
+                }).ToList()
+            };
+
+            return result;
         }
 
         public async Task<ExamGenerateResultDto> GenerateExamAsync(CreateExamForStudentDto dto)
         {
             var exam = await base.GetByIdAsync(dto.ExamId);
-            if (exam == null) throw new Exception("Exam not found");
 
-            var blueprint = await _blueprintRepo
+            if (exam == null) throw new Exception("Không tồn tại bài thi này");
+
+            var checkBlue = await _blueprintRepo
                 .Query()
                 .Include(x => x.Chapters)
                 .FirstOrDefaultAsync(x => x.Id == exam.BlueprintId);
 
-            if (blueprint == null)
+            if (checkBlue == null)
                 throw new Exception("Blueprint not found!");
 
-            if (blueprint.Chapters.IsNullOrEmpty())
-                throw new Exception("Chapters not found!");
+            if (checkBlue.Chapters.IsNullOrEmpty()) throw new Exception("Chapters not found!");
 
-            var chapters = blueprint.Chapters!.ToList();
-            var expectedTotal = chapters.Sum(c => c.EasyCount + c.MediumCount + c.HardCount + c.VeryHardCount);
+            var chapters = checkBlue.Chapters!.ToList();
 
-            // Reuse generated questions when resuming
-            var existingQuestionExams = await _questionExamRepo.Query()
-                .Include(qe => qe.Question)
-                .Where(qe => qe.ExamId == dto.ExamId && qe.StudentId == dto.StudentId)
-                .ToListAsync();
-
-            if (existingQuestionExams.Any())
-            {
-                // If existing count mismatches blueprint, regenerate
-                if (existingQuestionExams.Count != expectedTotal)
-                {
-                    foreach (var qe in existingQuestionExams)
-                    {
-                        _questionExamRepo.DeleteAsync(qe);
-                    }
-                    await _questionExamRepo.SaveChangesAsync();
-                    existingQuestionExams.Clear();
-                }
-                else
-                {
-                    // Randomize order for FE display to avoid static ordering
-                    existingQuestionExams = existingQuestionExams
-                        .OrderBy(_ => Guid.NewGuid())
-                        .ToList();
-
-                    bool needsUpdate = false;
-                    foreach (var qe in existingQuestionExams)
-                    {
-                        var q = qe.Question ?? new Question { Content = string.Empty, Answer = string.Empty };
-                        var normalized = AnswerParser.NormalizeAnswerFlexible(q.Answer ?? string.Empty);
-
-                        // If old data missing or different, refresh to normalized text answer
-                        if (string.IsNullOrWhiteSpace(qe.CorrectAnswer) ||
-                            !qe.CorrectAnswer.Equals(normalized, StringComparison.OrdinalIgnoreCase))
-                        {
-                            qe.CorrectAnswer = normalized;
-                            needsUpdate = true;
-                        }
-                    }
-
-                    if (needsUpdate)
-                    {
-                        await _questionExamRepo.SaveChangesAsync();
-                    }
-
-                    int existingOrder = 1;
-                    return new ExamGenerateResultDto
-                    {
-                        ExamId = exam.Id,
-                        Name = exam.Name,
-                        TotalQuestions = existingQuestionExams.Count,
-                        ClassId = exam.ClassId,
-                        StartTime = exam.StartTime,
-                        EndTime = exam.EndTime,
-                        DurationMinutes = exam.DurationMinutes,
-                        BlueprintId = exam.BlueprintId,
-                        Questions = existingQuestionExams.Select(qe =>
-                        {
-                            var q = qe.Question ?? new Question { Content = string.Empty, Answer = string.Empty };
-                            var parsed = AnswerParser.ParseOptions(q.Answer ?? string.Empty);
-                            return new GeneratedQuestionDto
-                            {
-                                Id = q.Id,
-                                Type = q.Type,
-                                Difficulty = q.Difficulty,
-                                Order = existingOrder++,
-                                Content = q.Content ?? string.Empty,
-                                ImageUrl = q.ImageUrl,
-                                Point = q.Point,
-                                Chapter = q.Chapter,
-                                CleanAnswer = parsed.CleanOptions,
-                                CorrectOptionIds = parsed.CorrectOptionIds
-                            };
-                        }).ToList()
-                    };
-                }
-            }
-
+            //Lưu danh sách câu hỏi + bảng kết quả
             var questionExams = new List<QuestionExam>();
             var allQuestions = new List<Question>();
-            var chosenIds = new HashSet<int>();
 
             foreach (var ch in chapters)
             {
-                var easy = await GetQuestions(blueprint.SubjectId, ch.Chapter, (int)QuestionDifficulty.Easy, ch.EasyCount);
-                var medium = await GetQuestions(blueprint.SubjectId, ch.Chapter, (int)QuestionDifficulty.Medium, ch.MediumCount);
-                var hard = await GetQuestions(blueprint.SubjectId, ch.Chapter, (int)QuestionDifficulty.Hard, ch.HardCount);
-                var veryHard = await GetQuestions(blueprint.SubjectId, ch.Chapter, (int)QuestionDifficulty.VeryHard, ch.VeryHardCount);
+                var easy = await GetQuestions(checkBlue.SubjectId, ch.Chapter, (int)QuestionDifficulty.Easy, ch.EasyCount);
+                var medium = await GetQuestions(checkBlue.SubjectId, ch.Chapter, (int)QuestionDifficulty.Medium, ch.MediumCount);
+                var hard = await GetQuestions(checkBlue.SubjectId, ch.Chapter, (int)QuestionDifficulty.Hard, ch.HardCount);
+                var veryhard = await GetQuestions(checkBlue.SubjectId, ch.Chapter, (int)QuestionDifficulty.VeryHard, ch.VeryHardCount);
 
-                void AddUnique(IEnumerable<Question> qs)
-                {
-                    foreach (var q in qs)
-                    {
-                        if (chosenIds.Add(q.Id))
-                        {
-                            allQuestions.Add(q);
-                        }
-                    }
-                }
+                //Lấy danh sách question
+                allQuestions.AddRange(easy);
+                allQuestions.AddRange(medium);
+                allQuestions.AddRange(hard);
+                allQuestions.AddRange(veryhard);
 
-                AddUnique(easy);
-                AddUnique(medium);
-                AddUnique(hard);
-                AddUnique(veryHard);
             }
 
-            // Fallback: nếu thiếu câu, lấy thêm câu bất kỳ của môn (khác chapter/difficulty) để đủ expectedTotal
-            if (allQuestions.Count < expectedTotal)
-            {
-                var additionalNeeded = expectedTotal - allQuestions.Count;
-                var more = await _questionRepo
-                    .Query()
-                    .Where(q => q.SubjectId == blueprint.SubjectId && !chosenIds.Contains(q.Id))
-                    .OrderBy(q => Guid.NewGuid())
-                    .Take(additionalNeeded)
-                    .ToListAsync();
-
-                foreach (var q in more)
-                {
-                    if (chosenIds.Add(q.Id))
-                    {
-                        allQuestions.Add(q);
-                    }
-                }
-            }
-
-            // Trường hợp vẫn thiếu (không đủ câu trong ngân hàng), dùng lại câu khác để lấp đủ số lượng
-            if (allQuestions.Count < expectedTotal && allQuestions.Count > 0)
-            {
-                var rnd = new Random();
-                while (allQuestions.Count < expectedTotal)
-                {
-                    var pick = allQuestions[rnd.Next(allQuestions.Count)];
-                    allQuestions.Add(pick);
-                }
-            }
-
-            allQuestions = allQuestions
-                .Take(expectedTotal) // bảo đảm đúng số lượng yêu cầu
-                .OrderBy(x => Guid.NewGuid())
-                .ToList();
+            //Xáo trộn câu hỏi
+            allQuestions = allQuestions.OrderBy(x => Guid.NewGuid()).ToList();
 
             BuildQuestionExam(questionExams, exam, allQuestions, dto.StudentId);
+            
 
-            try
-            {
-                await _questionExamRepo.AddRangeAsync(questionExams);
-                await _questionExamRepo.SaveChangesAsync();
-            }
-            catch (DbUpdateException dbEx)
-            {
-                // Likely duplicate QuestionExam (ExamId, StudentId, QuestionId) from a previous attempt.
-                Console.WriteLine($"[GenerateExamAsync] Duplicate QuestionExam, reusing existing. Detail: {dbEx}");
-
-                var existing = await _questionExamRepo.Query()
-                    .Include(qe => qe.Question)
-                    .Where(qe => qe.ExamId == dto.ExamId && qe.StudentId == dto.StudentId)
-                    .ToListAsync();
-
-                if (existing.Any())
-                {
-                    allQuestions = existing.Select(x => x.Question ?? new Question { Content = string.Empty, Answer = string.Empty }).ToList();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            await _questionExamRepo.AddRangeAsync(questionExams);
+            await _questionExamRepo.SaveChangesAsync();
 
             int order = 1;
 
@@ -254,29 +271,20 @@ namespace OnlineExam.Application.Services
                 EndTime = exam.EndTime,
                 DurationMinutes = exam.DurationMinutes,
                 BlueprintId = exam.BlueprintId,
-                Questions = allQuestions.Select(q =>
+
+                Questions = allQuestions.Select(q => new GeneratedQuestionDto
                 {
-                    var parsed = AnswerParser.ParseOptions(q.Answer ?? string.Empty);
-                    return new GeneratedQuestionDto
-                    {
-                        Id = q.Id,
-                        Type = q.Type,
-                        Difficulty = q.Difficulty,
-                        Order = order++,
-                        Content = q.Content,
-                        ImageUrl = q.ImageUrl,
-                        Point = q.Point,
-                        Chapter = q.Chapter,
-                        CleanAnswer = parsed.CleanOptions,
-                        CorrectOptionIds = parsed.CorrectOptionIds
-                    };
+                    Id = q.Id,
+                    Type = q.Type,
+                    Difficulty = q.Difficulty,
+                    Order = order++,
+                    Content = q.Content,
+                    ImageUrl = q.ImageUrl,
+                    Point = q.Point,
+                    Chapter = q.Chapter,
+                    CleanAnswer = CleanAnswer(q.Answer)
                 }).ToList()
             };
-
-            if (questionExams.Count < expectedTotal)
-            {
-                Console.WriteLine($"[GenerateExam] Not enough questions available for exam {exam.Id}. Expected {expectedTotal}, got {questionExams.Count}. BlueprintId={blueprint.Id}");
-            }
 
             return result;
         }
@@ -285,13 +293,14 @@ namespace OnlineExam.Application.Services
             int subjectId,
             int chapter,
             int difficulty,
-            int count)
+            int count
+            )
         {
             var questions = await _questionRepo
                 .FindAsync(q =>
-                    q.SubjectId == subjectId &&
-                    q.Chapter == chapter &&
-                    (int)q.Difficulty == difficulty);
+                q.SubjectId == subjectId &&
+                q.Chapter == chapter &&
+                (int)q.Difficulty == difficulty);
 
             return questions
                 .OrderBy(q => Guid.NewGuid())
@@ -299,19 +308,52 @@ namespace OnlineExam.Application.Services
                 .ToList();
         }
 
-        private void BuildQuestionExam(List<QuestionExam> list, Exam exam, List<Question> questions, int studentId)
+        private void BuildQuestionExam(List<QuestionExam> list, Exam? exam, List<Question> questions, int StudentId)
         {
+            int order = 1;
+
+            if (exam == null) throw new Exception("Không tìm thấy bài thi from build");
             foreach (var q in questions)
             {
                 list.Add(new QuestionExam
                 {
                     ExamId = exam.Id,
                     QuestionId = q.Id,
-                    StudentId = studentId,
-                    CorrectAnswer = AnswerParser.NormalizeAnswerFlexible(q.Answer ?? string.Empty),
-                    Point = q.Point
+                    StudentId = StudentId,
+                    CorrectAnswer = GetCorrectAnswer(q.Answer), // Lấy correct từ chuỗi
+                    Point = q.Point,
+                    Order = order++
                 });
             }
+        }
+
+        private string GetCorrectAnswer(string list)
+        {
+            if (string.IsNullOrWhiteSpace(list))
+                return "";
+
+            var correctAnswers = list
+                            .Split('|', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(p => p.Trim())
+                            .Where(p => p.EndsWith("*"))
+                            .Select(p => p.TrimEnd('*').Trim())
+                            .Where(p => p.Length > 0)
+                            .Select(p => p.ToLowerInvariant()) // chuẩn hoá lowercase
+                            .Distinct(StringComparer.InvariantCultureIgnoreCase)
+                            .OrderBy(p => p, StringComparer.InvariantCultureIgnoreCase)
+                            .ToList();
+
+            return string.Join("|", correctAnswers);
+        }
+           
+        private List<string> CleanAnswer(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+                return new List<string>();
+
+            return raw.Split('|', StringSplitOptions.RemoveEmptyEntries)
+                      .Select(x => x.Trim().TrimEnd('*').Trim())
+                      .ToList();
         }
     }
 }

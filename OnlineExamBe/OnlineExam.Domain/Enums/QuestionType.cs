@@ -9,7 +9,6 @@ namespace OnlineExam.Domain.Enums
     public enum QuestionType
     {
         SINGLE_CHOICE,
-        MULTIPLE_CHOICE,
-        TRUE_FALSE
+        MULTIPLE_CHOICE
     }
 }

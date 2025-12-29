@@ -1,4 +1,5 @@
 ﻿using Microsoft.IdentityModel.Tokens;
+using OnlineExam.Application.Dtos.Cache_Memory;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using System;
@@ -16,7 +17,7 @@ namespace OnlineExam.Application.Interfaces.Auth
         public Task<Session> CreateAsync(User user, int expireAfter);
         public Task<bool> DeleteByUserIdAsync(int userId);
         public Task<bool> DeleteAsync(string sessionString);
-        public Task<Session?> ValidateSession(string sessionString, UserRole[]? userRoles = null);
+        public Task<SessionCacheDto?> ValidateSession(string sessionString, UserRole[]? userRoles = null);
         public Task ExtendSessionAsync(string sessionString, int addMinutes = 30);
 
     }

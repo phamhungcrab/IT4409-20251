@@ -2,9 +2,9 @@
 using Microsoft.EntityFrameworkCore;
 using OnlineExam.Application.Dtos.ReponseDtos;
 using OnlineExam.Application.Dtos.RequestDtos;
-using OnlineExam.Application.Dtos.RequestDtos.User;
+using OnlineExam.Application.Dtos.RequestDtos.UserDtos;
 using OnlineExam.Application.Dtos.ResponseDtos;
-using OnlineExam.Application.Dtos.User;
+using OnlineExam.Application.Dtos.UserDtos;
 using OnlineExam.Application.Helpers;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services.Base;
@@ -24,7 +24,7 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace OnlineExam.Application.Services
 {
-    public class UserService : CrudService<User>, IUserService
+    public class UserService : CrudService<User>,IUserService
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -77,6 +77,16 @@ namespace OnlineExam.Application.Services
             var users = await query
                 .Skip((searchModel.PageNumber - 1) * searchModel.PageSize)
                 .Take(searchModel.PageSize)
+                .Select(c => new
+                {
+                    Id = c.Id,
+                    MSSV = c.MSSV,
+                    FullName = c.FullName,
+                    DateOfBirth = c.DateOfBirth,
+                    Email = c.Email,
+                    Role = c.Role
+
+                })
                 .ToListAsync();
 
             return new ResultApiModel
@@ -188,11 +198,20 @@ namespace OnlineExam.Application.Services
             update.Email = user.Email;
             
             await base.UpdateAsync(update);
+            var result = new
+            {
+                Id = update.Id,
+                MSSV = update.MSSV,
+                FullName = update.FullName,
+                DateOfBirth = update.DateOfBirth,
+                Email = update.Email,
+                Role = update.Role
+            };
             return new ResultApiModel()
             {
                 Status = true,
                 MessageCode = ResponseCode.Success,
-                Data = update
+                Data = result
             };
 
         }
@@ -232,8 +251,18 @@ namespace OnlineExam.Application.Services
             var users = await query
                 .Skip((searchModel.PageNumber - 1) * searchModel.PageSize)
                 .Take(searchModel.PageSize)
-                .ToListAsync();
+                .Select(c => new
+                {
+                    Id = c.Id,
+                    MSSV= c.MSSV,
+                    FullName = c.FullName,
+                    DateOfBirth = c.DateOfBirth,
+                    Email = c.Email,
+                    Role = c.Role
 
+                })
+                .ToListAsync();
+                
             return new ResultApiModel
             {
                 Status = true,
@@ -343,6 +372,7 @@ namespace OnlineExam.Application.Services
             user.DateOfBirth = userUpdate.DateOfBirth;  
 
             await base.UpdateAsync(user);
+            
             return new ResultApiModel()
             {
                 Status = true,

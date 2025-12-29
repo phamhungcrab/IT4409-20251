@@ -15,6 +15,6 @@ namespace OnlineExam.Application.Interfaces
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public Task<AboutDto> GetAboutAsync();
+        public AboutDto GetAboutAsync();
     }
 }
