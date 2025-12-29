@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import AnnouncementBanner from '../../components/AnnouncementBanner';
-import ResultTable, { ResultItem } from '../../components/ResultTable';
 import { Link } from 'react-router-dom';
-import { useAnnouncements } from '../../hooks/useAnnouncements';
 import { examService } from '../../services/examService';
-import { resultService } from '../../services/resultService';
-import { ExamDto } from '../../types/exam';
+import { StudentExamDto } from '../../types/exam';
 
 /**
  * StudentDashboardProps:
@@ -33,202 +29,105 @@ interface StudentDashboardProps {
  * - Lưu vào state -> React render UI theo state đó
  */
 const StudentDashboard: React.FC<StudentDashboardProps> = ({ user }) => {
-  /**
-   * useAnnouncements(user):
-   * - Hook tự viết để lấy danh sách thông báo.
-   * - Truyền user vào để hook có thể lọc thông báo theo role/đối tượng (tuỳ thiết kế hệ thống).
-   *
-   * announcements:
-   * - Mảng các thông báo để đưa vào AnnouncementBanner.
-   */
-  const { announcements } = useAnnouncements(user);
+  const [upcomingExams, setUpcomingExams] = useState<StudentExamDto[]>([]);
 
-  /**
-   * upcomingExams:
-   * - Danh sách bài thi của sinh viên (bạn đang gọi getStudentExams).
-   * - Trong UI bạn gọi là “bài thi sắp tới”, nhưng dữ liệu có thể bao gồm nhiều trạng thái.
-   * - Nếu muốn “sắp tới” đúng nghĩa, bạn có thể lọc thêm theo thời gian startTime > now.
-   */
-  const [upcomingExams, setUpcomingExams] = useState<ExamDto[]>([]);
-
-  /**
-   * results:
-   * - Danh sách kết quả thi của sinh viên.
-   * - Được render qua component ResultTable.
-   */
-  const [results, setResults] = useState<ResultItem[]>([]);
-
-  /**
-   * useEffect: tải dữ liệu dashboard cho sinh viên.
-   *
-   * Khi nào chạy?
-   * - Chạy lần đầu khi component render.
-   * - Chạy lại khi user thay đổi (dependency [user]).
-   *
-   * Vì sao phụ thuộc user?
-   * - Vì user có thể null lúc app mới load (đang khôi phục session).
-   * - Khi user có rồi thì mới gọi API (tránh gọi với user.id undefined).
-   */
+  // Chỉ tải bài thi, không cần tải result ở đây nữa cho nhẹ
   useEffect(() => {
     const fetchStudentData = async () => {
-      // Chỉ gọi API khi có user và user.id
       if (user && user.id) {
         try {
-          /**
-           * 1) Lấy danh sách bài thi của sinh viên
-           * - examService.getStudentExams(user.id) thường trả về mảng ExamDto[]
-           */
           const examsData = await examService.getStudentExams(user.id);
           setUpcomingExams(examsData);
-
-          /**
-           * 2) Lấy danh sách kết quả thi của sinh viên
-           * - resultService.getResultsByStudent(user.id) trả về mảng ResultItem[]
-           */
-          const resultsData = await resultService.getResultsByStudent(user.id);
-          setResults(resultsData);
         } catch (err) {
-          /**
-           * Nếu API lỗi (mạng/BE lỗi/permission) thì log ra để debug.
-           * Gợi ý:
-           * - Về UI bạn có thể thêm state error để hiển thị thông báo đẹp hơn cho người dùng.
-           */
           console.error('Không thể tải dữ liệu dashboard của sinh viên', err);
         }
       }
     };
-
     fetchStudentData();
   }, [user]);
 
+  // Lấy tối đa 3 bài thi đầu tiên để hiển thị nhanh
+  const previewExams = upcomingExams.slice(0, 3);
+
   return (
     <>
-      {/* =========================
-          PHẦN 1: Header chào + thống kê nhanh
-          ========================= */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          {/* Dòng chào (trang trí) */}
           <p className="text-sm uppercase tracking-[0.35em] text-sky-200/70">
-            Chào mừng bạn quay lại
+            Xin chào {user?.fullName || 'Sinh viên'}
           </p>
-
-          {/* Tiêu đề chính */}
           <h1 className="text-3xl font-semibold text-white mt-1">
-            Bảng điều khiển kỳ thi của bạn
+            Tổng quan học tập
           </h1>
-
-          {/* Mô tả ngắn */}
           <p className="text-sm text-slate-300 mt-2">
-            Theo dõi thông báo, bài thi sắp tới và kết quả tại một nơi.
+            Bạn có <span className="text-emerald-400 font-bold">{upcomingExams.length}</span> bài thi được giao.
           </p>
         </div>
 
-        {/* Thẻ thống kê số bài thi (nhìn nhanh) */}
-        <div className="glass-card px-4 py-3 flex items-center gap-3">
-          {/* Hình tròn hiển thị số lượng bài thi */}
-          <div className="h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-200 font-semibold">
-            {upcomingExams.length}
-          </div>
-
-          <div>
-            <p className="text-xs text-slate-300">Bài thi sắp tới</p>
-
-            {/* Nếu có bài thi thì hiển thị “Sẵn sàng”, không có thì “Không có bài thi” */}
-            <p className="text-lg font-semibold text-white">
-              {upcomingExams.length > 0 ? 'Sẵn sàng làm bài' : 'Không có bài thi'}
-            </p>
-          </div>
+        <div className="glass-card px-6 py-4 flex items-center gap-4">
+           <Link to="/exams" className="btn btn-primary px-6 py-3 shadow-lg shadow-sky-500/20">
+              Xem tất cả bài thi →
+           </Link>
         </div>
       </div>
 
-      {/* =========================
-          PHẦN 2: Banner thông báo
-          ========================= */}
-      <AnnouncementBanner announcements={announcements} />
-
-      {/* =========================
-          PHẦN 3: 2 cột - Lịch bài thi + Kết quả gần đây
-          ========================= */}
-      <section className="grid gap-6 lg:grid-cols-2">
-        {/* CỘT TRÁI: Danh sách bài thi */}
-        <div className="glass-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm text-slate-300">Lịch</p>
-              <h2 className="text-xl font-semibold text-white">Bài thi sắp tới</h2>
-            </div>
-
-            {/* Tag “Đang cập nhật” chỉ mang tính trang trí */}
-            <span className="tag">
-              <span className="h-2 w-2 rounded-full bg-sky-400" aria-hidden />
-              Đang cập nhật
-            </span>
+      <section className="grid gap-6 lg:grid-cols-3 mt-6">
+        {/* CỘT TRÁI (2 phần): Hiển thị nhanh vài bài thi sắp tới */}
+        <div className="lg:col-span-2 glass-card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-white">Bài thi gần đây</h2>
+            <Link to="/exams" className="text-sm text-sky-400 hover:text-sky-300 hover:underline">
+              Xem toàn bộ
+            </Link>
           </div>
 
-          {/* Nếu có bài thi thì render danh sách, nếu không thì báo “không có” */}
-          {upcomingExams.length > 0 ? (
-            <ul className="space-y-3">
-              {upcomingExams.map((exam) => (
-                <li
-                  key={exam.id}
-                  className="panel p-4 flex items-start gap-3 hover:border-white/30"
+          {previewExams.length > 0 ? (
+            <div className="space-y-4">
+              {previewExams.map((exam) => (
+                <div
+                  key={exam.examId}
+                  className="panel p-4 flex items-center justify-between hover:bg-white/5 transition-colors border border-white/10 rounded-xl"
                 >
-                  {/* Avatar chữ cái: lấy 2 ký tự đầu của tên bài thi */}
-                  <div className="h-10 w-10 flex items-center justify-center rounded-full bg-sky-500/20 text-white font-semibold">
-                    {exam.name ? exam.name.slice(0, 2).toUpperCase() : 'EX'}
+                  <div className="flex items-center gap-4">
+                     <div className="h-12 w-12 flex items-center justify-center rounded-full bg-slate-800 border border-white/10 text-white font-bold text-lg">
+                        {exam.examName ? exam.examName.slice(0, 1).toUpperCase() : 'E'}
+                     </div>
+                     <div>
+                        <h3 className="text-lg font-medium text-white">{exam.examName}</h3>
+                        <div className="text-sm text-slate-400 flex gap-3 mt-1">
+                           <span>⏱ {exam.durationMinutes} phút</span>
+                           <span className="text-slate-600">|</span>
+                           <span>📅 {new Date(exam.startTime).toLocaleDateString('vi-VN')}</span>
+                        </div>
+                     </div>
                   </div>
 
-                  {/* Nội dung chính */}
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-white">{exam.name}</h3>
-                    <p className="text-sm text-slate-300">
-                      Bắt đầu: {new Date(exam.startTime).toLocaleString()}
-                    </p>
-                    <p className="text-sm text-slate-300">
-                      Kết thúc: {new Date(exam.endTime).toLocaleString()}
-                    </p>
-                  </div>
-
-                  {/**
-                   * Link:
-                   * - Link của react-router-dom giúp chuyển trang “không reload”.
-                   * - Tại đây bạn đang dẫn trực tiếp tới /exam/:id
-                   *
-                   * Lưu ý quan trọng:
-                   * - Ở flow dự án trước của bạn, vào phòng thi thường cần đi qua startExam
-                   *   để lấy wsUrl + questions (location.state).
-                   * - Nếu vào thẳng bằng Link như thế này, ExamRoomPage phải có “recovery logic”
-                   *   (bạn đã có) để tự gọi API và lấy lại state.
-                   */}
-                  <Link to={`/exam/${exam.id}`} className="btn btn-primary text-sm">
-                    Vào làm bài
+                  <Link to="/exams" className="btn btn-ghost border border-white/20 text-sm">
+                    Xem chi tiết
                   </Link>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           ) : (
-            <p className="text-slate-300">Hiện không có bài thi sắp tới.</p>
+            <div className="text-center py-10 text-slate-400 bg-white/5 rounded-xl border border-white/5 border-dashed">
+               🎉 Bạn hiện không có bài thi nào!
+            </div>
           )}
         </div>
 
-        {/* CỘT PHẢI: Kết quả gần đây */}
-        <div className="glass-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm text-slate-300">Thành tích</p>
-              <h2 className="text-xl font-semibold text-white">Kết quả gần đây</h2>
-            </div>
+        {/* CỘT PHẢI (1 phần): Thống kê hoặc menu nhanh */}
+        <div className="glass-card p-6 flex flex-col gap-4">
+           <h2 className="text-lg font-semibold text-white">Menu nhanh</h2>
 
-            {/* Tag “Đã cập nhật” chỉ mang tính trang trí */}
-            <span className="tag">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
-              Đã cập nhật
-            </span>
-          </div>
+           <Link to="/results" className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all group">
+              <div className="text-emerald-400 font-medium mb-1 group-hover:text-emerald-300">Kết quả thi</div>
+              <p className="text-xs text-slate-400">Xem lại điểm số và lịch sử làm bài của bạn.</p>
+           </Link>
 
-          {/* ResultTable là component con, nhận results[] để render bảng */}
-          <ResultTable results={results} />
+           <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+              <div className="text-purple-400 font-medium mb-1">Hồ sơ cá nhân</div>
+              <p className="text-xs text-slate-400">Cập nhật thông tin và mật khẩu.</p>
+           </div>
         </div>
       </section>
     </>

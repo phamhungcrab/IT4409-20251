@@ -20,6 +20,7 @@
     "welcomeBack": "Welcome back"
   },
   "nav": {
+    "home": "Home",
     "exams": "My Exams",
     "results": "Results",
     "admin": "Admin Dashboard",

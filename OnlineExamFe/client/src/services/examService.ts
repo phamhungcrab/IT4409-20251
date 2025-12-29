@@ -14,7 +14,7 @@
  */
 
 import apiClient from '../utils/apiClient';
-import { ExamDto, ExamGenerateResultDto } from '../types/exam';
+import { ExamDto, ExamGenerateResultDto, StudentExamDto } from '../types/exam';
 
 /**
  * CreateExamForTeacherOrAdmin:
@@ -155,8 +155,8 @@ export const examService = {
    * - Lấy danh sách bài thi mà sinh viên được giao.
    * - Gọi GET /api/Exam/get-by-student?studentId=...
    */
-  getStudentExams: async (studentId: number): Promise<ExamDto[]> => {
-    return await apiClient.get<ExamDto[]>(`/api/Exam/get-by-student?studentId=${studentId}`);
+  getStudentExams: async (studentId: number): Promise<StudentExamDto[]> => {
+    return await apiClient.get<StudentExamDto[]>(`/api/Exam/student/${studentId}/exams`);
   },
 
   /**

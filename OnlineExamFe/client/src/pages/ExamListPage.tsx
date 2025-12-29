@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { examService } from '../services/examService';
-import { ExamDto, ExamGenerateResultDto } from '../types/exam';
+import { ExamDto, ExamGenerateResultDto, StudentExamDto } from '../types/exam';
 import useAuth from '../hooks/useAuth';
 
 /**
@@ -49,7 +49,7 @@ const ExamListPage: React.FC = () => {
    * exams:
    * - Danh sách bài thi của sinh viên.
    */
-  const [exams, setExams] = useState<ExamDto[]>([]);
+  const [exams, setExams] = useState<StudentExamDto[]>([]);
 
   /**
    * loading:
@@ -345,10 +345,10 @@ const ExamListPage: React.FC = () => {
         // Có bài thi -> render dạng lưới card
         <div className="grid gap-4 md:grid-cols-2">
           {exams.map((exam) => (
-            <div key={exam.id} className="glass-card p-5 flex flex-col gap-4 justify-between">
+            <div key={exam.examId} className="glass-card p-5 flex flex-col gap-4 justify-between">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-semibold text-white">{exam.name}</h3>
+                  <h3 className="text-xl font-semibold text-white">{exam.examName}</h3>
 
                   {/* Tag trạng thái bài thi (ví dụ: not_started / in_progress / completed...) */}
                   <span className="tag">
@@ -371,7 +371,7 @@ const ExamListPage: React.FC = () => {
               <div className="flex gap-2">
                 {/* Nút bắt đầu bài thi */}
                 <button
-                  onClick={() => handleStartExam(exam.id)}
+                  onClick={() => handleStartExam(exam.examId)}
                   className="btn btn-primary hover:-translate-y-0.5 flex-1"
                 >
                   {t('exam.startExam')}

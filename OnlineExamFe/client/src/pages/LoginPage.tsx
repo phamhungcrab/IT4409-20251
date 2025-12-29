@@ -181,10 +181,9 @@ const LoginPage: React.FC = () => {
 
       if (role === 'Admin') {
         navigate('/admin', { replace: true });
-      } else if (role === 'Teacher') {
-        navigate('/', { replace: true });
       } else {
-        navigate('/exams', { replace: true });
+        // Cả Teacher và Student đều về trang chủ (Dashboard riêng theo role)
+        navigate('/', { replace: true });
       }
     } catch (err) {
       /**

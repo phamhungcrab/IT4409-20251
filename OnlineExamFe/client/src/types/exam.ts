@@ -47,6 +47,27 @@ export interface ExamDto {
 }
 
 /**
+ * StudentExamDto:
+ * - Dữ liệu bài thi trả về riêng cho sinh viên (từ endpoint /api/Exam/student/.../exams).
+ * - Backend trả về các trường theo naming convention khác với ExamDto cơ bản.
+ *
+ * Các trường:
+ * - examId         : mã bài thi
+ * - examName       : tên bài thi
+ * - startTime/endTime: thời gian
+ * - durationMinutes: thời lượng
+ * - status         : trạng thái (COMPLETED, null...)
+ */
+export interface StudentExamDto {
+  examId: number;
+  examName: string;
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+  status?: string | null;
+}
+
+/**
  * UpcomingExamDto:
  * - Một kiểu dữ liệu “phục vụ UI” (view model) cho danh sách bài sắp diễn ra.
  *
