@@ -124,18 +124,9 @@ export const examService = {
    * - Gọi POST /api/Exam/create-exam
    *
    * Trả về ExamDto (thông tin bài thi vừa tạo).
-   *
-   * Tại sao lại có `as unknown as Promise<ExamDto>`?
-   * - Thường là do apiClient của bạn có interceptor “bóc dữ liệu”,
-   *   làm TypeScript không suy luận đúng kiểu trả về.
-   * - Ép kiểu giúp TS không báo lỗi, nhưng về lâu dài nên chuẩn hóa apiClient
-   *   để khỏi phải ép kiểu ở mọi nơi.
    */
   createExam: async (data: CreateExamForTeacherOrAdmin): Promise<ExamDto> => {
-    return (await apiClient.post<ExamDto>(
-      '/api/Exam/create-exam',
-      data
-    )) as unknown as Promise<ExamDto>;
+    return await apiClient.post<ExamDto>('/api/Exam/create-exam', data);
   },
 
   /**
@@ -145,17 +136,9 @@ export const examService = {
    *
    * Trả về ExamStartResponse:
    * - status, wsUrl, data...
-   *
-   * FE dựa vào status để quyết định:
-   * - create/in_progress => vào phòng thi
-   * - completed => chuyển qua results
-   * - expired => báo hết hạn
    */
   startExam: async (data: ExamStartRequest): Promise<ExamStartResponse> => {
-    return (await apiClient.post<ExamStartResponse>(
-      '/api/Exam/start-exam',
-      data
-    )) as unknown as Promise<ExamStartResponse>;
+    return await apiClient.post<ExamStartResponse>('/api/Exam/start-exam', data);
   },
 
   /**
@@ -164,33 +147,16 @@ export const examService = {
    * - Trả về ExamGenerateResponse (message + exam payload).
    */
   generateExam: async (data: CreateExamForStudentDto): Promise<ExamGenerateResponse> => {
-    return (await apiClient.post<ExamGenerateResponse>(
-      '/api/Exam/generate',
-      data
-    )) as unknown as Promise<ExamGenerateResponse>;
+    return await apiClient.post<ExamGenerateResponse>('/api/Exam/generate', data);
   },
 
   /**
    * getStudentExams(studentId):
    * - Lấy danh sách bài thi mà sinh viên được giao.
    * - Gọi GET /api/Exam/get-by-student?studentId=...
-   *
-   * Lưu ý người mới:
-   * - Dùng query string (?studentId=) để truyền tham số lên server.
-   *
-   * Nhược điểm của code hiện tại:
-   * - Bạn gọi apiClient.get<any[]> rồi cast sang ExamDto[]
-   * - Nếu backend trả sai format, TS cũng không bắt được.
-   *
-   * Gợi ý:
-   * - Tốt hơn là: apiClient.get<ExamDto[]>(url) và/hoặc dùng unwrap chuẩn.
    */
   getStudentExams: async (studentId: number): Promise<ExamDto[]> => {
-    const res = await apiClient.get<any>(`/api/Exam/get-by-student?studentId=${studentId}`);
-
-    // Ép kiểu để TypeScript hiểu là ExamDto[]
-    // (thực tế: nếu res bị bọc {data: ...} thì cách này vẫn có thể sai)
-    return res as unknown as Promise<ExamDto[]>;
+    return await apiClient.get<ExamDto[]>(`/api/Exam/get-by-student?studentId=${studentId}`);
   },
 
   /**
@@ -199,8 +165,6 @@ export const examService = {
    * - Gọi GET /api/Exam/get-all
    */
   getAllExams: async (): Promise<ExamDto[]> => {
-    return (await apiClient.get<ExamDto[]>(
-      '/api/Exam/get-all'
-    )) as unknown as Promise<ExamDto[]>;
+    return await apiClient.get<ExamDto[]>('/api/Exam/get-all');
   }
 };

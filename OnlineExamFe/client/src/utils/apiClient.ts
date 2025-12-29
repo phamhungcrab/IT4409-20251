@@ -20,10 +20,14 @@ import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'ax
  * - T = any là “mặc định” nếu không truyền kiểu cụ thể.
  */
 export interface ResultApiModel<T = any> {
-  data: T;
+  data?: T;
   messageCode?: number;
   isStatus?: boolean;
   status?: boolean;
+  Data?: T;
+  MessageCode?: number;
+  IsStatus?: boolean;
+  Status?: boolean;
 }
 
 /**
@@ -78,48 +82,48 @@ apiClient.interceptors.request.use(
  * 2) Chuẩn hóa logic thành công/thất bại dựa trên status/isStatus
  * 3) Xử lý trường hợp status không phải boolean (VD: 'create', 'in_progress'...) => trả nguyên data
  */
+// Response Interceptor: Tự động xử lý và "bóc" dữ liệu
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
-    const data = response.data;
+    const res = response.data;
 
-    // Nếu data là object thì kiểm tra xem có status/isStatus hay không
-    if (data && typeof data === 'object') {
-      const hasStatus = 'status' in data;
-      const hasIsStatus = 'isStatus' in data;
+    // Trường hợp 0: Không có dữ liệu
+    if (!res) return res;
 
-      // Nếu có status hoặc isStatus thì có khả năng đây là ResultApiModel
-      if (hasStatus || hasIsStatus) {
-        const result = data as ResultApiModel;
+    // Trường hợp 1: ResultApiModel chuẩn (có field status hoặc isStatus)
+    // Ưu tiên check các field này để xác định thành công/thất bại
+    const status = res.status ?? res.Status;
+    const isStatus = res.isStatus ?? res.IsStatus;
 
-        // Nếu có status thì ưu tiên dùng status, không có thì dùng isStatus
-        const success = hasStatus ? result.status : result.isStatus;
+    // Nếu tồn tại một trong hai dấu hiệu của ResultApiModel
+    if (status !== undefined || isStatus !== undefined) {
+      // Xác định cờ success (ưu tiên status trước)
+      const success = status !== undefined ? status : isStatus;
 
-        /**
-         * Chỉ coi đây là “khung bọc chuẩn” khi success là boolean.
-         * - success === true  => trả về result.data (dữ liệu thật)
-         * - success === false => reject để đi vào catch
-         *
-         * Vì sao cần check typeof success === 'boolean'?
-         * - Vì trong project của bạn có chỗ status là string:
-         *   status: 'create' | 'in_progress' | 'completed'...
-         * - Khi đó data không phải ResultApiModel theo kiểu boolean => ta không bóc data, trả nguyên data.
-         */
-        if (typeof success === 'boolean') {
-          if (success) {
-            return result.data;
-          }
-          // Nếu backend báo thất bại mà không ném HTTP error code,
-          // ta tự reject để UI xử lý như một lỗi.
-          return Promise.reject(new Error('API Error: Operation failed'));
+      // Chỉ xử lý nếu success là boolean
+      if (typeof success === 'boolean') {
+        if (success) {
+          // Thành công -> Trả về data (ưu tiên res.data rồi đến res.Data)
+          return res.data ?? res.Data ?? res;
+        } else {
+          // Thất bại -> Reject với message lỗi
+          const message = res.message ?? res.Message ?? res.data ?? res.Data ?? 'API Error';
+          return Promise.reject(new Error(String(message)));
         }
-
-        // status tồn tại nhưng không phải boolean (VD: 'create', 'in_progress') => trả nguyên data
-        return data;
       }
     }
 
-    // Nếu không có status/isStatus => trả luôn data
-    return data;
+    // Trường hợp 2: Backend trả về object chỉ có duy nhất key 'data' hoặc 'Data' (Wrapper thuần túy)
+    // Ví dụ: { "data": [...] } mà không có status
+    if (typeof res === 'object') {
+      // Check nếu object chỉ có 1 key là 'data'
+      if ('data' in res && Object.keys(res).length === 1) return res.data;
+      // Check nếu object chỉ có 1 key là 'Data'
+      if ('Data' in res && Object.keys(res).length === 1) return res.Data;
+    }
+
+    // Trường hợp 3: Không khớp các case trên, trả nguyên dữ liệu gốc
+    return res;
   },
 
   /**
@@ -170,4 +174,21 @@ apiClient.interceptors.response.use(
   }
 );
 
-export default apiClient;
+// Mở rộng interface của Axios để TypeScript hiểu rằng response trả về là T (đã bóc data)
+// thay vì AxiosResponse<T>
+interface CustomAxiosInstance {
+  get<T = any>(url: string, config?: InternalAxiosRequestConfig): Promise<T>;
+  post<T = any>(url: string, data?: any, config?: InternalAxiosRequestConfig): Promise<T>;
+  put<T = any>(url: string, data?: any, config?: InternalAxiosRequestConfig): Promise<T>;
+  delete<T = any>(url: string, config?: InternalAxiosRequestConfig): Promise<T>;
+
+  // Giữ lại các thuộc tính gốc của AxiosInstance mà ta không override
+  interceptors: {
+    request: import('axios').AxiosInterceptorManager<InternalAxiosRequestConfig>;
+    response: import('axios').AxiosInterceptorManager<AxiosResponse>;
+  };
+  defaults: Omit<import('axios').AxiosDefaults, 'headers'> & { headers: import('axios').HeadersDefaults };
+}
+
+// Export apiClient với kiểu đã được override
+export default apiClient as unknown as CustomAxiosInstance;
