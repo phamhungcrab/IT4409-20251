@@ -18,5 +18,6 @@ namespace OnlineExam.Application.Interfaces
         Task<ExamGenerateResultDto> GetCurrentQuestionForExam(int examId, int studentId);
         Task<ExamResultPreviewDto> GetDetailResultExam(int examId, int studentId);
         Task<ExamResultSummaryDto> GetResultSummary(int examId, int studentId);
+        Task<IEnumerable<GetListExamForStudentDto>> GetListExamForStudent(int studentId);
     }
 }

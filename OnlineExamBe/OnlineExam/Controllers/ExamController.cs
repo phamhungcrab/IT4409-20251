@@ -234,5 +234,12 @@ namespace OnlineExam.Controllers
             var result = await _examService.GetResultSummary(examId, studentId);
             return Ok(result);
         }
+
+        [HttpGet("student/{studentId}/exams")]
+        public async Task<IActionResult> GetExamsForStudent(int studentId)
+        {
+            var result = await _examService.GetListExamForStudent(studentId);
+            return Ok(result);
+        }
     }
 }
