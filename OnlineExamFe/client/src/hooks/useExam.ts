@@ -17,6 +17,7 @@ interface UseExamProps {
   onSynced?: (answers?: any) => void;
   onSubmitted?: (result: any) => void;
   onError?: (error: string) => void;
+  onTimeSync?: (remainingSeconds: number) => void;
 }
 
 /**
@@ -34,6 +35,7 @@ export const useExam = ({
   onSynced,
   onSubmitted,
   onError,
+  onTimeSync, // NEW
 }: UseExamProps) => {
   /**
    * wsRef: lưu đối tượng WebSocket hiện tại.
@@ -44,6 +46,9 @@ export const useExam = ({
    * - useRef giữ giá trị “xuyên suốt” giữa các lần render, nhưng thay đổi ref không gây re-render.
    */
   const wsRef = useRef<WebSocket | null>(null);
+
+  // Ref để lưu heartbeat interval (cleanup khi đóng WS)
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   /**
    * connectionState: trạng thái kết nối để UI hiển thị:
@@ -81,6 +86,7 @@ export const useExam = ({
   const onSyncedRef = useRef(onSynced);
   const onSubmittedRef = useRef(onSubmitted);
   const onErrorRef = useRef(onError);
+  const onTimeSyncRef = useRef(onTimeSync); // NEW
 
   /**
    * Mỗi khi props callback thay đổi, ta cập nhật ref.current.
@@ -91,7 +97,8 @@ export const useExam = ({
     onSyncedRef.current = onSynced;
     onSubmittedRef.current = onSubmitted;
     onErrorRef.current = onError;
-  }, [onSynced, onSubmitted, onError]);
+    onTimeSyncRef.current = onTimeSync; // NEW
+  }, [onSynced, onSubmitted, onError, onTimeSync]);
 
   /**
    * connect(): hàm tạo kết nối WebSocket.
@@ -136,11 +143,26 @@ export const useExam = ({
     const ws = monitoringService.connect(urlWithToken, (data) => {
       console.log('WS Message:', data);
 
+      // NEW: Xử lý message thời gian từ BE (số giây còn lại)
+      // BE gửi dạng số hoặc chuỗi số (vd: 59 hoặc "59")
+      if (typeof data === 'number') {
+        onTimeSyncRef.current?.(data);
+        return;
+      }
+      if (typeof data === 'string' && /^\d+$/.test(data.trim())) {
+        onTimeSyncRef.current?.(parseInt(data.trim(), 10));
+        return;
+      }
+
+      // Xử lý các message khác
       if (data.status === 'submitted') {
         onSubmittedRef.current?.(data);
+      } else if (data.status === 'Heartbeat') {
+        // Heartbeat ack từ BE, không cần làm gì
+        console.log('Heartbeat ack received');
       } else if (Array.isArray(data)) {
         onSyncedRef.current?.(data);
-      } else if (data.type === 'error') {
+      } else if (data.type === 'error' || data.status === 'error') {
         onErrorRef.current?.(data.message);
       }
     });
@@ -158,6 +180,17 @@ export const useExam = ({
 
       // Gửi yêu cầu đồng bộ state (server trả về danh sách đáp án đã lưu)
       ws.send(JSON.stringify({ Action: 'SyncState' }));
+
+      // NEW: Thiết lập Heartbeat interval (gửi mỗi 30 giây)
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+      }
+      heartbeatIntervalRef.current = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ Action: 'Heartbeat' }));
+          console.log('Heartbeat sent');
+        }
+      }, 30000); // 30 giây
     };
 
     /**
@@ -170,6 +203,12 @@ export const useExam = ({
       console.log('WS Closed');
       setConnectionState('disconnected');
       wsRef.current = null;
+
+      // NEW: Cleanup heartbeat interval
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
 
       /**
        * Tự reconnect (Auto-reconnect):
@@ -274,10 +313,21 @@ export const useExam = ({
     }
   }, []);
 
-  // Hook trả về trạng thái kết nối và 2 hành động chính
+  /**
+   * requestSync: Gửi yêu cầu SyncState để lấy lại đáp án đã lưu.
+   * Dùng khi: đổi máy thi, reconnect thủ công.
+   */
+  const requestSync = useCallback(() => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ Action: 'SyncState' }));
+    }
+  }, []);
+
+  // Hook trả về trạng thái kết nối và các hành động
   return {
     connectionState,
     syncAnswer,
     submitExam,
+    requestSync, // NEW: Cho phép gọi SyncState thủ công
   };
 };

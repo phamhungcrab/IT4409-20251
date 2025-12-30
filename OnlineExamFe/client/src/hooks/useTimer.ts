@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 /**
  * useTimer
  * - Giữ đồng hồ đếm ngược, có thể khôi phục sau khi F5 bằng cách lưu thời điểm bắt đầu vào sessionStorage.
+ * - Hỗ trợ đồng bộ thời gian từ Backend qua setRemainingTime.
  */
 export const useTimer = (
   initialMinutes: number,
@@ -28,9 +29,15 @@ export const useTimer = (
   const [timeLeft, setTimeLeft] = useState(computeInitial);
   const expiredRef = useRef(false);
 
+  // Flag để biết có đang dùng sync từ BE hay không
+  const usingSyncRef = useRef(false);
+
   // Khi duration thay đổi (load lại từ server), tính lại thời gian còn lại dựa trên mốc start cũ
   useEffect(() => {
-    setTimeLeft(computeInitial());
+    // Chỉ tính lại nếu chưa dùng sync từ BE
+    if (!usingSyncRef.current) {
+      setTimeLeft(computeInitial());
+    }
   }, [initialMinutes]);
 
   useEffect(() => {
@@ -42,12 +49,32 @@ export const useTimer = (
       return;
     }
 
+    // Nếu đang sync từ BE thì không cần interval local (BE gửi mỗi giây)
+    if (usingSyncRef.current) {
+      return;
+    }
+
     const timerId = setInterval(() => {
       setTimeLeft((prev) => prev - 1);
     }, 1000);
 
     return () => clearInterval(timerId);
   }, [timeLeft, onExpire]);
+
+  /**
+   * setRemainingTime: Cho phép cập nhật thời gian từ bên ngoài (từ WebSocket).
+   * Khi gọi hàm này, timer sẽ chuyển sang chế độ sync từ BE.
+   */
+  const setRemainingTime = useCallback((seconds: number) => {
+    usingSyncRef.current = true; // Đánh dấu đang dùng sync từ BE
+    setTimeLeft(seconds > 0 ? seconds : 0);
+
+    // Kiểm tra hết giờ
+    if (seconds <= 0 && !expiredRef.current) {
+      expiredRef.current = true;
+      onExpire?.();
+    }
+  }, [onExpire]);
 
   const formatTime = (totalSec: number) => {
     const h = Math.floor(totalSec / 3600);
@@ -65,5 +92,6 @@ export const useTimer = (
   return {
     timeLeft,
     formattedTime: formatTime(timeLeft),
+    setRemainingTime, // NEW: Cho phép cập nhật từ WebSocket
   };
 };

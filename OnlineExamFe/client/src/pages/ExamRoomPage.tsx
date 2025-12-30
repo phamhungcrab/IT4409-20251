@@ -199,10 +199,15 @@ const ExamRoomPage: React.FC = () => {
    * - onSubmitted: server báo nộp xong -> ta lưu kết quả để hiện modal + điều hướng
    * - onError: báo lỗi
    */
-  const { connectionState, syncAnswer, submitExam } = useExam({
+  const { connectionState, syncAnswer, submitExam, requestSync } = useExam({
     wsUrl: internalWsUrl || '',
     studentId: user?.id || 0,
     examId: Number(examId),
+
+    // NEW: Đồng bộ timer từ BE (BE gửi số giây còn lại mỗi giây)
+    onTimeSync: (remainingSeconds) => {
+      setRemainingTime(remainingSeconds);
+    },
 
     onSynced: (syncedData) => {
       /**
@@ -212,7 +217,7 @@ const ExamRoomPage: React.FC = () => {
        * - Backend (C#) đôi khi trả JSON theo PascalCase: QuestionId, Answer...
        * - Frontend (JS/TS) thường dùng camelCase: questionId, answer...
        *
-       * Vì vậy ta “đọc linh hoạt” nhiều tên field để tránh lệch format.
+       * Vì vậy ta "đọc linh hoạt" nhiều tên field để tránh lệch format.
        */
       if (Array.isArray(syncedData)) {
         const incoming: Record<number, any> = {};
@@ -264,8 +269,9 @@ const ExamRoomPage: React.FC = () => {
    * - formattedTime: chuỗi hiển thị kiểu "59:12"
    * - onTimeUp: callback khi hết giờ -> auto submit
    * - storageKey: giúp giữ mốc thời gian khi refresh
+   * - setRemainingTime: cho phép cập nhật từ WebSocket (BE gửi mỗi giây)
    */
-  const { formattedTime } = useTimer(
+  const { formattedTime, setRemainingTime } = useTimer(
     internalDuration,
     () => {
       alert(t('exam.timeUp'));
@@ -610,7 +616,7 @@ const ExamRoomPage: React.FC = () => {
    * getConnectionStatusText:
    * - Đổi trạng thái kết nối WebSocket thành text để hiển thị.
    */
-  
+
   const getConnectionStatusText = (state: string) => {
     switch (state) {
       case 'connected':

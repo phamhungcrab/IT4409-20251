@@ -80,6 +80,21 @@ builder.Services.AddSession(option =>
     option.Cookie.IsEssential = true;
 });
 
+// CORS - Cho phép Frontend kết nối (bao gồm WebSocket)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:5173",
+                "https://localhost:5173",
+                "http://127.0.0.1:5173"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
 
 builder.Services.AddHttpContextAccessor();
 
@@ -118,6 +133,9 @@ app.UseSwaggerUI();
 
 
 app.UseHttpsRedirection();
+
+// Áp dụng CORS trước WebSocket
+app.UseCors("AllowFrontend");
 
 app.UseWebSockets();
 

@@ -166,5 +166,17 @@ export const examService = {
    */
   getAllExams: async (): Promise<ExamDto[]> => {
     return await apiClient.get<ExamDto[]>('/api/Exam/get-all');
+  },
+
+  /**
+   * getCurrentQuestion(examId, studentId):
+   * - Lấy lại đề thi đang làm dở (khi status = in_progress).
+   * - Dùng khi: đổi máy thi, refresh mà mất localStorage.
+   * - Gọi GET /api/Exam/exams/{examId}/current-question?studentId={studentId}
+   */
+  getCurrentQuestion: async (examId: number, studentId: number): Promise<ExamGenerateResultDto> => {
+    return await apiClient.get<ExamGenerateResultDto>(
+      `/api/Exam/exams/${examId}/current-question?studentId=${studentId}`
+    );
   }
 };

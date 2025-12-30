@@ -172,11 +172,10 @@ const ExamListPage: React.FC = () => {
           const parsed = new URL(wsUrl);
           if (
             (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') &&
-            parsed.protocol === 'wss:' &&
-            parsed.port === '7239'
+            parsed.protocol === 'wss:'
           ) {
             parsed.protocol = 'ws:';
-            parsed.port = '7238';
+            // Giữ nguyên port từ backend (không chuyển đổi)
             wsUrl = parsed.toString();
           }
         } catch {
@@ -220,21 +219,32 @@ const ExamListPage: React.FC = () => {
       const cacheKey = `exam_${examId}_payload`;
 
       /**
-       * Nếu đang in_progress mà backend không trả data,
-       * -> thử lấy lại payload từ localStorage.
+       * Nếu đang in_progress mà backend không trả data:
+       * 1) Thử gọi API current-question để lấy đề từ server
+       * 2) Fallback: lấy từ localStorage nếu API fail
        */
       if (!examPayload && response.status === 'in_progress') {
-        const cached = localStorage.getItem(cacheKey);
-        if (cached) {
-          try {
-            examPayload = JSON.parse(cached);
-          } catch (e) {
-            console.warn('Không đọc được payload cache', e);
+        try {
+          console.log('[ExamListPage] Gọi API current-question để khôi phục đề...');
+          examPayload = await examService.getCurrentQuestion(examId, user.id);
+          // Lưu vào cache để lần sau dùng
+          localStorage.setItem(cacheKey, JSON.stringify(examPayload));
+        } catch (apiErr) {
+          console.warn('[ExamListPage] Không lấy được từ server, thử localStorage...', apiErr);
+
+          // Fallback - lấy từ localStorage
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            try {
+              examPayload = JSON.parse(cached);
+            } catch (e) {
+              console.warn('Không đọc được payload cache', e);
+            }
           }
         }
       } else if (examPayload) {
         /**
-         * Nếu backend có trả payload mới,
+         * Nếu backend có trả payload mới (status = create),
          * -> lưu lại để lần sau resume dùng.
          */
         localStorage.setItem(cacheKey, JSON.stringify(examPayload));
