@@ -1,4 +1,4 @@
-import { uploadUsersJson } from "../services/UserApi";
+import { uploadUsersJson } from "../services/(admin)/UserApi";
 import { parseExcel } from "../utils/parseExcel";
 import { useState } from "react";
 

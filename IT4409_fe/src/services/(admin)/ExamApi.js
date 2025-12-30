@@ -1,6 +1,6 @@
-import { api } from "../lib/axiosClient";
+import { api } from "../../lib/axiosClient";
 
-const getAllExams = async () => {
+const getAllExamBlueprint = async () => {
     try {
         const exams = await api.get("/Exam/get-all");
         return exams.data;

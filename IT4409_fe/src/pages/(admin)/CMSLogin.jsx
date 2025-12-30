@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { loginApi } from "../../services/AuthApi";
-import { api } from "../../lib/axiosClient";
+import { loginApi } from "../../services/(admin)/AuthApi";
+// import { api } from "../../lib/axiosClient";
 
 import toast from "react-hot-toast";
 
 
-export const CMSLogin = () => {
+const CMSLogin = () => {
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -41,7 +41,7 @@ export const CMSLogin = () => {
             console.log("Login data: ", data.data);
 
             if (data.data && data.status === true) {
-                localStorage.setItem("session", data.data);
+                localStorage.setItem("session", data.data.sessionString);
                 toast.success("Đăng nhập thành công!");
                 navigate("/admin/home", { replace: true });
 
@@ -135,3 +135,5 @@ export const CMSLogin = () => {
         </div>
     );
 };
+
+export default CMSLogin;

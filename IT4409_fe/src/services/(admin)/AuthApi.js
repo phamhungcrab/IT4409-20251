@@ -1,4 +1,4 @@
-import { api } from "../lib/axiosClient";
+import { api } from "../../lib/axiosClient";
 
 export async function loginApi(credentials) {
     try {

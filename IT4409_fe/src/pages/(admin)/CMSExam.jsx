@@ -1,17 +1,17 @@
 // Quản lý bài kiểm tra
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Form } from "../../components/Form";
 import { CommonButton } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { DataTable } from "../../components/DataTable";
 import { ExamCard } from "../../components/Card";
 import { useNavigate } from "react-router-dom";
-import { createExam, generateExam, getAllExams } from "../../services/ExamApi";
-import { getAllClasses } from "../../services/ClassApi";
+import { createExam, generateExam, getAllExams } from "../../services/(admin)/ExamApi";
+import { getAllClasses } from "../../services/(admin)/ClassApi";
 
 
-export const CMSExam = () => {
+const CMSExam = () => {
 
     const [exams, setExams] = useState([]);
     const [open, setOpen] = useState(false);
@@ -24,7 +24,7 @@ export const CMSExam = () => {
 
     const fetchAllExams = async () => {
         try {
-            const examRes = await getAllExams();
+            const examRes = await getAllExamBlueprint();
             setExams(examRes.data.$values);
 
             const classRes = await getAllClasses();
@@ -184,3 +184,5 @@ export const CMSExam = () => {
         </div>
     )
 }
+
+export default CMSExam;

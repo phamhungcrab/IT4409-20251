@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
-export const CMSSignup = () => {
+const CMSSignup = () => {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -155,3 +155,5 @@ export const CMSSignup = () => {
         </div>
     )
 }
+
+export default CMSSignup;

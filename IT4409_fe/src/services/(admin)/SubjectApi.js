@@ -1,4 +1,4 @@
-import { api } from "../lib/axiosClient";
+import { api } from "../../lib/axiosClient";
 
 const getAllSubject = async () => {
     try {

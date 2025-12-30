@@ -4,10 +4,11 @@ import { Modal } from "../../components/Modal";
 import { Form } from "../../components/Form";
 import { CommonButton } from "../../components/Button";
 import { ConfirmModal } from "../../components/ConfirmModal";
-import { createSingleUser, deleteUser, editUser, getAllUsers, uploadUsersJson } from "../../services/UserApi";
+import { createSingleUser, deleteUser, editUser, getAllUsers, uploadUsersJson } from "../../services/(admin)/UserApi";
 import { UsersFormData } from "../../components/UsersFormData";
+import toast from "react-hot-toast";
 
-export const CMSAccounts = () => {
+const CMSAccounts = () => {
     const [accounts, setAccounts] = useState([]);
     const [open, setOpen] = useState(false);
     const [editData, setEditData] = useState(null);
@@ -18,7 +19,7 @@ export const CMSAccounts = () => {
         const getUsers = async () => {
             const accountData = await getAllUsers();
             // console.log("Data account: ", data)
-            const formatted = accountData.data.$values.map(u => ({
+            const formatted = accountData.map(u => ({
                 ...u,
                 dateOfBirth: u.dateOfBirth
                     ? new Date(u.dateOfBirth).toLocaleDateString("vi-VN")
@@ -114,6 +115,7 @@ export const CMSAccounts = () => {
 
         if (res) {
             setAccounts(prev => prev.filter(acc => acc.id !== deleteId));
+            toast.success("Đã xóa tài khoản!");
         }
 
         setDeleteId(null);
@@ -125,18 +127,21 @@ export const CMSAccounts = () => {
         if (editData) {
             // Update
             const edited = await editUser(editData);
-            setAccounts(subjects.map(q =>
+            setAccounts(accounts.map(q =>
                 q.id === editData.id ? { ...editData, edited } : q
             ));
+            toast.success("Sửa tài khoản thành công!")
         } else {
             // Create
             if (!Array.isArray(formData)) {
                 const created = await createSingleUser(formData);
                 // console.log("Created user (cms account): ", created);
                 setAccounts(prev => [...prev, created]);
+                toast.success("Tạo tài khoản thành công!")
             } else {
                 const createdList = await uploadUsersJson(formData);
                 setAccounts(prev => [...prev, ...createdList]);
+                toast.success("Thêm nhiều tài khoản mới thành công!")
             }
         }
         setOpen(false);
@@ -156,14 +161,10 @@ export const CMSAccounts = () => {
                     <input
                         type="text"
                         placeholder="Tìm kiếm theo tên hoặc email..."
-                        className="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg text-sm 
-              focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none 
-              placeholder-gray-400 shadow-sm"
+                        className="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                     />
                     <select
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white 
-              focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none 
-              shadow-sm"
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                     >
                         <option value="">Tất cả vai trò</option>
                         <option value="student">Sinh viên</option>
@@ -234,3 +235,5 @@ export const CMSAccounts = () => {
         </div>
     );
 };
+
+export default CMSAccounts;

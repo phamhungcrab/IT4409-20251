@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CommonButton } from "../../components/Button";
 import { DataTable } from "../../components/DataTable";
-import { getStudentsOfClass } from "../../services/ClassApi";
+import { getStudentsOfClass } from "../../services/(admin)/ClassApi";
 
-export const CMSClassDetail = () => {
+const CMSClassDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -18,7 +18,7 @@ export const CMSClassDetail = () => {
       // setClassInfo(classRes.data);
 
       const studentRes = await getStudentsOfClass(id);
-      const list = studentRes.data?.$values || [];
+      const list = studentRes.data || [];
       setStudents(list);
     } catch (error) {
       console.error("Lỗi tải chi tiết lớp:", error);
@@ -116,3 +116,5 @@ export const CMSClassDetail = () => {
     </div>
   );
 };
+
+export default CMSClassDetail

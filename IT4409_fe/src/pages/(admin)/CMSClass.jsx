@@ -6,13 +6,13 @@ import { CommonButton } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { ExamCard } from "../../components/Card";
 import { AddStudentToClassForm } from "../../components/AddStudentToClassForm";
-import { createClass, deleteClass, getAllClasses, updateClass } from "../../services/ClassApi";
-import { getAllUsers } from "../../services/UserApi";
-import { getAllSubject } from "../../services/SubjectApi";
+import { createClass, deleteClass, getAllClasses, updateClass } from "../../services/(admin)/ClassApi";
+import { getAllUsers } from "../../services/(admin)/UserApi";
+import { getAllSubject } from "../../services/(admin)/SubjectApi";
 import { ConfirmModal } from "../../components/ConfirmModal";
 import { useNavigate } from "react-router-dom";
 
-export const CMSClass = () => {
+const CMSClass = () => {
 
     const [classes, setClasses] = useState([]);
     const [open, setOpen] = useState(false);
@@ -29,19 +29,19 @@ export const CMSClass = () => {
     const fetchAllData = async () => {
         try {
             const classRes = await getAllClasses();
-            setClasses(classRes.data.$values);
+            setClasses(classRes.data);
 
             const teacherRes = await getAllUsers();
 
             console.log("teacherRes: ", teacherRes);
-            const teacherOptions = teacherRes.data.$values.map(t => ({
+            const teacherOptions = teacherRes.data.map(t => ({
                 value: t.id,
                 label: t.fullName,
             }));
             setTeachers(teacherOptions);
 
             const subjectRes = await getAllSubject();
-            const subjectOptions = subjectRes.$values.map(s => ({
+            const subjectOptions = subjectRes.map(s => ({
                 value: s.id,
                 label: s.subjectCode + ' - ' + s.name,
             }));
@@ -132,14 +132,10 @@ export const CMSClass = () => {
                     <input
                         type="text"
                         placeholder="Tìm kiếm lớp học..."
-                        className="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg text-sm 
-                      focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none 
-                      placeholder-gray-400 shadow-sm"
+                        className="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                     />
                     <select
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white 
-                      focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none 
-                      shadow-sm"
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                     >
                         <option value="">Học phần</option>
                         {subjects.map((s) => {
@@ -188,7 +184,7 @@ export const CMSClass = () => {
                 />
             </Modal>
 
-            <div className="grid grid-cols-4 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
                 {classes.map(classroom => (
                     <ExamCard
@@ -196,6 +192,7 @@ export const CMSClass = () => {
                         title={classroom.name}
                         subtitle={`${classroom.subjectId} - ${classroom.teacherId}`}
                         actions={actions(classroom)}
+                        onClick={() => navigate(`/admin/class/${classroom.id}`)}
                     />
                 ))}
             </div>
@@ -210,3 +207,5 @@ export const CMSClass = () => {
         </div>
     )
 }
+
+export default CMSClass

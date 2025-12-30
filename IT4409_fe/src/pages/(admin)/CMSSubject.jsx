@@ -5,9 +5,9 @@ import { CommonButton } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { DataTable } from "../../components/DataTable";
 import { ConfirmModal } from "../../components/ConfirmModal";
-import { createSubject, deleteSubject, editSubject, getAllSubject } from "../../services/SubjectApi";
+import { createSubject, deleteSubject, editSubject, getAllSubject } from "../../services/(admin)/SubjectApi";
 
-export const CMSSubject = () => {
+const CMSSubject = () => {
 
     const [subjects, setSubjects] = useState([]);
     const [open, setOpen] = useState(false);
@@ -17,7 +17,7 @@ export const CMSSubject = () => {
     useEffect(() => {
         const getSubjects = async () => {
             const res = await getAllSubject();
-            setSubjects(res.$values);
+            setSubjects(res);
         }
 
         getSubjects();
@@ -102,9 +102,7 @@ export const CMSSubject = () => {
                     <input
                         type="text"
                         placeholder="Tìm kiếm môn học..."
-                        className="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg text-sm 
-                      focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none 
-                      placeholder-gray-400 shadow-sm"
+                        className="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                     />
                 </div>
 
@@ -147,3 +145,5 @@ export const CMSSubject = () => {
         </div>
     )
 }
+
+export default CMSSubject;

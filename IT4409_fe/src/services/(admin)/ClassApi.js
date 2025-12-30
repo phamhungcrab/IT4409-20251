@@ -1,4 +1,4 @@
-import { api } from "../lib/axiosClient";
+import { api } from "../../lib/axiosClient";
 
 const getAllClasses = async () => {
     try {
@@ -93,6 +93,7 @@ const getStudentsOfClass = async (classId) => {
         const res = await api.get(`/Class/get-students`,
             { params: { classId } }
         )
+        console.log("student of class: ", res.data);
         return res.data;
     } catch (e) {
         alert("Không thế lấy danh sách sinh viên");

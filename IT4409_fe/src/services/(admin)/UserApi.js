@@ -1,10 +1,10 @@
-import { api } from "../lib/axiosClient";
+import { api } from "../../lib/axiosClient";
 
 const getAllUsers = async () => {
     try {
         const users = await api.get("/User/get-all");
         console.log("User data (api): ", users.data.data);
-        return users.data;
+        return users.data.data;
     } catch (e) {
         alert("Lấy danh sách người dùng thất bại");
         return;

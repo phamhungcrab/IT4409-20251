@@ -1,4 +1,4 @@
-import { api } from "../lib/axiosClient";
+import { api } from "../../lib/axiosClient";
 
 export const uploadManyQuestions = async (jsonData, fileName = "questions.json") => {
     try {

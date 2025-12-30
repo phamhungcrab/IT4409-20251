@@ -5,7 +5,7 @@ import { DataTable } from "../../components/DataTable.jsx";
 import { useParams } from "react-router-dom";
 
 // Quản lý kết quả bài kiểm tra
-export const CMSResults = () => {
+const CMSResults = () => {
     const [results, setResults] = useState([
         { id: "1", examId: "1", fullname: "Phạm Đặng Mai Hương", mssv: "20225134", points: 10, startTime: "08:00", endTime: "09:00", status: "IN_PROGRESS" },
         { id: "2", examId: "1", fullname: "Trần Thị Minh Thu", mssv: "20225134", points: 10, startTime: "08:00", endTime: "09:00", status: "COMPLETED" },
@@ -124,3 +124,5 @@ export const CMSResults = () => {
         </div>
     )
 }
+
+export default CMSResults;

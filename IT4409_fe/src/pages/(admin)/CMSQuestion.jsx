@@ -4,11 +4,11 @@ import { DataTable } from "../../components/DataTable";
 import { CommonButton } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { Form } from "../../components/Form";
-import { createQuestion, deleteQuestion, getAllQuestions, updateQuestion } from "../../services/QuestionApi";
-import { getAllSubject } from "../../services/SubjectApi";
+import { createQuestion, deleteQuestion, getAllQuestions, updateQuestion } from "../../services/(admin)/QuestionApi";
+import { getAllSubject } from "../../services/(admin)/SubjectApi";
 import { ImportQuestionForm } from "../../components/ImportQuestionForm";
 
-export const CMSQuestions = () => {
+const CMSQuestions = () => {
 
     const [questions, setQuestions] = useState([]);
     const [open, setOpen] = useState(false);
@@ -29,7 +29,7 @@ export const CMSQuestions = () => {
 
             console.log(subjectRes.values);
 
-            const subjectOptions = subjectRes.$values.map(t => ({
+            const subjectOptions = subjectRes.map(t => ({
                 value: t.id,
                 label: t.subjectCode + ' - ' + t.name
             }))
@@ -45,14 +45,14 @@ export const CMSQuestions = () => {
     }, []);
 
     const getCorrectAnswer = (answerText) => {
-        const parts = answerText.split(",");
-        const correct = parts.find(p => p.includes("(đúng)"));
-        return correct ? correct.replace("(đúng)", "").trim() : "";
+        const parts = answerText.split("|");
+        const correct = parts.find(p => p.includes("*"));
+        return correct ? correct.replace("*", "").trim() : "";
     };
 
     const renderAnswerList = (answerText) => {
         return answerText
-            .split(",")
+            .split("|")
             .map(a => a.trim())
             .map((a, i) => <div key={i}>{a}</div>);
     };
@@ -152,7 +152,7 @@ export const CMSQuestions = () => {
         },
         {
             header: "Đáp án đúng",
-            accessor: "answer",
+            accessor: "correctAnswer",
             render: (u) => <span>{getCorrectAnswer(u.answer)}</span>
         },
         {
@@ -179,14 +179,10 @@ export const CMSQuestions = () => {
                     <input
                         type="text"
                         placeholder="Tìm kiếm theo nội dung câu hỏi..."
-                        className="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg text-sm 
-              focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none 
-              placeholder-gray-400 shadow-sm"
+                        className="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                     />
                     <select
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white 
-              focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none 
-              shadow-sm"
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                     >
                         <option value="">Tất cả loại câu hỏi</option>
                         <option value="SINGLE_CHOICE">Single choice</option>
@@ -238,3 +234,5 @@ export const CMSQuestions = () => {
         </div>
     )
 }
+
+export default CMSQuestions;

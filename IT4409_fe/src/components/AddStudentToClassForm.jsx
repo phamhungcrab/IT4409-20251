@@ -1,5 +1,5 @@
 import toast from "react-hot-toast";
-import { addStudentsToClass } from "../services/ClassApi";
+import { addStudentsToClass } from "../services/(admin)/ClassApi";
 import { parseExcel } from "../utils/parseExcel";
 import { useState } from "react";
 

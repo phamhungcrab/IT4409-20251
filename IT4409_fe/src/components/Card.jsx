@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MoreHorizontal } from "lucide-react";
 
-export const ExamCard = ({ title, subtitle, actions = [], children, status = "", className = "" }) => {
+export const ExamCard = ({ title, subtitle, actions = [], children, status = "", className = "", onClick }) => {
     const colorClass = {
         indigo: "text-indigo-700",
         red: "text-[#AA1D2B]",
@@ -21,18 +21,19 @@ export const ExamCard = ({ title, subtitle, actions = [], children, status = "",
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef(null);
 
-    // useEffect(() => {
-    //     const handleClickOutside = (e) => {
-    //         if (menuRef.current && !menuRef.current.contains(e.target)) {
-    //             setShowMenu(false);
-    //         }
-    //     }
-    //     document.addEventListener("mousedown", handleClickOutside);
-    //     return () => document.removeEventListener("mousedown", handleClickOutside);
-    // }, []);
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (menuRef.current && !menuRef.current.contains(e.target)) {
+                setShowMenu(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
 
     return (
-        <div className={`relative p-4 rounded-xl shadow flex flex-col justify-between w-[270px] h-[150px] bg-white ${className}`}>
+        <div onClick={onClick} className={`relative p-4 rounded-xl shadow flex flex-col justify-between w-[270px] h-[150px] bg-white ${className}`}>
             <div>
                 <h3 className="text-lg font-bold">{title}</h3>
                 {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
@@ -45,7 +46,10 @@ export const ExamCard = ({ title, subtitle, actions = [], children, status = "",
             </div>
 
             <button
-                onClick={() => setShowMenu(!showMenu)}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMenu(prev => !prev)
+                }}
                 className="absolute bottom-2 right-3 p-2 hover:bg-gray-100 rounded-full"
             >
                 <MoreHorizontal size={22} />
@@ -59,7 +63,8 @@ export const ExamCard = ({ title, subtitle, actions = [], children, status = "",
                     {actions.map((a, idx) => (
                         <button
                             key={idx}
-                            onClick={() => {
+                            onClick={(e) => {
+                                e.stopPropagation();
                                 a.onClick();
                                 setShowMenu(false);
                             }}

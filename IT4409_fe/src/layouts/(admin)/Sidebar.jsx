@@ -27,6 +27,7 @@ export function Sidebar() {
 
     const handleLogout = () => {
         localStorage.removeItem("token");
+        localStorage.removeItem("session");
         navigate("/admin/login");
     };
 

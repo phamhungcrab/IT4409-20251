@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { parseExcel } from "../utils/parseExcel";
-import { uploadManyQuestions } from "../services/QuestionApi";
+import { uploadManyQuestions } from "../services/(admin)/QuestionApi";
 
 export const ImportQuestionForm = ({ onSuccess }) => {
     const [rows, setRows] = useState([]);
