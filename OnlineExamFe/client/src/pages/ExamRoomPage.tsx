@@ -80,6 +80,7 @@ const ExamRoomPage: React.FC = () => {
    * - Lấy thông tin route hiện tại.
    * - location.state là “gói dữ liệu” được gửi kèm khi navigate từ trang trước.
    */
+
   const location = useLocation();
 
   /**
@@ -199,7 +200,7 @@ const ExamRoomPage: React.FC = () => {
    * - onSubmitted: server báo nộp xong -> ta lưu kết quả để hiện modal + điều hướng
    * - onError: báo lỗi
    */
-  const { connectionState, syncAnswer, submitExam, requestSync } = useExam({
+  const { connectionState, syncAnswer, submitExam } = useExam({
     wsUrl: internalWsUrl || '',
     studentId: user?.id || 0,
     examId: Number(examId),

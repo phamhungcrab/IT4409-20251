@@ -123,8 +123,8 @@ export interface GeneratedQuestionDto {
   content: string;
   cleanAnswer: string[];
   correctOptionIds?: number[];
-  type: number;
-  difficulty: number;
+  type: string; // Backend trả về string: "MULTIPLE_CHOICE" | "SINGLE_CHOICE"
+  difficulty: string; // Backend trả về string: "Easy" | "Medium" | ...
   point: number;
   chapter: number;
   imageUrl?: string;
