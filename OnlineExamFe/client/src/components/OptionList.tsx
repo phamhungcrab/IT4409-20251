@@ -34,7 +34,7 @@ export interface OptionItem {
  *  - questionType : loại câu hỏi (1 = chọn 1, 2 = chọn nhiều)
  *  - selected     : mảng id đáp án đang được chọn
  *  - onChange     : hàm callback được gọi khi user chọn/bỏ chọn đáp án
- *  - groupName    : tên nhóm input (radio/checkbox) giúp accessibility tốt hơn 
+ *  - groupName    : tên nhóm input (radio/checkbox) giúp accessibility tốt hơn
  */
 export interface OptionListProps {
   options: OptionItem[];
@@ -181,13 +181,12 @@ const OptionList: React.FC<OptionListProps> = ({
 
               {/**
                * span này là "UI giả" để hiển thị trạng thái được chọn.
-               * - Với checkbox: hiển thị ô vuông nhỏ bên trong khi chọn.
-               * - Với radio: hiển thị chấm tròn bên trong khi chọn.
-               *
-               * role="presentation": nói với screen reader đây chỉ là trang trí.
+               * - Với checkbox (MULTI): viền vuông (rounded-md)
+               * - Với radio (SINGLE): viền tròn (rounded-full)
                */}
               <span
-                className={`mt-1 flex h-5 w-5 items-center justify-center rounded-full border transition
+                className={`mt-1 flex h-5 w-5 items-center justify-center border transition
+                  ${isSingle ? 'rounded-full' : 'rounded-md'}
                   ${
                     isSelected
                       ? 'border-sky-300 bg-sky-500/30'

@@ -99,14 +99,38 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
 
   return (
     <article className="glass-card p-6 space-y-4">
-      {/* Nếu có orderIndex thì hiển thị nhãn "Question {orderIndex}" */}
-      {orderIndex !== undefined && (
-        <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sky-100">
-          {/* chấm xanh chỉ để trang trí UI */}
-          <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
-          Question {orderIndex}
-        </div>
-      )}
+      {/* Header: Số thứ tự + Loại câu hỏi */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Nhãn Question */}
+        {orderIndex !== undefined && (
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sky-100">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
+            Question {orderIndex}
+          </div>
+        )}
+
+        {/* Nhãn loại câu hỏi */}
+        {questionType === 1 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/20 px-2.5 py-1 text-xs font-medium text-sky-300">
+            <span className="h-3 w-3 rounded-full border-2 border-current" />
+            Chọn 1 đáp án
+          </span>
+        )}
+        {questionType === 2 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 px-2.5 py-1 text-xs font-medium text-amber-300">
+            <span className="h-3 w-3 rounded border border-current" />
+            Chọn nhiều đáp án
+          </span>
+        )}
+        {questionType === 3 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-500/20 px-2.5 py-1 text-xs font-medium text-purple-300">
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Tự luận
+          </span>
+        )}
+      </div>
 
       {/* Nội dung câu hỏi */}
       <h2 className="text-lg font-semibold text-white leading-relaxed">{text}</h2>

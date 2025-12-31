@@ -1,135 +1,192 @@
 /**
  * resultService (dịch vụ kết quả thi):
  *
- * File này gom các hàm gọi API liên quan đến “kết quả bài thi”:
- * - Lấy danh sách kết quả của 1 sinh viên (để hiển thị bảng kết quả)
- * - Lấy chi tiết kết quả của 1 bài thi (để hiển thị trang detail)
- *
- * Vì sao cần service?
- * - Component UI chỉ cần gọi hàm (getResultsByStudent, getResultDetail)
- * - Không phải viết axios/URL lặp lại ở nhiều chỗ
+ * APIs:
+ * - GET /api/Exam/student/{studentId}/exams - Lấy danh sách exams
+ * - GET /api/Exam/exams/{examId}/result-summary?studentId={studentId} - Lấy điểm tổng quát
+ * - GET /api/Exam/detail?examId={examId}&studentId={studentId} - Lấy chi tiết bài làm
  */
 
 import apiClient from '../utils/apiClient';
-
-/**
- * Lưu ý quan trọng về kiến trúc:
- * - Bạn đang import ResultItem từ component ResultTable.
- * - Về lâu dài nên tách type ResultItem ra folder types/ (VD: src/types/result.ts)
- *   để tránh “component UI” phụ thuộc ngược vào “service”.
- *
- * Tuy nhiên hiện tại code vẫn chạy được, chỉ là không lý tưởng.
- */
 import { ResultItem } from '../components/ResultTable';
 
-// Export lại ResultItem để file khác import từ resultService cũng được
 export type { ResultItem };
+
+/**
+ * Interface cho exam từ API student exams
+ */
+export interface StudentExam {
+  examId: number;
+  examName: string;
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+  status: string | null; // null = chưa làm, "in_progress", "COMPLETED"
+}
+
+/**
+ * Interface cho response từ API result-summary
+ */
+export interface ResultSummary {
+  examId: number;
+  studentId: number;
+  totalQuestions: number;
+  correctCount: number;
+  totalQuestionPoint: number;
+  studentEarnedPoint: number;
+  finalScore: number;
+}
+
+/**
+ * Interface cho chi tiết từng câu hỏi trong bài thi
+ */
+export interface QuestionDetail {
+  questionId: number;
+  order: number;
+  content: string;
+  studentAnswer: string;
+  correctAnswer: string;
+  cleanAnswer: string[];
+  isCorrect: boolean;
+  questionPoint: number;
+  studentPoint: number;
+}
+
+/**
+ * Interface cho response từ API detail
+ */
+export interface ExamDetailResult {
+  examId: number;
+  examName: string;
+  studentId: number;
+  startTimeStudent: string;
+  endTimeStudent: string;
+  startTimeExam: string;
+  endTimeExam: string;
+  durationMinutes: number;
+  totalPoint: number;
+  totalQuestions: number;
+  correctCount: number;
+  details: QuestionDetail[];
+}
 
 export const resultService = {
   /**
+   * getStudentExams(studentId):
+   * Lấy danh sách tất cả exams của sinh viên
+   *
+   * API: GET /api/Exam/student/{studentId}/exams
+   */
+  getStudentExams: async (studentId: number): Promise<StudentExam[]> => {
+    try {
+      const data = await apiClient.get<StudentExam[]>(
+        `/api/Exam/student/${studentId}/exams`
+      );
+      return (data as unknown as StudentExam[]) || [];
+    } catch (e: any) {
+      console.warn('Không lấy được danh sách exams:', e?.message);
+      return [];
+    }
+  },
+
+  /**
+   * getResultSummary(examId, studentId):
+   * Lấy tổng hợp điểm của 1 bài thi
+   *
+   * API: GET /api/Exam/exams/{examId}/result-summary?studentId={studentId}
+   */
+  getResultSummary: async (examId: number, studentId: number): Promise<ResultSummary | null> => {
+    try {
+      const data = await apiClient.get<ResultSummary>(
+        `/api/Exam/exams/${examId}/result-summary?studentId=${studentId}`
+      );
+      return data as unknown as ResultSummary;
+    } catch (e: any) {
+      console.warn(`Không lấy được result-summary cho exam ${examId}:`, e?.message);
+      return null;
+    }
+  },
+
+  /**
+   * getExamDetail(examId, studentId):
+   * Lấy chi tiết bài làm (câu hỏi, đáp án đã chọn, đáp án đúng...)
+   *
+   * API: GET /api/Exam/detail?examId={examId}&studentId={studentId}
+   */
+  getExamDetail: async (examId: number, studentId: number): Promise<ExamDetailResult | null> => {
+    try {
+      const data = await apiClient.get<any>(
+        `/api/Exam/detail?examId=${examId}&studentId=${studentId}`
+      );
+      // Nếu có message lỗi thì coi như không có kết quả
+      if (data && (data as any).message) {
+        return null;
+      }
+      return data as unknown as ExamDetailResult;
+    } catch (e: any) {
+      console.warn(`Không lấy được exam detail cho exam ${examId}:`, e?.message);
+      return null;
+    }
+  },
+
+  /**
    * getResultsByStudent(studentId):
+   * Lấy danh sách kết quả thi của sinh viên (CHỈ những bài COMPLETED)
    *
-   * Mục tiêu:
-   * - Gọi API lấy danh sách kết quả theo sinh viên.
-   * - Dữ liệu backend trả về có thể không thống nhất key (camelCase / PascalCase),
-   *   nên ta “map/chuẩn hóa” về format ResultItem mà UI cần.
-   *
-   * Endpoint:
-   * - GET /api/Result/student/{studentId}
-   *
-   * Vì sao phải try/catch?
-   * - Nếu backend chưa có endpoint hoặc lỗi mạng, ta trả [] để UI không bị crash.
-   * - UI sẽ hiển thị “không có kết quả” thay vì vỡ trang.
+   * Flow:
+   * 1. Lấy danh sách exams của sinh viên
+   * 2. Lọc những bài có status = "COMPLETED"
+   * 3. Với mỗi bài, gọi result-summary để lấy điểm
+   * 4. Trả về danh sách ResultItem[] cho UI
    */
   getResultsByStudent: async (studentId: number): Promise<ResultItem[]> => {
     try {
-      /**
-       * raw:
-       * - Dữ liệu thô (chưa chuẩn hóa) server trả về.
-       * - Dùng any[] vì chưa chắc format chính xác.
-       */
-      const raw = (await apiClient.get<any[]>(`/api/Result/student/${studentId}`)) as unknown as any[];
+      // Bước 1: Lấy danh sách exams của sinh viên
+      const exams = await resultService.getStudentExams(studentId);
 
-      /**
-       * (raw || []):
-       * - Nếu raw là null/undefined => dùng mảng rỗng []
-       * - Tránh lỗi .map() trên undefined
-       */
-      return (raw || []).map((r: any) => ({
-        /**
-         * examId:
-         * - Backend có thể trả:
-         *   r.examId (camelCase - hay gặp trong Node/JS)
-         *   r.ExamId (PascalCase - hay gặp trong C#)
-         *   r.id / r.Id (một số API đặt tên id chung)
-         *
-         * Toán tử ?? (nullish coalescing):
-         * - Lấy giá trị bên trái nếu nó KHÔNG phải null/undefined
-         * - Nếu là null/undefined thì lấy giá trị bên phải
-         * - Khác với || ở chỗ: 0 vẫn được coi là hợp lệ (|| thì sẽ coi 0 là false)
-         */
-        examId: r.examId ?? r.ExamId ?? r.id ?? r.Id,
+      if (!exams || exams.length === 0) {
+        return [];
+      }
 
-        /**
-         * examTitle:
-         * - Ưu tiên lấy examName / ExamName
-         * - Nếu không có thì tạo chuỗi dự phòng: "Exam <id>"
-         */
-        examTitle: r.examName ?? r.ExamName ?? `Exam ${r.examId ?? r.Id ?? ''}`,
+      // Bước 2: Lọc chỉ lấy bài COMPLETED
+      const completedExams = exams.filter(
+        (exam) => exam.status?.toUpperCase() === 'COMPLETED'
+      );
 
-        /**
-         * score:
-         * - Ép về number để UI hiển thị và tính toán được
-         * - Nếu backend trả null/undefined thì mặc định 0
-         */
-        score: Number(r.score ?? r.Score ?? 0),
+      if (completedExams.length === 0) {
+        return [];
+      }
 
-        /**
-         * status:
-         * - Trạng thái kết quả (VD: completed/in_progress…)
-         * - Nếu không có thì để chuỗi rỗng
-         */
-        status: r.status ?? r.Status ?? '',
+      // Bước 3: Với mỗi bài, lấy result-summary
+      const results: ResultItem[] = [];
 
-        /**
-         * submittedAt:
-         * - Thời điểm nộp bài (string hoặc ISO string)
-         * - Không ép kiểu ở đây, UI sẽ format bằng new Date(...)
-         */
-        submittedAt: r.submittedAt ?? r.SubmittedAt
-      })) as ResultItem[];
+      for (const exam of completedExams) {
+        const summary = await resultService.getResultSummary(exam.examId, studentId);
+
+        results.push({
+          examId: exam.examId,
+          examTitle: exam.examName || `Bài thi #${exam.examId}`,
+          score: summary?.finalScore ?? 0,
+          status: 'completed',
+          submittedAt: exam.endTime || '',
+          // Thêm thông tin bổ sung
+          correctCount: summary?.correctCount,
+          totalQuestions: summary?.totalQuestions
+        });
+      }
+
+      return results;
     } catch (e: any) {
-      /**
-       * Nếu backend chưa có endpoint hoặc lỗi:
-       * - Không làm UI crash
-       * - Trả về danh sách rỗng để UI hiển thị “không có dữ liệu”
-       *
-       * console.warn:
-       * - Dùng warn để dev thấy cảnh báo nhưng không làm ứng dụng chết.
-       */
-      console.warn('Endpoint kết quả chưa sẵn sàng, trả về danh sách rỗng.', e?.message || e);
+      console.warn('Không thể lấy danh sách kết quả:', e?.message || e);
       return [];
     }
   },
 
   /**
    * getResultDetail(studentId, examId):
-   *
-   * Mục tiêu:
-   * - Lấy chi tiết kết quả của 1 bài thi, bao gồm:
-   *   + thông tin tổng quan (điểm, số câu đúng, thời gian...)
-   *   + danh sách từng câu hỏi (đáp án bạn chọn, đáp án đúng...)
-   *
-   * Endpoint:
-   * - GET /api/Result/detail?studentId=...&examId=...
-   *
-   * Hiện tại return any:
-   * - Vì bạn chưa định nghĩa interface ResultDetail rõ ràng trong service.
-   * - Nên về lâu dài hãy tạo type ResultDetail để TypeScript kiểm tra chặt.
+   * Backward compatible - gọi getExamDetail
    */
-  getResultDetail: async (studentId: number, examId: number): Promise<any> => {
-    return (await apiClient.get<any>(
-      `/api/Result/detail?studentId=${studentId}&examId=${examId}`
-    )) as unknown as Promise<any>;
+  getResultDetail: async (studentId: number, examId: number): Promise<ExamDetailResult | null> => {
+    return resultService.getExamDetail(examId, studentId);
   }
 };

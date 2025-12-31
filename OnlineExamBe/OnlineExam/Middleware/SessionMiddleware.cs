@@ -17,19 +17,28 @@ namespace OnlineExam.Middleware
             _next = next;
         }
 
-        public async Task InvokeAsync(HttpContext context, ISessionService _sessionService) 
-        { 
-            string path = context.Request.Path;
-            if (path.Trim().ToLower().Contains("api/auth/login") ||
-                path.Trim().ToLower().Contains("api/auth/reset-password") ||
-                path.Trim().ToLower().Contains("api/auth/send-otp") ||
-                path.Trim().ToLower().Contains("api/auth/check-otp"))
-            { 
+        public async Task InvokeAsync(HttpContext context, ISessionService _sessionService)
+        {
+            string path = context.Request.Path.ToString().Trim().ToLower();
+
+            // Bypass cho WebSocket và các API auth không cần session
+            if (path.StartsWith("/ws") ||
+                path.Contains("api/auth/login") ||
+                path.Contains("api/auth/reset-password") ||
+                path.Contains("api/auth/send-otp") ||
+                path.Contains("api/auth/check-otp"))
+            {
                 await _next(context);
                 return;
             }
 
+            // Lấy session từ Header, nếu không có thì thử từ Query param
             var sessionString = context.Request.Headers["Session"].FirstOrDefault();
+            if (string.IsNullOrEmpty(sessionString))
+            {
+                sessionString = context.Request.Query["session"].FirstOrDefault();
+            }
+
             if (string.IsNullOrEmpty(sessionString))
             {
                 context.Response.StatusCode = ResponseCode.Unauthorized;
@@ -64,7 +73,7 @@ namespace OnlineExam.Middleware
 
             var identity = new ClaimsIdentity(claims, "SessionAuth");
             context.User = new ClaimsPrincipal(identity);
-            context.Items["UserSession"] = session; 
+            context.Items["UserSession"] = session;
             await _next(context);
         }
     }
