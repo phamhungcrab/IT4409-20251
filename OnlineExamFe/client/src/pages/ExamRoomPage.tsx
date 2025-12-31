@@ -113,6 +113,7 @@ const ExamRoomPage: React.FC = () => {
   const wsUrl = (location.state as any)?.wsUrl;
   const duration = (location.state as any)?.duration || 60;
   const initialQuestions = (location.state as any)?.questions || [];
+  const examName = (location.state as any)?.examName || `Bài thi #${examId}`;
 
   // =========================================================
   // 2) STATE DÙNG ĐỂ HIỂN THỊ UI
@@ -580,15 +581,8 @@ const ExamRoomPage: React.FC = () => {
    * - Nên ta map từ selectedValue (text) -> id[]
    */
   const selectedOptions = (() => {
-    if (!currentQuestion || selectedValue === undefined || selectedValue === null) return [];
-
-    const asString = Array.isArray(selectedValue)
-      ? selectedValue.join('|')
-      : typeof selectedValue === 'number'
-        ? selectedValue.toString()
-        : String(selectedValue);
-
-    return mapAnswerTextToIds(asString, currentQuestion);
+    if (!currentQuestion || !selectedValue) return [];
+    return mapAnswerTextToIds(selectedValue, currentQuestion);
   })();
 
   /**
@@ -615,10 +609,10 @@ const ExamRoomPage: React.FC = () => {
       <header className="sticky top-0 z-10 border-b border-white/10 bg-slate-950/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-sky-200/70">Exam room</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-sky-200/70">Đang làm bài</p>
 
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold text-white">Exam #{examId}</h1>
+              <h1 className="text-xl font-semibold text-white">{examName}</h1>
 
               {/* Badge trạng thái WebSocket: connected / reconnecting / disconnected */}
               <span
@@ -734,10 +728,10 @@ const ExamRoomPage: React.FC = () => {
             {/* Nội dung */}
             <div className="space-y-2">
               <h3 className="text-2xl font-semibold text-white">
-                {t('exam.submitSuccess') || 'Nộp bài thành công!'}
+                Nộp bài thành công!
               </h3>
               <p className="text-slate-400">
-                {t('exam.submitSuccessDesc') || 'Bài làm của bạn đã được ghi nhận. Bạn có thể xem kết quả trong mục Kết quả.'}
+                Bài làm của bạn đã được ghi nhận. Bạn có thể xem kết quả trong mục Kết quả.
               </p>
             </div>
 

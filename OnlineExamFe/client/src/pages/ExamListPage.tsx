@@ -124,7 +124,7 @@ const ExamListPage: React.FC = () => {
    *    - completed         -> hiện thông báo và gợi ý sang results
    *    - expired           -> báo hết hạn
    */
-  const handleStartExam = async (examId: number) => {
+  const handleStartExam = async (examId: number, examName?: string) => {
     if (!user) return;
 
     try {
@@ -276,7 +276,8 @@ const ExamListPage: React.FC = () => {
           state: {
             wsUrl,
             duration: examPayload.durationMinutes || 60,
-            questions: examPayload.questions || []
+            questions: examPayload.questions || [],
+            examName: examName || `Bài thi #${examId}`
           }
         });
       } else if (response.status === 'completed') {
@@ -381,7 +382,7 @@ const ExamListPage: React.FC = () => {
               <div className="flex gap-2">
                 {/* Nút bắt đầu bài thi */}
                 <button
-                  onClick={() => handleStartExam(exam.examId)}
+                  onClick={() => handleStartExam(exam.examId, exam.examName)}
                   className="btn btn-primary hover:-translate-y-0.5 flex-1"
                 >
                   {t('exam.startExam')}

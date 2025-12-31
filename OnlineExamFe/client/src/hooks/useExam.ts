@@ -71,7 +71,15 @@ export const useExam = ({
 
         // Nhận object message
         if (data.status === 'submitted') {
-          onSubmittedRef.current?.(data);
+          // Chỉ trigger modal nộp bài khi KHÔNG có questionId
+          // (Backend trả submitted cho cả SubmitAnswer và SubmitExam,
+          //  nhưng SubmitAnswer có questionId, SubmitExam thì không)
+          if (!data.questionId && !data.QuestionId) {
+            onSubmittedRef.current?.(data);
+          } else {
+            // Đây là response của SubmitAnswer, không làm gì
+            console.log('Answer saved:', data);
+          }
         } else if (Array.isArray(data)) {
           console.log('Synced data received:', data);
           onSyncedRef.current?.(data);
