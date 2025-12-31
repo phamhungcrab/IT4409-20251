@@ -17,6 +17,8 @@ using OnlineExam.Application.Interfaces.PermissionService;
 using OnlineExam.Application.Services.PermissionService;
 using OnlineExam.Application.Services.PermissionFolder;
 using OnlineExam.Application.Interfaces.PermissionFolder;
+using Microsoft.AspNetCore.Authorization;
+using OnlineExam.Infrastructure.Policy.Handlers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -85,7 +87,9 @@ builder.Services.AddHttpContextAccessor();
 
 
 
-
+builder.Services.AddSingleton<IAuthorizationHandler, ClassAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, UserAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, UserIdAuthorizationHandler>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped(typeof(ICrudService<>), typeof(CrudService<>));
 builder.Services.AddScoped<IAuthService,AuthService>();
@@ -121,17 +125,17 @@ app.UseHttpsRedirection();
 
 app.UseWebSockets();
 
-//app.UseMiddleware<SessionMiddleware>();
+app.UseMiddleware<SessionMiddleware>();
 
 app.UseSession();
+
+app.UseRouting();
 
 app.UseAuthentication();
 
 app.UseAuthorization();
 
 app.UseMiddleware<ExamWebSocketMiddleware>();
-
-app.UseRouting();
 
 app.MapControllers();
 

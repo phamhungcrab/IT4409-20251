@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Win32;
@@ -12,6 +13,7 @@ using OnlineExam.Application.Settings;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
+using OnlineExam.Infrastructure.Policy.Requirements;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
@@ -35,6 +37,7 @@ namespace OnlineExam.Application.Services.Auth
         private readonly SmtpSettings _smtp;
         private readonly Random _random = new();
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IAuthorizationService _authorizationService;
         public AuthService(IRepository<User> userRepository,
                            ISessionService sessionService,
                            IEmailService emailService,
@@ -42,7 +45,8 @@ namespace OnlineExam.Application.Services.Auth
                            IMemoryCache cache,
                            IOptions<SmtpSettings> smtp,
                            IUserService userService,
-                           IHttpContextAccessor httpContextAccessor) : base(userRepository)
+                           IHttpContextAccessor httpContextAccessor,
+                           IAuthorizationService authorizationService) : base(userRepository)
         {
 
             _userService = userService;
@@ -52,6 +56,7 @@ namespace OnlineExam.Application.Services.Auth
             _cache = cache;
             _smtp = smtp.Value;
             _httpContextAccessor = httpContextAccessor;
+            _authorizationService = authorizationService;
         }
 
 
@@ -166,7 +171,15 @@ namespace OnlineExam.Application.Services.Auth
 
         public async Task<ResultApiModel> Logout(LogoutDto logout)
         {
-
+            var authResult = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, logout.UserId, new ResourceRequirement(ResourceAction.Logout));
+            if (!authResult.Succeeded) 
+            {
+                return new ResultApiModel()
+                {
+                    Status = true,
+                    MessageCode = ResponseCode.Unauthorized
+                };
+            }
             var isDeleted = (await _sessionService.DeleteByUserIdAsync(logout.UserId));
 
             return new ResultApiModel()
@@ -180,7 +193,16 @@ namespace OnlineExam.Application.Services.Auth
 
         public async Task<ResultApiModel> ChangePassword(ChangePasswordDto changePassword)
         {
-            User user = await _userService.GetUserByEmail(changePassword.Email);
+            User? user = await _userService.GetUserByEmail(changePassword.Email);
+            var authResult = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, user, new ResourceRequirement(ResourceAction.Logout));
+            if (!authResult.Succeeded)
+            {
+                return new ResultApiModel()
+                {
+                    Status = true,
+                    MessageCode = ResponseCode.Unauthorized
+                };
+            }
             if (user == null)
             {
                 return new ResultApiModel()
@@ -222,7 +244,7 @@ namespace OnlineExam.Application.Services.Auth
         public async Task<ResultApiModel> ResetPassword(ResetPasswordDto resetPassword)
         {
 
-            User user = await _userService.GetUserByEmail(resetPassword.Email);
+            User? user = await _userService.GetUserByEmail(resetPassword.Email);
             if (user == null)
             {
                 return new ResultApiModel()

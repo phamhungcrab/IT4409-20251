@@ -2,6 +2,7 @@
 using OnlineExam.Application.Dtos.ExamDtos;
 using OnlineExam.Application.Dtos.ExamStudent;
 using OnlineExam.Application.Interfaces;
+using OnlineExam.Attributes;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
@@ -20,6 +21,7 @@ namespace OnlineExam.Controllers
             _examStudentRepo = examStudentRepo;
         }
         [HttpGet("get-all")]
+        [SessionAuthorize]
         public async Task<IActionResult> GetAll()
         {
             var exams = await _examService.GetAllAsync();
@@ -27,6 +29,8 @@ namespace OnlineExam.Controllers
         }
 
         [HttpGet("{id}")]
+        [SessionAuthorize("F0522")]
+
         public async Task<IActionResult> GetById(int id)
         {
             var exam = await _examService.GetByIdAsync(id);
@@ -37,6 +41,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpPut("update/{id}")]
+        [SessionAuthorize("F0513")]
         public async Task<IActionResult> UpdateExam(int id, [FromBody] UpdateExamDto dto)
         {
             var exam = await _examService.GetByIdAsync(id);
@@ -59,6 +64,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpDelete("delete/{id}")]
+        [SessionAuthorize("F0514")]
         public async Task<IActionResult> DeleteExam(int id)
         {
             var exam = await _examService.GetByIdAsync(id);
@@ -73,6 +79,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpPost("create-exam")]
+        [SessionAuthorize("F0511")]
         public async Task<IActionResult> CreateExam([FromBody] CreateExamForTeacherOrAdmin dto)
         {
             try
@@ -97,6 +104,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpPost("start-exam")]
+        [SessionAuthorize("F0522")]
         public async Task<IActionResult> StartExam([FromBody] ExamStartRequest dto)
         {
             var req = HttpContext.Request;
@@ -174,6 +182,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpPost("generate")]
+        [SessionAuthorize("F0525")]
         public async Task<IActionResult> Generate([FromBody] CreateExamForStudentDto dto)
         {
             try
@@ -192,6 +201,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpGet("exams/{examId}/current-question")]
+        [SessionAuthorize("F0525")]
         public async Task<IActionResult> GetCurrentQuestion(
             int examId,
             [FromQuery] int studentId
@@ -210,6 +220,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpGet("detail")]
+        [SessionAuthorize("F0525")]
         public async Task<IActionResult> GetExamResultDetail(
             [FromQuery] int examId,
             [FromQuery] int studentId)
@@ -229,6 +240,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpGet("exams/{examId}/result-summary")]
+        [SessionAuthorize("F0525")]
         public async Task<IActionResult> GetResultSummary(int examId, [FromQuery] int studentId)
         {
             var result = await _examService.GetResultSummary(examId, studentId);

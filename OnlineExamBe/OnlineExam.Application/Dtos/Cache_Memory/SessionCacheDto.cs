@@ -1,4 +1,5 @@
 ﻿
+using OnlineExam.Application.Dtos.PermissionFolder;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using System;
@@ -21,7 +22,7 @@ namespace OnlineExam.Application.Dtos.Cache_Memory
         public required string Email { get; set; }
         public required UserRole UserRole { get; set; }
 
-        public List<Permission> UserPermission { get; set; }
+        public List<PermissionDto> UserPermission { get; set; }
         public List<string> UserPermissionCode { get; set; }
         public int SessionId { get; set; }
 

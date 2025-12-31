@@ -66,7 +66,7 @@ namespace OnlineExam.Application.Services.PermissionFolder
             {
                 Status = true,
                 MessageCode = ResponseCode.Success,
-                Data = newItem
+                Data = new PermissionDto(newItem)
             };
         }
 
@@ -157,7 +157,7 @@ namespace OnlineExam.Application.Services.PermissionFolder
             {
                 Status = true,
                 MessageCode = ResponseCode.Success,
-                Data = checkExist
+                Data = new PermissionDto(checkExist)
             };
 
         }

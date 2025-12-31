@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.ExamBlueprint;
 using OnlineExam.Application.Interfaces;
+using OnlineExam.Attributes;
 using OnlineExam.Domain.Enums;
 
 namespace OnlineExam.Controllers
@@ -17,6 +18,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpPost("create")]
+        [SessionAuthorize("F0511")]
         public async Task<IActionResult> Create([FromBody] CreateExamBlueprintDto dto)
         {
             var result = await _examBlueprintService.CreateBlueprintAsync(dto);
@@ -36,6 +38,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpGet("{id}")]
+        [SessionAuthorize("F0000")]
         public async Task<IActionResult> GetDetail(int id)
         {
             var result = await _examBlueprintService.GetDetailAsync(id);
@@ -43,6 +46,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpPut("update/{id}")]
+        [SessionAuthorize("F0513")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateExamBlueprintDto dto)
         {
             var result = await _examBlueprintService.UpdateBlueprintAsync(id, dto);
@@ -50,6 +54,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpDelete("delete/{id}")]
+        [SessionAuthorize("F0514")]
         public async Task<IActionResult> Delete(int id)
         {
             try

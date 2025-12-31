@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Dtos.RoleDtos;
 using OnlineExam.Application.Interfaces.PermissionFolder;
 using OnlineExam.Attributes;
 using OnlineExam.Domain.Entities;
@@ -10,7 +11,7 @@ namespace OnlineExam.Controllers
     
         [ApiController]
         [Route("api/[controller]")]
-        [SessionAuthorize(UserRole.ADMIN)]
+        [SessionAuthorize]
         public class RoleController : Controller
         {
             private IRoleService _roleService;
@@ -27,7 +28,8 @@ namespace OnlineExam.Controllers
             {
                 ResultApiModel resultApiModel = new ResultApiModel();
 
-                resultApiModel.Data = await _roleService.GetAllAsync();
+                resultApiModel.Data = (await _roleService.GetAllAsync()).Select(c => new RoleSimpleDto(c));
+
                 return Ok(resultApiModel);
             }
 
@@ -66,7 +68,7 @@ namespace OnlineExam.Controllers
             [HttpPost]
             [Route("create")]
 
-            public async Task<IActionResult> Create(Role role)
+            public async Task<IActionResult> Create(CreateRoleDto role)
             {
                 ResultApiModel resultApiModel = new ResultApiModel();
                 if (role == null)
@@ -75,7 +77,7 @@ namespace OnlineExam.Controllers
 
                 }
 
-                await _roleService.CreateAsync(role);
+                await _roleService.Create(role);
                 return Ok();
             }
 
@@ -92,7 +94,7 @@ namespace OnlineExam.Controllers
 
             [HttpPut]
             [Route("update")]
-            public async Task<IActionResult> Update(Role role)
+            public async Task<IActionResult> Update(CreateRoleDto role)
             {
                 ResultApiModel resultApiModel = new ResultApiModel();
                 if (role == null)
@@ -100,11 +102,8 @@ namespace OnlineExam.Controllers
                     return BadRequest("Thiếu thông tin");
 
                 }
-                var old = await _roleService.GetByIdAsync(role.Id);
-                if (old == null) return NotFound("Không tìm thấy role");
                 
-                old.Code = role.Code;
-                await _roleService.CreateAsync(old);
+                await _roleService.Create(role);
                 return Ok();
             }
             

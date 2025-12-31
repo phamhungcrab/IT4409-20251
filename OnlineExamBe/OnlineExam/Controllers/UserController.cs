@@ -8,6 +8,8 @@ using OnlineExam.Application.Services;
 using OnlineExam.Attributes;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
+using OnlineExam.Infrastructure.Policy.Requirements;
+using System.Resources;
 using System.Text.Json;
 
 namespace OnlineExam.Controllers
@@ -15,20 +17,21 @@ namespace OnlineExam.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [SessionAuthorize]
     public class UserController : Controller
     {
         private readonly IUserService _userService;
+        private readonly IAuthorizationService _authorizationService;
 
-        public UserController(IUserService userService)
+        public UserController(IUserService userService, IAuthorizationService authorizationService)
         {
             _userService = userService;
+            _authorizationService = authorizationService;
         }
 
 
         [HttpPost]
         [Route("search-for-admin")]
-        [SessionAuthorize(UserRole.ADMIN)]
+        [SessionAuthorize]
         public async Task<IActionResult> Search(SearchForAdminDto search)
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -38,6 +41,7 @@ namespace OnlineExam.Controllers
 
         [HttpPost]
         [Route("search-for-user")]
+        [SessionAuthorize("F0222")]
         public async Task<IActionResult> Search(SearchForUserDto search)
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -46,7 +50,7 @@ namespace OnlineExam.Controllers
         }
         [HttpGet]
         [Route("get-all")]
-        [SessionAuthorize(UserRole.ADMIN)]
+        [SessionAuthorize]
         public async Task<IActionResult> GetAll() 
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -60,7 +64,7 @@ namespace OnlineExam.Controllers
         /// <returns></returns>
         [HttpPost]
         [Route("create-users")]
-        [SessionAuthorize(UserRole.ADMIN)]
+        [SessionAuthorize("F0221")]
         public async Task<IActionResult> RegisterForUser(IFormFile file)
         {
             if (file == null || file.Length == 0)
@@ -82,7 +86,7 @@ namespace OnlineExam.Controllers
 
         [HttpPost]
         [Route("create")]
-        [SessionAuthorize(UserRole.ADMIN)]
+        [SessionAuthorize]
         public async Task<IActionResult> Create(CreateUserAdminDto user)
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -97,7 +101,7 @@ namespace OnlineExam.Controllers
         /// <returns></returns>
         [HttpPut]
         [Route("update")]
-        [SessionAuthorize(UserRole.ADMIN)]
+        [SessionAuthorize]
         public async Task<IActionResult> Update(CreateUserAdminDto user)
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -112,6 +116,7 @@ namespace OnlineExam.Controllers
         /// <returns></returns>
         [HttpPut]
         [Route("update-for-user")]
+        [SessionAuthorize("F0223")]
         public async Task<IActionResult> UserUpdate(UserUpdateDto user)
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -120,10 +125,12 @@ namespace OnlineExam.Controllers
         }
         [HttpDelete]
         [Route("delete")]
-        [SessionAuthorize(UserRole.ADMIN)]
+        [SessionAuthorize("F0224")]
         public async Task<IActionResult> Delete(int userId)
         {
             ResultApiModel apiResultModel = new ResultApiModel();
+            var authResult = await _authorizationService.AuthorizeAsync(User, userId, new ResourceRequirement(ResourceAction.Delete));
+            if (!authResult.Succeeded) return Unauthorized("Forbidden: You do not have permission to perform this action.");
             var success = await _userService.DeleteAsync(userId);
             apiResultModel.Status = success;
             apiResultModel.Data = success;

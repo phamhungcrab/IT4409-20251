@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+//using Microsoft.IdentityModel.Tokens;
 using OnlineExam.Application.Dtos.ExamDtos;
 using OnlineExam.Application.Dtos.ExamStudent;
 using OnlineExam.Application.Interfaces;
@@ -227,7 +227,7 @@ namespace OnlineExam.Application.Services
             if (checkBlue == null)
                 throw new Exception("Blueprint not found!");
 
-            if (checkBlue.Chapters.IsNullOrEmpty()) throw new Exception("Chapters not found!");
+            if (checkBlue.Chapters == null || !checkBlue.Chapters.Any()) throw new Exception("Chapters not found!");
 
             var chapters = checkBlue.Chapters!.ToList();
 

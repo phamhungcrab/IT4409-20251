@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using OnlineExam.Application.Dtos.Cache_Memory;
+using OnlineExam.Application.Dtos.PermissionFolder;
 using OnlineExam.Application.Helper;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Auth;
@@ -78,10 +79,10 @@ namespace OnlineExam.Application.Services.Auth
 
             await CreateAsync(session);
 
-            var listRolePer = await _roleService.GetPermissionByRole(user.Role) ?? Enumerable.Empty<Permission>(); 
-            var listSpecialPer = await _userPermissionService.GetUserPermission(user.Id) ?? Enumerable.Empty<Permission>();
-            var userPermission = new List<Permission>(listSpecialPer);
-            userPermission.Union(listRolePer);
+            var listRolePer = await _roleService.GetPermissionByRole(user.Role) ?? Enumerable.Empty<PermissionDto>(); 
+            var listSpecialPer = await _userPermissionService.GetUserPermission(user.Id) ?? Enumerable.Empty<PermissionDto>();
+            var userPermission = new List<PermissionDto>(listSpecialPer);
+            userPermission = userPermission.Union(listRolePer).ToList();
 
             var info = new SessionCacheDto
             {
@@ -141,7 +142,7 @@ namespace OnlineExam.Application.Services.Auth
                 return null;
             }
 
-            if(!userRoles.IsNullOrEmpty() && !userRoles.Contains(session.UserRole))
+            if(!(userRoles == null || userRoles.Length ==0) && !userRoles.Contains(session.UserRole))
             {
                 return null;
             }

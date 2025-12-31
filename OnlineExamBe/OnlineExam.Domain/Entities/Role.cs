@@ -11,6 +11,7 @@ namespace OnlineExam.Domain.Entities
     {
         public int Id { get; set; }
         public string Name  => Code.ToString();
+
         public UserRole Code { get; set; }
 
         public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();

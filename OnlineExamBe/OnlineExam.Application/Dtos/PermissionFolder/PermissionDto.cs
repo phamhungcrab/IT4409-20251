@@ -25,6 +25,7 @@ namespace OnlineExam.Application.Dtos.PermissionFolder
             Name = p.Name;
             Index = p.Index;
             GroupPermissionId = p.GroupPermissionId;
+            if(p.GroupPermission != null)
             GroupPermission = new GroupPermissionSimpleDto(p.GroupPermission);
         }
       

@@ -20,7 +20,10 @@ namespace OnlineExam.Middleware
         public async Task InvokeAsync(HttpContext context, ISessionService _sessionService) 
         { 
             string path = context.Request.Path;
-            if (path.Trim().ToLower().Contains("api/auth/")) 
+            if (path.Trim().ToLower().Contains("api/auth/login") ||
+                path.Trim().ToLower().Contains("api/auth/reset-password") ||
+                path.Trim().ToLower().Contains("api/auth/send-otp") ||
+                path.Trim().ToLower().Contains("api/auth/check-otp"))
             { 
                 await _next(context);
                 return;
@@ -55,7 +58,7 @@ namespace OnlineExam.Middleware
                 new Claim(ClaimTypes.Email, session.Email),
                 new Claim(ClaimTypes.DateOfBirth, session.DateOfBirth.ToString()),
                 new Claim("MSSV", session.MSSV),
-                new Claim("Permissions",string.Join(",", session.UserPermission))
+                new Claim("Permissions",string.Join(",", session.UserPermission.Select(c => c.Code)))
 
             };
 

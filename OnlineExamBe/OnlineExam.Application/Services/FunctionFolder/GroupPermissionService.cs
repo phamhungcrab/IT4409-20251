@@ -46,7 +46,7 @@ namespace OnlineExam.Application.Services.PermissionService
             {
                 Status = true,
                 MessageCode = ResponseCode.Success,
-                Data = newItem
+                Data = new GroupPermissionSimpleDto(newItem)
             };
         }
 
@@ -70,12 +70,12 @@ namespace OnlineExam.Application.Services.PermissionService
                 Name = update.Name,
 
             };
-            await CreateAsync(newItem);
+            await UpdateAsync(newItem); 
             return new ResultApiModel
             {
                 Status = true,
                 MessageCode = ResponseCode.Success,
-                Data = newItem
+                Data = new GroupPermissionSimpleDto(newItem)
             };
         }
     }

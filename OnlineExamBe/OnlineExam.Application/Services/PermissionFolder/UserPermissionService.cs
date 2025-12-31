@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OnlineExam.Application.Dtos.PermissionFolder;
 using OnlineExam.Application.Dtos.ResponseDtos;
 using OnlineExam.Application.Interfaces.PermissionFolder;
 using OnlineExam.Application.Services.Base;
@@ -18,15 +19,15 @@ namespace OnlineExam.Application.Services.PermissionFolder
         {
         }
 
-        public async Task<List<Permission>> GetUserPermission(int userId)
+        public async Task<List<PermissionDto>> GetUserPermission(int userId)
         {
 
-            var userPermission = new List<Permission>();
-            userPermission = await _repository.Query()
+            var userPermission = new List<PermissionDto>();
+            userPermission = (await _repository.Query()
                                     .Where(x => x.UserId == userId)
-                                    .Include("Permission")
-                                    .Select(x => x.Permission)
-                                    .ToListAsync();
+                                    .Include("Permission").ToListAsync())
+                                    .Select(x => new PermissionDto(x.Permission))
+                                    .ToList();
             
             return userPermission;
 
