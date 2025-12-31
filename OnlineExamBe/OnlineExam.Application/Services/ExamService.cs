@@ -24,6 +24,8 @@ namespace OnlineExam.Application.Services
         private readonly IRepository<QuestionExam> _questionExamRepo;
         private readonly IRepository<ExamStudent> _examStudentRepo;
         private readonly IRepository<StudentQuestion> _studentQuesRepo;
+        private readonly IRepository<StudentClass> _studentClassRepo;
+        private readonly IRepository<Exam> _exam2Repo;
 
         public ExamService(
             IRepository<Exam> examRepo,
@@ -31,7 +33,9 @@ namespace OnlineExam.Application.Services
             IRepository<ExamBlueprint> blueprintRepo,
             IRepository<QuestionExam> questionExamRepo,
             IRepository<StudentQuestion> studentQuesRepo,
-            IRepository<ExamStudent> examStudentRepo
+            IRepository<ExamStudent> examStudentRepo,
+            IRepository<StudentClass> studentClassRepo,
+            IRepository<Exam> exam2Repo
 
             ) : base(examRepo)
         {
@@ -40,6 +44,8 @@ namespace OnlineExam.Application.Services
             _questionExamRepo = questionExamRepo;
             _examStudentRepo = examStudentRepo;
             _studentQuesRepo = studentQuesRepo;
+            _studentClassRepo = studentClassRepo;
+            _exam2Repo = exam2Repo;
         }
 
         public async Task<ExamStudent?> GetExamStudent(int examId, int studentId)
@@ -169,6 +175,40 @@ namespace OnlineExam.Application.Services
 
                 Details = details
             };
+        }
+
+        public async Task<IEnumerable<GetListExamForStudentDto>> GetListExamForStudent(int studentId)
+        {
+            var classIds = await _studentClassRepo
+                .Query()
+                .Where(sc => sc.StudentId == studentId)
+                .Select(sc => sc.ClassId)
+                .ToListAsync();
+
+            if (!classIds.Any())
+                return new List<GetListExamForStudentDto>();
+
+            var exams = await _exam2Repo
+                .Query()
+                .Where(e => classIds.Contains(e.ClassId))
+                .Select(e => new GetListExamForStudentDto
+                {
+                    ExamId = e.Id,
+                    ExamName = e.Name,
+                    StartTime = e.StartTime,
+                    EndTime = e.EndTime,
+                    DurationMinutes = e.DurationMinutes,
+
+                    // LEFT JOIN ExamStudent theo StudentId
+                    Status = e.ExamStudents
+                        .Where(es => es.StudentId == studentId)
+                        .Select(es => (ExamStatus?)es.Status)
+                        .FirstOrDefault()
+                })
+                .OrderBy(e => e.StartTime)
+                .ToListAsync();
+
+            return exams;
         }
 
         public async Task<ExamGenerateResultDto> GetCurrentQuestionForExam(int examId, int studentId)
