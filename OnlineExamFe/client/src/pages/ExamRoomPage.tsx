@@ -158,9 +158,9 @@ const ExamRoomPage: React.FC = () => {
 
   /**
    * submitResult:
-   * - Lưu kết quả sau khi nộp (score/maxScore) để hiện modal kết quả.
+   * - Cờ hiển thị modal thông báo nộp bài thành công.
    */
-  const [submitResult, setSubmitResult] = useState<{ score?: number; maxScore?: number } | null>(null);
+  const [submitResult, setSubmitResult] = useState<{ success?: boolean } | null>(null);
 
   // =========================================================
   // 3) BIẾN “KHÔI PHỤC” TRẠNG THÁI KHI REFRESH (RECOVERY)
@@ -185,41 +185,45 @@ const ExamRoomPage: React.FC = () => {
    */
   const timerStorageKey = examId ? `exam_${examId}_timer_start` : undefined;
 
+  // Ref để break circular dependency giữa useTimer và useExam
+  // useTimer cần gọi submitExam khi hết giờ, nhưng useExam lại cần setRemainingTime của useTimer
+  const submitExamRef = React.useRef<() => void>(() => {});
+
   // =========================================================
-  // 4) HOOK WEBSOCKET: useExam
+  // 4) HOOK ĐẾM GIỜ: useTimer (MOVE LÊN TRƯỚC)
+  // =========================================================
+
+  /**
+   * useTimer(durationMinutes, onTimeUp, storageKey)
+   */
+  const { formattedTime, setRemainingTime } = useTimer(
+    internalDuration,
+    () => {
+      alert(t('exam.timeUp'));
+      // Gọi qua ref vì lúc này submitExam chưa được khởi tạo
+      submitExamRef.current();
+    },
+    timerStorageKey
+  );
+
+  // =========================================================
+  // 5) HOOK WEBSOCKET: useExam
   // =========================================================
 
   /**
    * useExam:
-   * - Quản lý kết nối WebSocket và các thao tác:
-   *   + syncAnswer(questionId, order, answerText): gửi đáp án theo thời gian thực
-   *   + submitExam(): nộp bài qua WS
-   *
-   * Các callback:
-   * - onSynced: server trả về dữ liệu đã lưu trước đó -> ta đổ vào answers để hiển thị lại
-   * - onSubmitted: server báo nộp xong -> ta lưu kết quả để hiện modal + điều hướng
-   * - onError: báo lỗi
+   * - Quản lý kết nối WebSocket và các thao tác.
    */
   const { connectionState, syncAnswer, submitExam } = useExam({
     wsUrl: internalWsUrl || '',
     studentId: user?.id || 0,
     examId: Number(examId),
 
+
     // NEW: Đồng bộ timer từ BE (BE gửi số giây còn lại mỗi giây)
-    onTimeSync: (remainingSeconds) => {
-      setRemainingTime(remainingSeconds);
-    },
+    onTimeSync: setRemainingTime, // Giờ đã có setRemainingTime để dùng
 
     onSynced: (syncedData) => {
-      /**
-       * syncedData (dữ liệu đồng bộ từ server) có thể là một mảng các bản ghi.
-       *
-       * Vấn đề thực tế hay gặp:
-       * - Backend (C#) đôi khi trả JSON theo PascalCase: QuestionId, Answer...
-       * - Frontend (JS/TS) thường dùng camelCase: questionId, answer...
-       *
-       * Vì vậy ta "đọc linh hoạt" nhiều tên field để tránh lệch format.
-       */
       if (Array.isArray(syncedData)) {
         const incoming: Record<number, any> = {};
 
@@ -244,42 +248,24 @@ const ExamRoomPage: React.FC = () => {
         }
       }
 
-      // Có thể thay console.log bằng toast nếu bạn muốn UI đẹp hơn
       console.log(t('exam.synced'));
     },
 
-    onSubmitted: (result) => {
-      // Nộp bài xong thì xoá timer start trong sessionStorage (tuỳ bạn muốn giữ hay xoá)
+    onSubmitted: () => {
+      // Xoá timer storage
       if (timerStorageKey) sessionStorage.removeItem(timerStorageKey);
 
-      // Lưu kết quả để hiển thị modal điểm
-      setSubmitResult({ score: result?.score, maxScore: result?.maxScore });
+      // Hiển thị modal thành công (dùng submitResult như cờ)
+      setSubmitResult({ success: true });
     },
 
     onError: (msg) => alert(`${t('common.error')}: ${msg}`)
   });
 
-  // =========================================================
-  // 5) HOOK ĐẾM GIỜ: useTimer
-  // =========================================================
-
-  /**
-   * useTimer(durationMinutes, onTimeUp, storageKey)
-   *
-   * - durationMinutes: thời lượng bài thi theo phút
-   * - formattedTime: chuỗi hiển thị kiểu "59:12"
-   * - onTimeUp: callback khi hết giờ -> auto submit
-   * - storageKey: giúp giữ mốc thời gian khi refresh
-   * - setRemainingTime: cho phép cập nhật từ WebSocket (BE gửi mỗi giây)
-   */
-  const { formattedTime, setRemainingTime } = useTimer(
-    internalDuration,
-    () => {
-      alert(t('exam.timeUp'));
-      submitExam();
-    },
-    timerStorageKey
-  );
+  // Cập nhật ref mỗi khi submitExam thay đổi
+  useEffect(() => {
+    submitExamRef.current = submitExam;
+  }, [submitExam]);
 
   // =========================================================
   // 6) HÀM MAP CÂU HỎI TỪ BACKEND -> FRONTEND + KHÔI PHỤC ĐÁP ÁN TỪ localStorage
@@ -315,20 +301,13 @@ const ExamRoomPage: React.FC = () => {
         null;
 
       /**
-       * correctIds:
-       * - Có backend trả danh sách id đáp án đúng.
-       * - Nếu có nhiều đáp án đúng => suy ra dạng chọn nhiều (multi).
-       */
-      const correctIds = q.correctOptionIds ?? q.CorrectOptionIds ?? [];
-
-      /**
        * qType:
        * - FE quy ước:
        *   1 = chọn 1
        *   2 = chọn nhiều
        *   3 = tự luận
        *
-       * Ở đây ta cố gắng suy luận từ rawType/correctIds để hiển thị đúng loại UI.
+       * Backend trả type là string: "MULTIPLE_CHOICE" / "SINGLE_CHOICE"
        */
       let qType = 1; // mặc định: chọn 1
 
@@ -337,18 +316,8 @@ const ExamRoomPage: React.FC = () => {
         if (upper.includes('MULTI')) qType = 2;
         else qType = 1;
       } else if (typeof rawType === 'number') {
-        /**
-         * Ví dụ backend enum:
-         * - 0 = SINGLE_CHOICE
-         * - 1 = MULTIPLE_CHOICE
-         * - 2 = TRUE_FALSE
-         *
-         * Bạn cần thống nhất với backend để chắc chắn.
-         */
+        // Fallback nếu backend trả số
         qType = rawType === 1 ? 2 : 1;
-      } else if (Array.isArray(correctIds) && correctIds.length > 1) {
-        // Nếu có nhiều đáp án đúng -> suy ra chọn nhiều
-        qType = 2;
       }
 
       /**
@@ -455,9 +424,18 @@ const ExamRoomPage: React.FC = () => {
 
         if (res.wsUrl) setInternalWsUrl(res.wsUrl);
 
+        // Nếu có data (status = 'create') -> dùng luôn
         if (res.data) {
           setInternalDuration(res.data.durationMinutes);
           mapAndSetQuestions(res.data.questions);
+        }
+        // Nếu không có data (status = 'in_progress') -> gọi API lấy đề riêng
+        else if (res.status === 'in_progress') {
+          const examData = await examService.getCurrentQuestion(Number(examId), user.id);
+          if (examData) {
+            setInternalDuration(examData.durationMinutes);
+            mapAndSetQuestions(examData.questions);
+          }
         }
       } catch (e) {
         console.error('Khôi phục phòng thi thất bại', e);
@@ -742,30 +720,46 @@ const ExamRoomPage: React.FC = () => {
         </div>
       </main>
 
-      {/* Modal hiển thị điểm sau khi nộp bài */}
+      {/* Modal thông báo nộp bài thành công */}
       {submitResult && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-white/10 rounded-xl p-6 w-full max-w-md shadow-xl space-y-4">
-            <div className="space-y-1">
-              <p className="text-sm uppercase tracking-[0.25em] text-emerald-300/80">{t('exam.submitted')}</p>
-              <h3 className="text-2xl font-semibold text-white">
-                {t('exam.score')}: {submitResult.score ?? 0}
-                {submitResult.maxScore ? ` / ${submitResult.maxScore}` : ''}
-              </h3>
+          <div className="bg-slate-900 border border-white/10 rounded-xl p-8 w-full max-w-md shadow-xl space-y-6 text-center">
+            {/* Icon thành công */}
+            <div className="mx-auto w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
+              <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
             </div>
 
-            <div className="flex justify-end gap-3">
+            {/* Nội dung */}
+            <div className="space-y-2">
+              <h3 className="text-2xl font-semibold text-white">
+                {t('exam.submitSuccess') || 'Nộp bài thành công!'}
+              </h3>
+              <p className="text-slate-400">
+                {t('exam.submitSuccessDesc') || 'Bài làm của bạn đã được ghi nhận. Bạn có thể xem kết quả trong mục Kết quả.'}
+              </p>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-center gap-3 pt-2">
               <button
-                onClick={() => setSubmitResult(null)}
+                onClick={() => {
+                  setSubmitResult(null);
+                  navigate('/exams');
+                }}
                 className="btn btn-ghost px-4 py-2 border border-white/15"
               >
-                {t('common.close')}
+                {t('nav.exams') || 'Về danh sách'}
               </button>
               <button
-                onClick={() => navigate('/results')}
+                onClick={() => {
+                  setSubmitResult(null);
+                  navigate('/results');
+                }}
                 className="btn btn-primary px-4 py-2"
               >
-                {t('nav.results')}
+                {t('nav.results') || 'Xem kết quả'}
               </button>
             </div>
           </div>

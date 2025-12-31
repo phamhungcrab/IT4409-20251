@@ -17,11 +17,19 @@ namespace OnlineExam.Middleware
             _next = next;
         }
 
-        public async Task InvokeAsync(HttpContext context, ISessionService _sessionService) 
-        { 
+        public async Task InvokeAsync(HttpContext context, ISessionService _sessionService)
+        {
             string path = context.Request.Path;
-            if (path.Trim().ToLower().Contains("api/auth/")) 
-            { 
+
+            // Bỏ qua WebSocket requests (auth qua query param ở ExamWebSocketMiddleware)
+            if (path.Trim().ToLower().StartsWith("/ws"))
+            {
+                await _next(context);
+                return;
+            }
+
+            if (path.Trim().ToLower().Contains("api/auth/"))
+            {
                 await _next(context);
                 return;
             }
@@ -61,7 +69,7 @@ namespace OnlineExam.Middleware
 
             var identity = new ClaimsIdentity(claims, "SessionAuth");
             context.User = new ClaimsPrincipal(identity);
-            context.Items["UserSession"] = session; 
+            context.Items["UserSession"] = session;
             await _next(context);
         }
     }
