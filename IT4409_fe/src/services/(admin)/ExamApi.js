@@ -1,8 +1,9 @@
 import { api } from "../../lib/axiosClient";
 
-const getAllExamBlueprint = async () => {
+const getAllExams = async () => {
     try {
         const exams = await api.get("/Exam/get-all");
+        console.log("exams: ", exams.data);
         return exams.data;
     } catch (e) {
         alert("Không thể lấy danh sách bài kiểm tra");
@@ -13,7 +14,22 @@ const getAllExamBlueprint = async () => {
 
 const createExam = async (payload) => {
     try {
-        const res = await api.post("/Exam/create-exam", payload);
+        console.log("create exam", {
+            name: payload.name,
+            classId: Number(payload.classId),
+            blueprintId: Number(payload.examBlueprint),
+            durationMinutes: Number(payload.durationMinutes),
+            startTime: `${payload.startTime}T00:00:00`,
+            endTime: `${payload.endTime}T23:59:59`
+        })
+        const res = await api.post("/Exam/create-exam", {
+            name: payload.name,
+            classId: Number(payload.classId),
+            blueprintId: Number(payload.examBlueprint),
+            durationMinutes: Number(payload.durationMinutes),
+            startTime: new Date(payload.startTime).toISOString(),
+            endTime: new Date(payload.endTime).toISOString()
+        });
         return res.data;
     } catch (e) {
         alert("Tạo bài kiểm tra thất bại");

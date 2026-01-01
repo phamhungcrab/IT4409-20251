@@ -1,12 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { MoreHorizontal } from "lucide-react";
+import { getInitials, getColorFromText } from "../utils/helper.js";
 
-export const ExamCard = ({ title, subtitle, actions = [], children, status = "", className = "", onClick }) => {
+export const ExamCard = ({
+    title,
+    subtitle,
+    actions = [],
+    children,
+    status = "",
+    className = "",
+    onClick
+}) => {
     const colorClass = {
         indigo: "text-indigo-700",
         red: "text-[#AA1D2B]",
         gray: "text-gray-700",
     };
+
     const statusBadge = {
         ACTIVE: {
             text: "Đang mở",
@@ -31,26 +41,38 @@ export const ExamCard = ({ title, subtitle, actions = [], children, status = "",
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-
     return (
-        <div onClick={onClick} className={`relative p-4 rounded-xl shadow flex flex-col justify-between w-[270px] h-[150px] bg-white ${className}`}>
-            <div>
-                <h3 className="text-lg font-bold">{title}</h3>
-                {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
-                <span
-                    className={`inline-block mt-1 px-2 py-0.5 text-xs rounded-md ${statusBadge[status]?.class}`}
+        <div
+            onClick={onClick}
+            className={`relative p-4 rounded-xl shadow bg-white w-[270px] h-[150px] cursor-pointer ${className}`}
+        >
+            <div className="flex items-start gap-3">
+                <div
+                    className={`w-12 h-12 rounded-md flex items-center justify-center 
+              font-semibold text-base text-white/90 shadow-sm ${getColorFromText(title)}`}
                 >
-                    {statusBadge[status]?.text}
-                </span>
-                {children && <div className="mt-2">{children}</div>}
+                    {getInitials(title)}
+                </div>
+
+                <div className="flex-1">
+                    <h3 className="text-lg font-bold">{title}</h3>
+                    {subtitle && (
+                        <p className="text-sm text-gray-500">{subtitle}</p>
+                    )}
+                    <span
+                        className={`inline-block mt-1 px-2 py-0.5 text-xs rounded-md ${statusBadge[status]?.class}`}
+                    >
+                        {statusBadge[status]?.text}
+                    </span>
+                </div>
             </div>
 
             <button
                 onClick={(e) => {
                     e.stopPropagation();
-                    setShowMenu(prev => !prev)
+                    setShowMenu(prev => !prev);
                 }}
-                className="absolute bottom-2 right-3 p-2 hover:bg-gray-100 rounded-full"
+                className="absolute bottom-2 right-2 p-2 hover:bg-gray-100 rounded-full"
             >
                 <MoreHorizontal size={22} />
             </button>
@@ -58,7 +80,7 @@ export const ExamCard = ({ title, subtitle, actions = [], children, status = "",
             {showMenu && (
                 <div
                     ref={menuRef}
-                    className="absolute top-30 left-65 bg-white shadow-lg rounded-lg border border-gray-200 w-36 py-1 z-50"
+                    className="absolute bottom-12 right-2 bg-white shadow-lg rounded-lg border border-gray-200 w-36 py-1 z-50"
                 >
                     {actions.map((a, idx) => (
                         <button
@@ -75,6 +97,8 @@ export const ExamCard = ({ title, subtitle, actions = [], children, status = "",
                     ))}
                 </div>
             )}
+
+            {children && <div className="mt-2">{children}</div>}
         </div>
     );
 };
