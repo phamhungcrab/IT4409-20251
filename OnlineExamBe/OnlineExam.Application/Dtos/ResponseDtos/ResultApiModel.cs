@@ -10,6 +10,6 @@ namespace OnlineExam.Application.Dtos.ResponseDtos
     {
         public object? Data { get; set; }
         public int? MessageCode { get; set; }
-        public bool? IsStatus { get; set; } = false;
+        public bool? Status{ get; set; } = false;
     }
 }

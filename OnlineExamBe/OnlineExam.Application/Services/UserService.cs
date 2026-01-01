@@ -1,7 +1,11 @@
-﻿using OnlineExam.Application.Dtos.ReponseDtos;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using OnlineExam.Application.Dtos.ReponseDtos;
 using OnlineExam.Application.Dtos.RequestDtos;
-using OnlineExam.Application.Dtos.RequestDtos.User;
+using OnlineExam.Application.Dtos.RequestDtos.UserDtos;
 using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Dtos.UserDtos;
 using OnlineExam.Application.Helpers;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services.Base;
@@ -13,18 +17,94 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace OnlineExam.Application.Services
 {
-    public class UserService : CrudService<User>, IUserService
+    public class UserService : CrudService<User>,IUserService
     {
-        
-        public UserService(IRepository<User> repository) : base(repository)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IAuthorizationService _authorizationService;
+
+        public UserService(IRepository<User> repository, IHttpContextAccessor httpContextAccessor,
+                            IAuthorizationService authorizationService) : base(repository)
         {
+            _httpContextAccessor = httpContextAccessor;
+            _authorizationService = authorizationService;
         }
         #region Admin
+        /// <summary>
+        /// tim kiem cho admin
+        /// </summary>
+        /// <param name="searchModel"></param>
+        /// <returns></returns>
+        public async Task<ResultApiModel> SearchForAdminAsync(SearchForAdminDto searchModel)
+        {
+            var query = _repository.Query();
+            if (!string.IsNullOrEmpty(searchModel.FullName))
+            {
+                var fullName = searchModel.FullName.ToLower().Trim();
+                query = query.Where(c => c.FullName.ToLower().Trim().Contains(fullName));
+            }
+
+            if (!string.IsNullOrEmpty(searchModel.MSSV))
+            {
+                var mssv = searchModel.MSSV.ToLower().Trim();
+                query = query.Where(c => c.MSSV.ToLower().Trim().Contains(mssv));
+            }
+
+            if(searchModel.DobFrom != null)
+            {
+                query = query.Where(c => c.DateOfBirth >= searchModel.DobFrom);
+            }
+
+            if (searchModel.DobTo != null)
+            {
+                query = query.Where(c => c.DateOfBirth <= searchModel.DobTo);
+            }
+
+            if (!string.IsNullOrEmpty(searchModel.Email))
+            {
+                var email = searchModel.Email.ToLower().Trim();
+                query = query.Where(c => c.Email.ToLower().Trim().Contains(email));
+            }
+            if (searchModel.Role != null)
+            {
+                query = query.Where(c => c.Role == searchModel.Role);
+            }
+            var totalItems = await query.CountAsync();
+
+            var users = await query
+                .Skip((searchModel.PageNumber - 1) * searchModel.PageSize)
+                .Take(searchModel.PageSize)
+                .Select(c => new
+                {
+                    Id = c.Id,
+                    MSSV = c.MSSV,
+                    FullName = c.FullName,
+                    DateOfBirth = c.DateOfBirth,
+                    Email = c.Email,
+                    Role = c.Role
+
+                })
+                .ToListAsync();
+
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = new
+                {
+                    TotalItems = totalItems,
+                    Users = users
+                }
+            };
+
+        }
         // ke thua tu crud
 
         /// <summary>
@@ -42,53 +122,163 @@ namespace OnlineExam.Application.Services
                 if (item.Email == null) invalidUserList.Append(item);
                 else {
                     var checkMail = await _repository.FindAsync(x => x.Email.ToLower().Equals(item.Email.ToLower()));
-                    var checkId = await this.GetByIdAsync(item.Id);
 
+                    if (checkMail.Any())
+                        {
+                            invalidUserList.Add(item);
+                        }
 
-                if (checkMail.Any())
-                    {
-                        invalidUserList.Add(item);
-                    }
+            
+                        if (!CheckValidHelper.IsValiddMail(item.Email))
+                        {
+                            invalidUserList.Add(item);
+                        }
 
-                    else if (checkId != null)
-                    {
-                        invalidUserList.Add(item);
-                    }
-                    else if (!CheckValidHelper.IsValiddMail(item.Email))
-                    {
-                        invalidUserList.Add(item);
-                    }
-
-                    else
-                    {
-                        item.PasswordHash = (new Random()).Next(100000, 1000000).ToString();
+                        else
+                        {
+                        var PasswordHashed = HashPassword(item.Password);
                         validUserList.Add(item: new User()
                         {
-                            Id = item.Id,
                             Email = item.Email,
-                            PasswordHash = item.PasswordHash,
+                            MSSV = item.MSSV,
+                            PasswordHash = PasswordHashed,
                             FullName = item.FullName,
                             DateOfBirth = item.DateOfBirth,
                             Role = item.Role,
                         });
+                        }
                     }
-
-
-                }
             }
             await _repository.AddRangeAsync(validUserList);
             await _repository.SaveChangesAsync();
             return new ResultApiModel()
             {
-                IsStatus = true,
+                Status = true,
                 MessageCode = ResponseCode.Success,
                 Data = invalidUserList
             };
         }
+
+        public async Task<ResultApiModel> UpdateAsync(CreateUserAdminDto user)
+        {
+
+            if (user.Email == null)
+            {
+                return new ResultApiModel()
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.BadRequest,
+                    Data = "Thieu Email"
+                };
+            }
+
+            if (!CheckValidHelper.IsValiddMail(user.Email))
+            {
+                return new ResultApiModel()
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.BadRequest,
+                    Data = "Sai dinh dang email"
+                };
+            }
+            var checkMail = await _repository.FindAsync(x => x.Email.ToLower().Equals(user.Email.ToLower()));
+            if (!checkMail.Any())
+            {
+                return new ResultApiModel()
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.Conflict,
+                    Data = "Khong ton tai"
+                };
+            }
+
+            var PasswordHashed = HashPassword(user.Password);
+
+            var update = checkMail.First();
+            update.FullName = user.FullName;
+            update.DateOfBirth = user.DateOfBirth;
+            update.PasswordHash = PasswordHashed;
+            update.Role = user.Role;
+            update.Email = user.Email;
+            
+            await base.UpdateAsync(update);
+            var result = new
+            {
+                Id = update.Id,
+                MSSV = update.MSSV,
+                FullName = update.FullName,
+                DateOfBirth = update.DateOfBirth,
+                Email = update.Email,
+                Role = update.Role
+            };
+            return new ResultApiModel()
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = result
+            };
+
+        }
+
+
+
         #endregion
 
         #region User
 
+        public async Task<ResultApiModel> SearchForUserAsync(SearchForUserDto searchModel)
+        {
+            var query = _repository.Query();
+            if (!string.IsNullOrEmpty(searchModel.FullName))
+            {
+                var fullName = searchModel.FullName.ToLower().Trim();
+                query = query.Where(c => c.FullName.ToLower().Trim().Contains(fullName));
+            }
+
+            if (!string.IsNullOrEmpty(searchModel.MSSV))
+            {
+                var mssv = searchModel.MSSV.ToLower().Trim();
+                query = query.Where(c => c.MSSV.ToLower().Trim().Contains(mssv));
+            }
+
+            if (!string.IsNullOrEmpty(searchModel.Email))
+            {
+                var email = searchModel.Email.ToLower().Trim();
+                query = query.Where(c => c.Email.ToLower().Trim().Contains(email));
+            }
+            if (searchModel.Role != null)
+            {
+                query = query.Where(c => c.Role == searchModel.Role);
+            }
+            var totalItems = await query.CountAsync();
+
+            var users = await query
+                .Skip((searchModel.PageNumber - 1) * searchModel.PageSize)
+                .Take(searchModel.PageSize)
+                .Select(c => new
+                {
+                    Id = c.Id,
+                    MSSV= c.MSSV,
+                    FullName = c.FullName,
+                    DateOfBirth = c.DateOfBirth,
+                    Email = c.Email,
+                    Role = c.Role
+
+                })
+                .ToListAsync();
+                
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = new
+                {
+                    TotalItems = totalItems,
+                    Users = users
+                }
+            };
+
+        }
         //Các phương thức của User
         public async Task<ResultApiModel> CreateAsync(CreateUserAdminDto user)
         {
@@ -96,7 +286,7 @@ namespace OnlineExam.Application.Services
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.BadRequest,
                     Data = "Thieu Email"
                 };
@@ -106,7 +296,7 @@ namespace OnlineExam.Application.Services
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.Conflict,
                     Data = "Da ton tai email nay"
                 };
@@ -116,89 +306,103 @@ namespace OnlineExam.Application.Services
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.BadRequest,
                     Data = "Sai dinh dang email"
                 };
             }
+
+            var PasswordHashed = HashPassword(user.Password);
             var newUser = new User()
             {
                 DateOfBirth = user.DateOfBirth,
+                MSSV = user.MSSV,
                 FullName = user.FullName,
                 Email = user.Email,
-                PasswordHash = user.PasswordHash!,
+                PasswordHash = PasswordHashed,
                 Role = user.Role,
 
             };
             await base.CreateAsync(newUser);
                 return new ResultApiModel()
                 {
-                    IsStatus = true,
+                    Status = true,
                     MessageCode = ResponseCode.Success,
-                    Data = "Tao user thanh cong"
+                    Data = newUser
 
                 };
             
         }
-        public async Task<ResultApiModel> UpdateAsync(CreateUserAdminDto user)
+        /// <summary>
+        /// Phuong thuc update thong tin ca nhan cho user
+        /// </summary>
+        /// <param name="userUpdate"></param>
+        /// <returns></returns>
+        public async Task<ResultApiModel> UserUpdateAsync(UserUpdateDto userUpdate)
         {
-
-            if (user.Email == null)
+            
+            if (userUpdate.Email == null)
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.BadRequest,
-                    Data = "Thieu Email"
+                    Data = "Thiếu Email"
                 };
             }
 
-            if (!CheckValidHelper.IsValiddMail(user.Email))
-                {
-                    return new ResultApiModel()
-                    {
-                        IsStatus = false,
-                        MessageCode = ResponseCode.BadRequest,
-                        Data = "Sai dinh dang email"
-                    };
-                }
-            var checkMail = await _repository.FindAsync(x => x.Email.ToLower().Equals(user.Email.ToLower()));
-            if (!checkMail.Any())
+            if (!CheckValidHelper.IsValiddMail(userUpdate.Email))
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
+                    MessageCode = ResponseCode.BadRequest,
+                    Data = "Sai định dạng email"
+                };
+            }
+            var userId = int.Parse(_httpContextAccessor.HttpContext!.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var user  = await _repository.GetByIdAsync(userId);
+            if (user == null)
+            {
+                return new ResultApiModel()
+                {
+                    Status = false,
                     MessageCode = ResponseCode.Conflict,
-                    Data = "Khong ton tai"
+                    Data = "Tài khoản đã bị xóa"
                 };
             }
-            
-            var newUser = new User()
-            {
-                DateOfBirth = user.DateOfBirth,
-                FullName = user.FullName,
-                Email = user.Email,
-                PasswordHash = user.PasswordHash!,
-                Role = user.Role,
 
-            };
-            await base.UpdateAsync(newUser);
-                return new ResultApiModel()
-                {
-                    IsStatus = true,
-                    MessageCode = ResponseCode.Success,
-                    Data = "Cap nhat user thanh cong"
-                };
+            user.Email = userUpdate.Email;
+            user.FullName = userUpdate.FullName;
+            user.DateOfBirth = userUpdate.DateOfBirth;  
+
+            await base.UpdateAsync(user);
             
+            return new ResultApiModel()
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = user
+            };
+
         }
-        public async Task<User> GetUserByEmail(string email)
+
+
+        public async Task<User?> GetUserByEmail(string email)
         {
             var user = await _repository.FindAsync(u => u.Email.Equals(email));
             if (!user.Any()) return null;
+
             else return user.First();
         }
 
-       
+
+        private static string HashPassword(string password)
+        {
+            using var sha256 = SHA256.Create();
+            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            return Convert.ToHexString(bytes);
+        }
         #endregion
     }
 }

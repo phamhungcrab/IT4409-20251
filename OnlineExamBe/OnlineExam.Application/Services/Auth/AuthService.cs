@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Caching.Memory;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Win32;
 using OnlineExam.Application.Dtos.ReponseDtos;
@@ -11,47 +13,53 @@ using OnlineExam.Application.Settings;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
+using OnlineExam.Infrastructure.Policy.Requirements;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace OnlineExam.Application.Services.Auth
 {
-    public class AuthService : CrudService<User>,IAuthService
+    public class AuthService : CrudService<User>, IAuthService
     {
-        private readonly IJwtService _jwtService;
         private readonly IUserService _userService;
-        private readonly IRefreshTokenService _refreshTokenService;
+        private readonly ISessionService _sessionService;
         private readonly IEmailService _emailService;
-        private readonly IRepository<RefreshToken> _refreshTokenRepository;
+        private readonly IRepository<Session> _sessionRepository;
         private readonly IMemoryCache _cache;
         private readonly SmtpSettings _smtp;
         private readonly Random _random = new();
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IAuthorizationService _authorizationService;
         public AuthService(IRepository<User> userRepository,
-                           IRefreshTokenService refreshTokenService,
-                           IJwtService jwtService,
+                           ISessionService sessionService,
                            IEmailService emailService,
-                           IRepository<RefreshToken> refreshTokenRepository,
-                           IMemoryCache cache, 
+                           IRepository<Session> sessionRepository,
+                           IMemoryCache cache,
                            IOptions<SmtpSettings> smtp,
-                           IUserService userService) : base(userRepository)
+                           IUserService userService,
+                           IHttpContextAccessor httpContextAccessor,
+                           IAuthorizationService authorizationService) : base(userRepository)
         {
-            _jwtService = jwtService;
+
             _userService = userService;
             _emailService = emailService;
-            _refreshTokenRepository = refreshTokenRepository;
-            _refreshTokenService = refreshTokenService;
+            _sessionRepository = sessionRepository;
+            _sessionService = sessionService;
             _cache = cache;
             _smtp = smtp.Value;
+            _httpContextAccessor = httpContextAccessor;
+            _authorizationService = authorizationService;
         }
 
- 
+
         /// <summary>
         /// Dang ki tai khoan
         /// </summary>
@@ -60,12 +68,11 @@ namespace OnlineExam.Application.Services.Auth
         /// <exception cref = "ArgumentNullException" ></ exception >
         public async Task<ResultApiModel> Register(RegisterDto register)
         {
-            if (register == null || register.Email == null || register.Password == null ||
-                register.DeviceId == null || register.IpAdress == null ||register.UserAgent == null)
+            if (register == null || register.Email == null || register.Password == null)
             {
                 return new ResultApiModel()
                 {
-                    IsStatus =false,
+                    Status = false,
                     MessageCode = ResponseCode.BadRequest,
                     Data = "Thieu thong tin dang ky"
                 };
@@ -78,7 +85,7 @@ namespace OnlineExam.Application.Services.Auth
                 {
                     return new ResultApiModel()
                     {
-                        IsStatus = false,
+                        Status = false,
                         MessageCode = ResponseCode.Conflict,
                         Data = "Email da ton tai"
                     };
@@ -87,29 +94,20 @@ namespace OnlineExam.Application.Services.Auth
                 var user = new User
                 {
                     Email = register.Email,
+                    MSSV = register.MSSV,
                     DateOfBirth = register.DateOfBirth,
                     FullName = register.FullName,
                     PasswordHash = register.Password,
                     Role = register.Role
                 };
                 await base.CreateAsync(user);
-                var refreshToken = await _jwtService.generateRefreshToken(user, 15, register.DeviceId, register.IpAdress, register.UserAgent);
-
-                var accessToken = _jwtService.GenerateAccessToken(user, 15, register.DeviceId, register.IpAdress, register.UserAgent);
-
-                await _refreshTokenService.CreateAsync(refreshToken);
-
-                var tokenResponse = new TokenResponse
-                {
-                    RefreshToken = refreshToken.Token,
-                    AccessToken = accessToken,
-                };
+                var session = await _sessionService.CreateAsync(user, 30);
 
                 return new ResultApiModel()
                 {
-                    IsStatus = true,
+                    Status = true,
                     MessageCode = ResponseCode.Success,
-                    Data = tokenResponse
+                    Data = session.SessionString
                 };
 
 
@@ -119,14 +117,13 @@ namespace OnlineExam.Application.Services.Auth
 
         public async Task<ResultApiModel> Login(LoginDto login)
         {
-            if (login == null || login.Email == null || login.Password == null ||
-                login.DeviceId == null || login.IpAdress == null || login.UserAgent == null)
+            if (login == null || login.Email == null || login.Password == null)
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.BadRequest,
-                    Data = "Thieu thong tin dang nhap"
+                    Data = "Thiếu thông tin đăng nhập"
                 };
             }
             var user = await _userService.GetUserByEmail(login.Email);
@@ -134,66 +131,60 @@ namespace OnlineExam.Application.Services.Auth
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.NotFound,
-                    Data = "Khong ton tai Email"
+                    Data = "Không tồn tại email"
                 };
 
             }
             //hash password de so sanh
-            var passwordHash = login.Password;
+            var passwordHash = HashPassword(login.Password);
 
             if (!passwordHash.Equals(user.PasswordHash))
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.Unauthorized,
-                    Data = "Sai mat khau"
+                    Data = "Sai mật khẩu"
                 };
             }
-            // tim token cu va kiem tra
-            var refreshToken = (await _refreshTokenRepository.FindAsync(t => t.UserId.Equals(user.Id) && t.DeviceId.Equals(login.DeviceId) 
-                                                                          && t.IpAddress.Equals(login.IpAdress) && t.UserAgent.Equals(login.UserAgent) && !t.IsExpired));
 
-            if(refreshToken.Any()) { 
-                refreshToken.First().IsExpired = true;
-                await _refreshTokenService.UpdateAsync(refreshToken.First());
-            }
-                // tao token moi
-                var newAccessToken = _jwtService.GenerateAccessToken(user, 150000, login.DeviceId, login.IpAdress, login.UserAgent);
-                var newRefreshToken = await _jwtService.generateRefreshToken(user, 15, login.DeviceId, login.IpAdress, login.UserAgent);
-                
-                await _refreshTokenService.CreateAsync(newRefreshToken);
-            
+            var session = await _sessionService.CreateAsync(user, 30);
+
+
+
             // Tra ve access token va refresh token
             return new ResultApiModel()
             {
-                IsStatus = true,
+                Status = true,
                 MessageCode = ResponseCode.Success,
-                Data = new TokenResponse()
+                Data = new
                 {
-                    AccessToken = newAccessToken,
-                    RefreshToken  = newRefreshToken.Token,
+                    SessionString = session.SessionString,
+                    User = user
                 }
             };
+
 
         }
 
         public async Task<ResultApiModel> Logout(LogoutDto logout)
         {
-            var refreshToken = (await _refreshTokenRepository.FindAsync(t => t.UserId.Equals(logout.UserId) && t.DeviceId.Equals(logout.DeviceId)
-                                                                         && t.IpAddress.Equals(logout.IpAddress) && t.UserAgent.Equals(logout.UserAgent) && !t.IsExpired));
-
-            if (refreshToken.Any())
+            var authResult = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, logout.UserId, new ResourceRequirement(ResourceAction.Logout));
+            if (!authResult.Succeeded) 
             {
-                refreshToken.First().IsExpired = true;
-                await _refreshTokenService.UpdateAsync(refreshToken.First());
+                return new ResultApiModel()
+                {
+                    Status = true,
+                    MessageCode = ResponseCode.Unauthorized
+                };
             }
+            var isDeleted = (await _sessionService.DeleteByUserIdAsync(logout.UserId));
 
             return new ResultApiModel()
             {
-                IsStatus = true,
+                Status = true,
                 MessageCode = ResponseCode.Success,
                 Data = "Dang xuat thanh cong"
             };
@@ -202,51 +193,95 @@ namespace OnlineExam.Application.Services.Auth
 
         public async Task<ResultApiModel> ChangePassword(ChangePasswordDto changePassword)
         {
-            User user = await _userService.GetUserByEmail(changePassword.Email);
-            if(user == null)
+            User? user = await _userService.GetUserByEmail(changePassword.Email);
+            var authResult = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, user, new ResourceRequirement(ResourceAction.Logout));
+            if (!authResult.Succeeded)
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
-                    MessageCode= ResponseCode.NotFound,
+                    Status = true,
+                    MessageCode = ResponseCode.Unauthorized
+                };
+            }
+            if (user == null)
+            {
+                return new ResultApiModel()
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.NotFound,
                     Data = "Khong ton tai email nay"
                 };
             }
             // hask mkhau
-            var newPasswordHash = changePassword.OldPassword;
+            var oldPasswordHash = HashPassword(changePassword.OldPassword);
 
-            if (!newPasswordHash.Equals(user.PasswordHash))
+            if (!oldPasswordHash.Equals(user.PasswordHash))
             {
                 return new ResultApiModel()
                 {
-                    IsStatus = false,
+                    Status = false,
                     MessageCode = ResponseCode.BadRequest,
                     Data = "Sai mat khau"
                 };
             }
-            
-            user.PasswordHash = newPasswordHash;
+
+            user.PasswordHash = HashPassword(changePassword.NewPassword);
             await _userService.UpdateAsync(user);
             return new ResultApiModel()
             {
-                IsStatus = true,
+                Status = true,
                 MessageCode = ResponseCode.Success,
                 Data = "Cap nhat mat khau thanh cong"
             };
         }
-        
+
         /// <summary>
-        /// chua trien khai, chua co otp
+        /// Quen mat khau
         /// </summary>
         /// <param name="resetPassword"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
         public async Task<ResultApiModel> ResetPassword(ResetPasswordDto resetPassword)
         {
-            throw new NotImplementedException();
+
+            User? user = await _userService.GetUserByEmail(resetPassword.Email);
+            if (user == null)
+            {
+                return new ResultApiModel()
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.NotFound,
+                    Data = "Khong ton tai email nay"
+                };
+            }
+
+            string resetKey = $"reset:{resetPassword.Email}";
+            if (_cache.TryGetValue(resetKey, out string? storedCode) && storedCode == resetPassword.ResetCode)
+            {
+                _cache.Remove(resetKey);
+                user.PasswordHash = HashPassword(resetPassword.NewPassword);
+                await _userService.UpdateAsync(user);
+                return new ResultApiModel
+                {
+
+                    Status = true,
+                    MessageCode = ResponseCode.Success,
+                    Data = "Cập nhật mật khẩu thành công"
+                };
+            }
+            else
+            {
+                return new ResultApiModel
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.BadRequest,
+                    Data = "Mã OTP đã hết hạn"
+                };
+            }
+
         }
         /// <summary>
-        /// chua trien khai
+        /// check OTP
         /// </summary>
         /// <param name="otp"></param>
         /// <returns></returns>
@@ -254,24 +289,29 @@ namespace OnlineExam.Application.Services.Auth
         public async Task<ResultApiModel> CheckOtp(CheckOtpDto dto)
         {
             string cacheKey = $"otp:{dto.Email}";
-            if (_cache.TryGetValue(cacheKey, out string? storedCode) && storedCode == dto.Otp)
+            var otp = _cache.TryGetValue(cacheKey, out string? storedCode);
+            if (otp && storedCode == dto.Otp)
             {
                 _cache.Remove(cacheKey);
-                return new ResultApiModel(){
-                    IsStatus = true,
+                string resetToken = Guid.NewGuid().ToString();
+                string resetKey = $"reset:{dto.Email}";
+                _cache.Set(resetKey, resetToken, TimeSpan.FromMinutes(5));
+                return new ResultApiModel()
+                {
+                    Status = true,
                     MessageCode = ResponseCode.Success,
-                    Data = "Xac thuc otp thanh cong"
+                    Data = resetToken
                 };
             }
             return new ResultApiModel()
             {
-                IsStatus = false,
+                Status = false,
                 MessageCode = ResponseCode.BadRequest,
                 Data = "Mã OTP không đúng hoặc đã hết hạn"
             };
         }
         /// <summary>
-        /// Chua trien khai SendEmail
+        /// Gui OTP
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
@@ -282,15 +322,21 @@ namespace OnlineExam.Application.Services.Auth
             _cache.Set(cacheKey, code, TimeSpan.FromMinutes(3));
 
             var to = new[] { dto.Email };
-            
+
             await _emailService.SendMail(dto.Email, code);
             return new ResultApiModel()
             {
-                IsStatus = true,
+                Status = true,
                 MessageCode = ResponseCode.Success,
                 Data = "Gửi OTP thành công"
             };
         }
-    }
 
+        private static string HashPassword(string password)
+        {
+            using var sha256 = SHA256.Create();
+            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            return Convert.ToHexString(bytes);
+        }
+    }
 }

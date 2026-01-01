@@ -17,20 +17,23 @@ namespace OnlineExam.Application.Services.Base
             _repository = repository;
         }
 
-        public virtual async Task<IEnumerable<T>> GetAllAsync()
+        public virtual async Task<IEnumerable<T>> GetAllAsync(params string[] includes)
         {
-            return await _repository.GetAllAsync();
+            return await _repository.GetAllAsync(includes);
         }
 
         public virtual async Task<T?> GetByIdAsync(int id)
         {
             return await _repository.GetByIdAsync(id);
         }
-
+        public virtual async Task<T?> GetByIdAsync(int id, string[] includes)
+        {
+            return await _repository.GetByIdAsync(id,includes);
+        }
         public virtual async Task CreateAsync(T enity)
         {
             await _repository.AddAsync(enity);
-            await _repository.SaveChangesAsync();
+            await _repository.SaveChangesAsync();     
         }
 
         public virtual async Task<bool> UpdateAsync(T entity)

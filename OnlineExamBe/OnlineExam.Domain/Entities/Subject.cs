@@ -11,9 +11,9 @@ namespace OnlineExam.Domain.Entities
         public int Id { get; set; }
         public required string Name { get; set; }
         public required string SubjectCode { get; set; }
+        public int TotalChapters { get; set; }  // Số chương trong môn học
 
-
-        public ICollection<Class> Classes { get; set; }
-        public ICollection<Question> Questions { get; set; }
+        public ICollection<Class> Classes { get; set; } = new List<Class>();
+        public ICollection<Question> Questions { get; set; } = new List<Question>();
     }
 }

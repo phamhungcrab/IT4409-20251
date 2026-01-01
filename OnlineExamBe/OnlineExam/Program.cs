@@ -1,26 +1,69 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Auth;
+using OnlineExam.Application.Interfaces.Websocket;
 using OnlineExam.Application.Services;
 using OnlineExam.Application.Services.Auth;
 using OnlineExam.Application.Services.Base;
+using OnlineExam.Application.Services.Websocket;
 using OnlineExam.Application.Settings;
-using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Interfaces;
 using OnlineExam.Infrastructure.Data;
 using OnlineExam.Infrastructure.Repositories;
-using System.Text;
+using OnlineExam.Middleware;
+using Microsoft.AspNetCore.HttpOverrides;
+using OnlineExam.Application.Interfaces.PermissionService;
+using OnlineExam.Application.Services.PermissionService;
+using OnlineExam.Application.Services.PermissionFolder;
+using OnlineExam.Application.Interfaces.PermissionFolder;
+using Microsoft.AspNetCore.Authorization;
+using OnlineExam.Infrastructure.Policy.Handlers;
 
 var builder = WebApplication.CreateBuilder(args);
 
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        options.JsonSerializerOptions.WriteIndented = true;
+    });
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Session", new OpenApiSecurityScheme
+    {
+        Name = "Session",
+        Type = SecuritySchemeType.ApiKey,
+        In = ParameterLocation.Header,
+        Description = "Session token header"
+    });
+
+    c.AddServer(new OpenApiServer
+    {
+        Url = builder.Environment.IsDevelopment()
+        ? "https://localhost:7239"
+        : "https://it4409-20251.onrender.com"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+         {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Session"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
 // Đăng ký DbContext
 builder.Services.AddDbContext<ExamSystemDbContext>(options =>
     options.UseSqlServer(
@@ -31,77 +74,68 @@ builder.Services.AddDbContext<ExamSystemDbContext>(options =>
 builder.Services.AddMemoryCache();
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
 
-var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]);
-builder.Services.AddAuthentication(x =>
+//session
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(option =>
 {
-    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-
-.AddJwtBearer(x =>
-{
-    x.RequireHttpsMetadata = false;
-    x.SaveToken = true;
-    x.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = false,
-        ValidateLifetime = true,
-        ValidateAudience = false
-    };
-});
-
-builder.Services.AddSwaggerGen(c =>
-{
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Nhập token theo dạng: Bearer {token}"
-    });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            new string[] {}
-        }
-    });
+    option.IdleTimeout = TimeSpan.FromMinutes(30);
+    option.Cookie.IsEssential = true;
 });
 
 
+builder.Services.AddHttpContextAccessor();
+
+
+
+builder.Services.AddSingleton<IAuthorizationHandler, ClassAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, UserAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, UserIdAuthorizationHandler>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped(typeof(ICrudService<>), typeof(CrudService<>));
 builder.Services.AddScoped<IAuthService,AuthService>();
+builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<IUserService,UserService>();
-builder.Services.AddScoped<IJwtService, JwtService>();
-builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<IGroupPermissionService, GroupPermissionService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IUserPermissionService, UserPermissionService>();
+builder.Services.AddScoped<IAboutService, AboutService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IQuestionService, QuestionService>();
+builder.Services.AddScoped<IExamBlueprintService, ExamBlueprintService>();
+builder.Services.AddScoped<IExamService, ExamService>();
+builder.Services.AddScoped<ISubjectService, SubjectService>();
+builder.Services.AddScoped<IExamGradingService, ExamGradingService>();
+builder.Services.AddSingleton<IExamAnswerCache, ExamAnswerCache>();
 
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-    
-}
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
+app.UseSwagger();
+app.UseSwaggerUI();
+
 
 app.UseHttpsRedirection();
 
+app.UseWebSockets();
+
+app.UseMiddleware<SessionMiddleware>();
+
+app.UseSession();
+
+app.UseRouting();
+
+app.UseAuthentication();
+
 app.UseAuthorization();
+
+app.UseMiddleware<ExamWebSocketMiddleware>();
 
 app.MapControllers();
 
