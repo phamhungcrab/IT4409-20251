@@ -9,6 +9,8 @@ import { ExamCard } from "../../components/Card";
 import { useNavigate } from "react-router-dom";
 import { createExam, generateExam, getAllExams } from "../../services/(admin)/ExamApi";
 import { getAllClasses } from "../../services/(admin)/ClassApi";
+import { getAllExamBlueprints } from "../../services/(admin)/ExamBlueprintApi";
+import { ConfirmModal } from "../../components/ConfirmModal";
 
 
 const CMSExam = () => {
@@ -18,21 +20,29 @@ const CMSExam = () => {
     const [editData, setEditData] = useState(null);
     const [classes, setClasses] = useState([]);
     const [deleteId, setDeleteId] = useState(null);
-    const [selectedExamId, setSelectedExamId] = useState(null);
+    // const [selectedExamId, setSelectedExamId] = useState(null);
+    const [blueprints, setBlueprints] = useState([]);
 
     const navigate = useNavigate();
 
     const fetchAllExams = async () => {
         try {
-            const examRes = await getAllExamBlueprint();
-            setExams(examRes.data.$values);
+            const examRes = await getAllExams();
+            setExams(examRes);
 
             const classRes = await getAllClasses();
-            const classOptions = classRes.data.$values.map(t => ({
+            const classOptions = classRes.data.map(t => ({
                 value: t.id,
                 label: t.name
             }));
             setClasses(classOptions);
+
+            const blueprintRes = await getAllExamBlueprints();
+            const blueprintOptions = blueprintRes.map(t => ({
+                value: t.id,
+                label: t.id
+            }));
+            setBlueprints(blueprintOptions);
         } catch (e) {
             console.error("Lỗi tải dữ liệu", e);
         }
@@ -42,16 +52,13 @@ const CMSExam = () => {
         fetchAllExams();
     }, []);
 
-    const activeExams = exams.filter(e => e.status === "ACTIVE");
 
     const examFields = [
         { name: "name", label: "Tên bài kiểm tra", type: "text" },
         {
-            name: "subjectId", label: "Mã học phần", type: "select", options: [
-                { value: "2", label: "IT4409" },
-                { value: "3", label: "IT4321" },
-            ]
+            name: "classId", label: "Lớp", type: "select", options: classes
         },
+        { name: "examBlueprint", label: "Mã template", type: "select", options: blueprints },
         {
             name: "durationMinutes", label: "Thời gian làm bài", type: "number"
         },
@@ -113,10 +120,8 @@ const CMSExam = () => {
                 <div className="flex items-center gap-3 flex-1">
                     <input
                         type="text"
-                        placeholder="Tìm kiếm lớp học..."
-                        className="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg text-sm 
-                      focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none 
-                      placeholder-gray-400 shadow-sm"
+                        placeholder="Tìm bài kiểm tra..."
+                        className="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                     />
                     {/* <select
                         className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white 
@@ -139,46 +144,36 @@ const CMSExam = () => {
 
             <Modal isOpen={open} onClose={() => setOpen(false)} title={editData ? "Sửa bài kiểm tra" : "Thêm bài kiểm tra"}>
                 <Form
-                    fields={classFields}
+                    fields={examFields}
                     initialValues={editData || {}}
                     onSubmit={handleSave}
                     onCancel={() => setOpen(false)}
                 />
             </Modal>
 
-            <div className="mt-8 p-5 rounded-xl bg-green-50 border border-green-200 my-5">
-                <h3 className="text-lg font-semibold text-green-700 mb-3">Đang mở</h3>
-
-                <div className="grid grid-cols-4 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {activeExams.map(exam => (
-                        <ExamCard
-                            key={exam.id}
-                            title={exam.name}
-                            subtitle={`${exam.subjectCode} - ${exam.teacherName}`}
-                            status={exam.status}
-                            actions={actions(exam)}
-                        />
-                    ))}
-                </div>
-            </div>
+            <ConfirmModal
+                isOpen={!!deleteId}
+                title="Xóa bài kiểm tra"
+                message="Bạn có chắc chắn muốn xóa bài kiểm tra này? Hành động này không thể hoàn tác."
+                confirmLabel="Xóa"
+                cancelLabel="Hủy"
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteId(null)}
+            />
 
 
-            <div className="mt-8 p-5 rounded-xl bg-red-50 border border-red-200 my-5">
-                <h3 className="text-lg font-semibold text-red-700 mb-3">Tất cả</h3>
-
-                <div className="grid grid-cols-4 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {exams.map(exam => (
-                        <ExamCard
-                            key={exam.id}
-                            title={exam.name}
-                            subtitle={`Mã lớp học: ${exam.classId}`}
-                            durations={exam.durationMinutes}
-                            startTime={exam.startTime}
-                            endTime={exam.endTime}
-                            actions={actions(exam)}
-                        />
-                    ))}
-                </div>
+            <div className="grid grid-cols-4 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {exams.map(exam => (
+                    <ExamCard
+                        key={exam.id}
+                        title={exam.name}
+                        subtitle={`Lớp: ${exam.classId}`}
+                        durations={exam.durationMinutes}
+                        startTime={exam.startTime}
+                        endTime={exam.endTime}
+                        actions={actions(exam)}
+                    />
+                ))}
             </div>
 
         </div>
