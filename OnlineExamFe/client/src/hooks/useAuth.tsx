@@ -118,10 +118,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const login = async (data: LoginDto) => {
     try {
-      // response lúc này có kiểu LoginResponse (sessionString + user)
-      // hoặc TokenResponse cũ (string / {accessToken...}) tuỳ vào runtime thực tế nếu BE chưa chuẩn.
-      // Nhưng theo code mới BE thì response sẽ là LoginResponse.
+      // response đã được apiClient bóc sẵn thành { sessionString, user }
       const response = await authService.login(data);
+
+      console.log('[DEBUG] Login response:', response); // Debug log
 
       let sessionToken = '';
       let userRes = null;
@@ -131,6 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Case mới: LoginResponse chuẩn { sessionString, user }
         sessionToken = response.sessionString;
         userRes = response.user;
+        console.log('[DEBUG] Parsed - token:', sessionToken?.slice(0, 20) + '...', 'user:', userRes);
       } else if (typeof response === 'string') {
         // Case cũ (dự phòng): chỉ trả string token
         sessionToken = response;

@@ -135,17 +135,18 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
    *   để khỏi phải tải “toàn bộ hệ thống” rồi lọc ở FE.
    */
   const loadExamsForClasses = async (classes: ClassDto[]) => {
-    // Tạo Set chứa danh sách classId để kiểm tra nhanh (has() nhanh hơn)
-    const classIds = new Set(classes.map((c) => c.id));
+    // TODO: API /api/Exam/get-all là Admin-only, cần API khác cho Teacher
+    // Ví dụ: /api/Exam/class/{classId} hoặc /api/Exam/teacher/{teacherId}
+    console.log('[TODO] Cần API lấy exams theo teacher/class. Tạm thời bỏ qua.');
 
-    // Lấy toàn bộ exam từ server
-    const allExams = await examService.getAllExams();
+    // Tạm thời set empty để không gọi API forbidden
+    setTeacherExams([]);
 
-    // Lọc exam có classId thuộc Set classIds
-    const filteredExams = allExams.filter((ex) => ex.classId && classIds.has(ex.classId));
-
-    // Cập nhật state để UI render danh sách bài thi
-    setTeacherExams(filteredExams);
+    // Code cũ (admin-only):
+    // const allExams = await examService.getAllExams();
+    // const classIds = new Set(classes.map((c) => c.id));
+    // const filteredExams = allExams.filter((ex) => ex.classId && classIds.has(ex.classId));
+    // setTeacherExams(filteredExams);
   };
 
   // =========================================================
@@ -166,15 +167,20 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ user }) => {
        * - Tránh gọi API khi user chưa load xong.
        */
       if (user && user.id) {
+        console.log('[DEBUG] TeacherDashboard: Fetching data for user', user);
         try {
           // 1) Lấy các lớp mà giáo viên phụ trách
+          console.log('[DEBUG] Calling classService.getByTeacherAndSubject...');
           const classes = await classService.getByTeacherAndSubject(user.id);
+          console.log('[DEBUG] Classes loaded:', classes);
           setTeacherClasses(classes);
 
           // 2) Lấy các bài thi thuộc các lớp đó
+          console.log('[DEBUG] Loading exams for classes...');
           await loadExamsForClasses(classes);
+          console.log('[DEBUG] Exams loaded successfully');
         } catch (error) {
-          console.error('Không thể tải dữ liệu lớp/bài thi của giáo viên', error);
+          console.error('[DEBUG] Error loading teacher data:', error);
         }
       }
     };
