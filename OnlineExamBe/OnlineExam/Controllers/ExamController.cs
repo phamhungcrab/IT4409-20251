@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.ExamDtos;
 using OnlineExam.Application.Dtos.ExamStudent;
+using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Dtos.UserDtos;
 using OnlineExam.Application.Interfaces;
+using OnlineExam.Application.Services;
 using OnlineExam.Attributes;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
@@ -20,6 +23,17 @@ namespace OnlineExam.Controllers
             _examService = examService;
             _examStudentRepo = examStudentRepo;
         }
+
+        [HttpPost]
+        [Route("search-for-admin")]
+        [SessionAuthorize]
+        public async Task<IActionResult> Search(SearchExamDto search)
+        {
+            ResultApiModel apiResultModel = new ResultApiModel();
+            apiResultModel = await _examService.SearchForAdminAsync(search);
+            return Ok(apiResultModel);
+        }
+
         [HttpGet("get-all")]
         [SessionAuthorize]
         public async Task<IActionResult> GetAll()

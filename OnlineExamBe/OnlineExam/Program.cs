@@ -87,9 +87,9 @@ builder.Services.AddHttpContextAccessor();
 
 
 
-builder.Services.AddSingleton<IAuthorizationHandler, ClassAuthorizationHandler>();
-builder.Services.AddSingleton<IAuthorizationHandler, UserAuthorizationHandler>();
-builder.Services.AddSingleton<IAuthorizationHandler, UserIdAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, InClassAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, IsUserAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, IsUserIdAuthorizationHandler>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped(typeof(ICrudService<>), typeof(CrudService<>));
 builder.Services.AddScoped<IAuthService,AuthService>();

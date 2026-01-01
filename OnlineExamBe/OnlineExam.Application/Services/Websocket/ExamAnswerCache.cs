@@ -43,7 +43,7 @@ namespace OnlineExam.Application.Services.Websocket
                     // update
                     existing.Answer = answer;
                     existing.QuestionId = questionId;
-                    existing.UpdatedAt = DateTime.UtcNow;
+                    existing.UpdatedAt = DateTime.Now;
                 }
                 else
                 {
@@ -52,7 +52,7 @@ namespace OnlineExam.Application.Services.Websocket
                         Order = order,
                         QuestionId = questionId,
                         Answer = answer,
-                        UpdatedAt = DateTime.UtcNow
+                        UpdatedAt = DateTime.Now
                     });
                 }
             }

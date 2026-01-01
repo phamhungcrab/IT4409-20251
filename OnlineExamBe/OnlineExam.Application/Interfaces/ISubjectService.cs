@@ -1,4 +1,6 @@
-﻿using OnlineExam.Application.Dtos.SubjectDtos;
+﻿using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Dtos.SubjectDtos;
+using OnlineExam.Application.Dtos.UserDtos;
 using OnlineExam.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -10,6 +12,7 @@ namespace OnlineExam.Application.Interfaces
 {
     public interface ISubjectService : ICrudService<Subject>
     {
+        public Task<ResultApiModel> SearchForAdminAsync(SearchSubjectDto searchModel);
         Task<bool> AddListSubject(CreateSubjectDto[] dto);
         Task<Subject?> GetByCodeAsync(String code);
     }

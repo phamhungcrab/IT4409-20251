@@ -2,8 +2,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-using Microsoft.Win32;
-using OnlineExam.Application.Dtos.ReponseDtos;
 using OnlineExam.Application.Dtos.RequestDtos.Auth;
 using OnlineExam.Application.Dtos.ResponseDtos;
 using OnlineExam.Application.Interfaces;

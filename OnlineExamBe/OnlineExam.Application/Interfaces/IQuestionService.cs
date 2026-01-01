@@ -1,4 +1,6 @@
 ﻿using OnlineExam.Application.Dtos.Question;
+using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Dtos.UserDtos;
 using OnlineExam.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -11,6 +13,7 @@ namespace OnlineExam.Application.Interfaces
     public interface IQuestionService : ICrudService<Question>
     {
         //Phuong thuc rieng cua question
+        public Task<ResultApiModel> SearchForAdminAsync(SearchQuestionDto searchModel);
         Task<bool> AddListQuestion(CreateQuestionDto[] questionDtos);
     }
 

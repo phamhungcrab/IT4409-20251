@@ -43,7 +43,7 @@ namespace OnlineExam.Application.Services.Auth
 
         public T? Get<T>(string key)
         {
-            return _cache.TryGetValue(key, out T value) ? value : default;
+            return _cache.TryGetValue(key, out T? value) ? value : default;
         }
 
         public async Task<Session?> GetBySessionStringAsync(string sessionString)
@@ -66,8 +66,8 @@ namespace OnlineExam.Application.Services.Auth
                 SessionString = RanNumGenHelper.generateRandomString(256),
                 UserId = user.Id,
                 UserRole = user.Role,
-                IssuedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(expiresAfter)
+                IssuedAt = DateTime.Now,
+                ExpiresAt = DateTime.Now.AddMinutes(expiresAfter)
             };
 
             var oldSession = await _repository.FindAsync(c => c.UserId == user.Id);
@@ -147,7 +147,7 @@ namespace OnlineExam.Application.Services.Auth
                 return null;
             }
 
-            if (session.ExpiresAt < DateTime.UtcNow) 
+            if (session.ExpiresAt < DateTime.Now) 
             { 
                 return null;   
             }
@@ -159,8 +159,8 @@ namespace OnlineExam.Application.Services.Auth
             var session = Get<SessionCacheDto>(sessionString);
             if (session != null)
             {
-                if(session.ExpiresAt > DateTime.UtcNow)
-                session!.ExpiresAt = DateTime.UtcNow.AddMinutes(addMinutes);
+                if(session.ExpiresAt > DateTime.Now)
+                session!.ExpiresAt = DateTime.Now.AddMinutes(addMinutes);
                 Set(sessionString, session);
             }
         }

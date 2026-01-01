@@ -13,7 +13,7 @@ namespace OnlineExam.Application.Interfaces.PermissionService
     public interface IPermissionService : ICrudService<Permission> 
     {
       public Task<ResultApiModel> GetByGroupIdAsync(int groupId);
-        public Task<ResultApiModel> GetByCode(string code);
+        public Task<ResultApiModel?> GetByCode(string code);
         public Task<ResultApiModel> Create(CreatePermissionDto permission);
         public Task<ResultApiModel> Update(UpdatePermissionDto update);
 

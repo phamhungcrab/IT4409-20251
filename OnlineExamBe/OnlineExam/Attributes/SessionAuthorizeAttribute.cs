@@ -43,7 +43,7 @@ namespace OnlineExam.Attributes
                 return;
             }
             var permissionsClaim = context.HttpContext.User.FindFirst("Permissions")?.Value;
-            if (!string.IsNullOrEmpty(permissionsClaim))
+                if (!string.IsNullOrEmpty(permissionsClaim))
             {
                 var hasPermission = permissionsClaim.Split(",")
                                                      .Intersect(actualCodes.Select(p => p.Trim()).ToArray());

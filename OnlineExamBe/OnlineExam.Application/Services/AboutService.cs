@@ -33,7 +33,7 @@ namespace OnlineExam.Application.Services
             _userPermissionService = userPermissionService;
         }
 
-        public AboutDto GetAboutAsync()
+        public AboutDto? GetAboutAsync()
         {
             var session = _httpContextAccessor.HttpContext.Items["UserSession"] as SessionCacheDto;
             if (session == null) {

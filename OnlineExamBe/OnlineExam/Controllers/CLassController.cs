@@ -3,7 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.ClassDtos;
 using OnlineExam.Application.Dtos.RequestDtos.UserDtos;
 using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Dtos.SearchClassDtos;
+using OnlineExam.Application.Dtos.UserDtos;
 using OnlineExam.Application.Interfaces;
+using OnlineExam.Application.Services;
 using OnlineExam.Attributes;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Infrastructure.Policy.Requirements;
@@ -25,6 +28,17 @@ namespace OnlineExam.Controllers
 
         }
         //admin
+
+        [HttpPost]
+        [Route("search-for-admin")]
+        [SessionAuthorize]
+        public async Task<IActionResult> Search(Application.Dtos.SearchClassDtos.SearchClassDto search)
+        {
+            ResultApiModel apiResultModel = new ResultApiModel();
+            apiResultModel = await _classService.SearchForAdminAsync(search);
+            return Ok(apiResultModel);
+        }
+        
         [HttpGet]
         [Route("get-all")]
         [SessionAuthorize]
@@ -37,16 +51,27 @@ namespace OnlineExam.Controllers
             return Ok(apiResultModel);
         }
         [HttpGet]
-        [Route("get-by-teacher-and-subject")]
+        [Route("get-by-subject-for-teacher")]
         [SessionAuthorize("F0112")]
-        public async Task<IActionResult> GetByTeacherAndSubject(int? teacherId = null, int? subjectId = null )
+        public async Task<IActionResult> GetByTeacherAndSubject(int teacherId , int? subjectId = null )
         {
             
             ResultApiModel apiResultModel = new ResultApiModel();
             apiResultModel = await _classService.GetByTeacherAndSubject(teacherId, subjectId);
+            if (apiResultModel.MessageCode == ResponseCode.Forbidden) return Unauthorized("Forbidden: You do not have permission to perform this action.");
             return Ok(apiResultModel);
         }
+        [HttpGet]
+        [Route("get-classes-for-student")]
+        [SessionAuthorize("F0122")]
+        public async Task<IActionResult> GetClassesForCurStudent(int studentId)
+        {
 
+            ResultApiModel apiResultModel = new ResultApiModel();
+            apiResultModel = await _classService.GetClassesForCurrentStudent(studentId);
+            if (apiResultModel.MessageCode == ResponseCode.Forbidden) return Unauthorized("Forbidden: You do not have permission to perform this action.");
+            return Ok(apiResultModel);
+        }
         [HttpGet]
         [Route("get-by-id/{classId}")]
         [SessionAuthorize("F0112")]
@@ -59,8 +84,11 @@ namespace OnlineExam.Controllers
             {
                 return Unauthorized("Forbidden: You do not have permission to perform this action.");
             }
-            if (c != null) apiResultModel.Status = true;
-            apiResultModel.Data = new ClassDto(c);
+            if (c != null)
+            {
+                apiResultModel.Status = true;
+                apiResultModel.Data = new ClassDto(c);
+            }
             return Ok(apiResultModel);
         }
         [HttpGet]

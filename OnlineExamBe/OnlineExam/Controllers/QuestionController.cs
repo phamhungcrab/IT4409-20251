@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.Question;
+using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Dtos.UserDtos;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services;
 using OnlineExam.Attributes;
@@ -17,6 +19,16 @@ namespace OnlineExam.Controllers
         public QuestionController(IQuestionService service)
         {
             _service = service;
+        }
+
+        [HttpPost]
+        [Route("search-for-admin")]
+        [SessionAuthorize]
+        public async Task<IActionResult> Search(SearchQuestionDto search)
+        {
+            ResultApiModel apiResultModel = new ResultApiModel();
+            apiResultModel = await _service.SearchForAdminAsync(search);
+            return Ok(apiResultModel);
         }
 
         [HttpGet("get-all")]

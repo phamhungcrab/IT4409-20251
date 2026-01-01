@@ -30,6 +30,11 @@ namespace OnlineExam.Middleware
             }
 
             var sessionString = context.Request.Headers["Session"].FirstOrDefault();
+
+            //if (path.Trim().ToLower().Contains("wss://") || path.Trim().ToLower().Contains("wss://"))
+            //    sessionString = context.Request.Query["Session"].FirstOrDefault();
+
+
             if (string.IsNullOrEmpty(sessionString))
             {
                 context.Response.StatusCode = ResponseCode.Unauthorized;

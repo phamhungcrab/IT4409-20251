@@ -1,7 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OnlineExam.Application.Dtos.ClassDtos;
 //using Microsoft.IdentityModel.Tokens;
 using OnlineExam.Application.Dtos.ExamDtos;
 using OnlineExam.Application.Dtos.ExamStudent;
+using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Dtos.SearchClassDtos;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services.Base;
 using OnlineExam.Domain.Entities;
@@ -48,6 +51,52 @@ namespace OnlineExam.Application.Services
             _exam2Repo = exam2Repo;
         }
 
+        public async Task<ResultApiModel> SearchForAdminAsync(SearchExamDto searchModel)
+        {
+            var query = _repository.Query();
+            if (!string.IsNullOrEmpty(searchModel.Name))
+            {
+                var name = searchModel.Name.ToLower().Trim();
+                query = query.Where(c => c.Name.ToLower().Trim().Contains(name));
+            }
+            if (searchModel.StartTimeFrom != null)
+            {
+                query = query.Where(c => c.StartTime >= searchModel.StartTimeFrom);
+            }
+
+            if (searchModel.StartTimeTo != null)
+            {
+                query = query.Where(c => c.StartTime <= searchModel.StartTimeTo);
+            }
+            if (searchModel.EndTimeFrom != null)
+            {
+                query = query.Where(c => c.EndTime >= searchModel.EndTimeFrom);
+            }
+
+            if (searchModel.EndTimeTo != null)
+            {
+                query = query.Where(c => c.EndTime <= searchModel.EndTimeTo);
+            }
+            var totalItems = await query.CountAsync();
+
+            var exams = await query
+                .Skip((searchModel.PageNumber - 1) * searchModel.PageSize)
+                .Take(searchModel.PageSize)
+                .Select(c => new ExamSimpleDto(c))
+                .ToListAsync();
+
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = new
+                {
+                    TotalItems = totalItems,
+                    Users = exams
+                }
+            };
+
+        }
         public async Task<ExamStudent?> GetExamStudent(int examId, int studentId)
         {
             var exis = await _examStudentRepo
