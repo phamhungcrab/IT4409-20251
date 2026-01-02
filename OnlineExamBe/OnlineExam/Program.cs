@@ -62,6 +62,8 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+
+
 // Đăng ký DbContext
 builder.Services.AddDbContext<ExamSystemDbContext>(options =>
     options.UseSqlServer(
@@ -121,6 +123,10 @@ app.UseHttpsRedirection();
 
 app.UseWebSockets();
 
+app.UseRouting();
+
+app.UseCors("AllowFrontend");
+
 //app.UseMiddleware<SessionMiddleware>();
 
 app.UseSession();
@@ -130,8 +136,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseMiddleware<ExamWebSocketMiddleware>();
-
-app.UseRouting();
 
 app.MapControllers();
 

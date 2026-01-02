@@ -238,8 +238,32 @@ namespace OnlineExam.Controllers
         [HttpGet("student/{studentId}/exams")]
         public async Task<IActionResult> GetExamsForStudent(int studentId)
         {
-            var result = await _examService.GetListExamForStudent(studentId);
-            return Ok(result);
+            try
+            {
+                var result = await _examService.GetListExamForStudent(studentId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"{ex.Message}");
+            }
+            
+        }
+
+        [HttpGet("{examId}/students-status")]
+        public async Task<IActionResult> GetPreviewScoreStudentsExam(int examId) {
+            try
+            {
+                var result = await _examService.GetPreviewScoreStudentsExam(examId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
         }
     }
 }

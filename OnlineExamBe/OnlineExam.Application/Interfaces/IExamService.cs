@@ -19,5 +19,6 @@ namespace OnlineExam.Application.Interfaces
         Task<ExamResultPreviewDto> GetDetailResultExam(int examId, int studentId);
         Task<ExamResultSummaryDto> GetResultSummary(int examId, int studentId);
         Task<IEnumerable<GetListExamForStudentDto>> GetListExamForStudent(int studentId);
+        Task<ExamStudentsStatusResponse> GetPreviewScoreStudentsExam(int examId);
     }
 }
