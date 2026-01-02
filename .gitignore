@@ -16,8 +16,10 @@
 /OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0/ref
 /OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0/refint
 /OnlineExamBe/OnlineExam.Application/obj/Debug/net8.0
-/OnlineExamBe/OnlineExam.Domain
-/OnlineExamBe/OnlineExam.Infrastructure
+/OnlineExamBe/OnlineExam.Domain/obj
+/OnlineExamBe/OnlineExam.Infrastructure/obj
+/OnlineExamBe/OnlineExam.Domain/bin
+/OnlineExamBe/OnlineExam.Infrastructure/bin
 /.vs/IT4409-20251
 /.vs
 =======
