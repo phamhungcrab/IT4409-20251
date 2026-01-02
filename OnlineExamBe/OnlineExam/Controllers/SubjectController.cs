@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.Question;
+using OnlineExam.Application.Dtos.ResponseDtos;
 using OnlineExam.Application.Dtos.SubjectDtos;
 using OnlineExam.Application.Interfaces;
+using OnlineExam.Attributes;
 using OnlineExam.Domain.Entities;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -17,8 +19,18 @@ namespace OnlineExam.Controllers
         {
             _service = service;
         }
+        [HttpPost]
+        [Route("search-for-admin")]
+        [SessionAuthorize]
+        public async Task<IActionResult> Search(SearchSubjectDto search)
+        {
+            ResultApiModel apiResultModel = new ResultApiModel();
+            apiResultModel = await _service.SearchForAdminAsync(search);
+            return Ok(apiResultModel);
+        }
 
         [HttpGet("get-all")]
+        [SessionAuthorize]
         public async Task<IActionResult> GetAll()
         {
             try
@@ -41,6 +53,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpGet("{id}")]
+        [SessionAuthorize("F0312")]
         public async Task<IActionResult> GetById(int id)
         {
             try
@@ -66,6 +79,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpPost("create")]
+        [SessionAuthorize("F0311")]
         public async Task<IActionResult> Create([FromBody] CreateSubjectDto dto)
         {
             try
@@ -97,6 +111,7 @@ namespace OnlineExam.Controllers
 
 
         [HttpGet("get-with-{code}")]
+        [SessionAuthorize("F0312")]
         public async Task<IActionResult> GetBySubjectCode(string code)
         {
             var result = await _service.GetByCodeAsync(code);
@@ -115,6 +130,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpPut("update/{id}")]
+        [SessionAuthorize("F0313")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateSubjectDto dto)
         {
             try
@@ -148,6 +164,7 @@ namespace OnlineExam.Controllers
 
 
         [HttpDelete("delete/{id}")]
+        [SessionAuthorize("F0314")]
         public async Task<IActionResult> Delete(int id)
         {
             try
@@ -165,6 +182,7 @@ namespace OnlineExam.Controllers
 
 
         [HttpPost("import-subject")]
+        [SessionAuthorize]
         public async Task<IActionResult> ImportList(IFormFile file)
         {
             if (file == null || file.Length == 0)

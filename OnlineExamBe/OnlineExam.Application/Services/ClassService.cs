@@ -1,4 +1,7 @@
-﻿using Microsoft.Identity.Client;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 using OnlineExam.Application.Dtos.ClassDtos;
 using OnlineExam.Application.Dtos.ResponseDtos;
 using OnlineExam.Application.Dtos.UserDtos;
@@ -7,11 +10,8 @@ using OnlineExam.Application.Services.Base;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using OnlineExam.Infrastructure.Policy.Requirements;
+using System.Security.Claims;
 
 namespace OnlineExam.Application.Services
 {
@@ -21,37 +21,97 @@ namespace OnlineExam.Application.Services
         private readonly IRepository<StudentClass> _studentClassRepo;
         private readonly ISubjectService _subjectService;
         private readonly IRepository<User> _studentRepo;
+        private readonly IAuthorizationService _authorizationService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public ClassService(IRepository<Class> repository
                             , IUserService userService ,
                             IRepository<StudentClass> studentClassRepo,
                             ISubjectService subjectService,
-                            IRepository<User> studentRepo
+                            IRepository<User> studentRepo,
+                            IAuthorizationService authorizationService,
+                            IHttpContextAccessor httpContextAccessor
+
             ) : base(repository)
         {
             _userService = userService;
             _studentClassRepo = studentClassRepo;
             _subjectService = subjectService;
             _studentRepo = studentRepo;
+            _authorizationService = authorizationService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
+        public async Task<ResultApiModel> SearchForAdminAsync(Dtos.SearchClassDtos.SearchClassDto searchModel)
+        {
+            var query = _repository.Query();
+            if (!string.IsNullOrEmpty(searchModel.Name))
+            {
+                var name = searchModel.Name.ToLower().Trim();
+                query = query.Where(c => c.Name.ToLower().Trim().Contains(name));
+            }
+
+            if (searchModel.TeacherId != null)
+            {
+                query = query.Where(c => c.TeacherId == searchModel.TeacherId);
+            }
+
+            if (searchModel.SubjectId != null)
+            {
+                query = query.Where(c => c.SubjectId == searchModel.SubjectId);
+            }
+
+            
+            var totalItems = await query.CountAsync();
+
+            var classes = await query
+                .Skip((searchModel.PageNumber - 1) * searchModel.PageSize)
+                .Take(searchModel.PageSize)
+                .Select(c => new ClassDto(c))
+                .ToListAsync();
+
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = new
+                {
+                    TotalItems = totalItems,
+                    Users = classes
+                }
+            };
+
+        }
+
+
+        
         /// <summary>
         /// tim class theo dieu kien teacherId hoac subjectId
         /// </summary>
         /// <param name="teacherId"></param>
         /// <param name="subjectId"></param>
         /// <returns></returns>
-        public async Task<ResultApiModel> GetByTeacherAndSubject(int? teacherId = null, int? subjectId = null)
+        public async Task<ResultApiModel> GetByTeacherAndSubject(int teacherId , int? subjectId = null)
         {
-            
+
+            var authResult = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, teacherId, new ResourceRequirement(ResourceAction.ViewDetail));
+            if (!authResult.Succeeded)
+            {
+                return new ResultApiModel
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.Forbidden
+
+                };
+            }
             var sClass = (await _repository.FindAsync(c => (subjectId == null ? true : c.SubjectId.Equals(subjectId))
-                                                     &&((teacherId) == null ? true: c.TeacherId.Equals(teacherId)),
+                                                     &&c.TeacherId.Equals(teacherId),
                                                      "Teacher", "Subject", "Exams"
                                                      ))
                                                      .Select(c => new ClassDto(c))
                                                      .ToList();
-           
-           
+            
+     
             return new ResultApiModel
             {
                 Status = true,
@@ -61,13 +121,49 @@ namespace OnlineExam.Application.Services
 
 
         }
-        
-        
-        
+
+        /// <summary>
+        /// lay dsach lop sinh vien dang hoc
+        /// </summary>
+        /// <param name="studentId"></param>
+        /// <returns></returns>
+        public async Task<ResultApiModel> GetClassesForCurrentStudent(int studentId)
+        {
+
+            //admin van qua dc
+            var authResult = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, studentId, new ResourceRequirement(ResourceAction.ViewDetail));
+            if (!authResult.Succeeded)
+            {
+                return new ResultApiModel
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.Forbidden
+
+                };
+            }
+
+            var sClass = (await _studentClassRepo.FindAsync(c => c.StudentId == studentId,
+                                                     "Class", "Student"
+                                                     ))
+                                                     .Where(c => c.Class != null)
+                                                     .Select(c => new ClassDto(c.Class))
+                                                     .ToList();
+
+
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = sClass
+            };
+
+
+        }
+
 
         public async Task<ResultApiModel> GetStudents(int classId)
         {
-            var curClass = await GetByIdAsync(classId);
+            var curClass = await GetByIdAsync(classId, ["StudentClasses"]);
             if (curClass == null)
                 return new ResultApiModel
                 {
@@ -75,6 +171,16 @@ namespace OnlineExam.Application.Services
                     MessageCode = ResponseCode.NotFound,
                     Data = "Không tìm thấy lớp"
                 };
+            var authResult = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, curClass, new ResourceRequirement(ResourceAction.ViewDetail));
+            if(!authResult.Succeeded)
+            {
+                return new ResultApiModel
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.Forbidden
+                    
+                };
+            }
             var student =await  _studentClassRepo
                 .JoinAsync<User, int, User>(
                     outer => outer.StudentId,
@@ -104,7 +210,17 @@ namespace OnlineExam.Application.Services
         public async Task<ResultApiModel> AddStudentsAsync(AddStudentDto[] students, int classId)
         {
             List<AddStudentDto> invalidStudents = new List<AddStudentDto>();
-            var curClass = await this.GetByIdAsync(classId);
+            var curClass = await this.GetByIdAsync(classId, ["StudentClasses"]);
+            var authResult = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, curClass, new ResourceRequirement(ResourceAction.Edit));
+            if (!authResult.Succeeded)
+            {
+                return new ResultApiModel
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.Forbidden
+
+                };
+            }
             if (curClass == null) return new ResultApiModel
             {
                 Status = false,
@@ -140,6 +256,56 @@ namespace OnlineExam.Application.Services
                 Data = invalidStudents.ToArray()
             };
             
+        }
+        public async Task<ResultApiModel> AddStudentAsync(AddStudentDto student, int classId)
+        {
+            var curClass = await this.GetByIdAsync(classId, ["StudentClasses"]);
+            var authResult = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, curClass, new ResourceRequirement(ResourceAction.ViewDetail));
+            if (!authResult.Succeeded)
+            {
+                return new ResultApiModel
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.Forbidden
+
+                };
+            }
+            if (curClass == null) return new ResultApiModel
+            {
+                Status = false,
+                MessageCode = ResponseCode.NotFound,
+                Data = "Lớp không tồn tại"
+            };
+            
+                var s= await _userService.GetUserByEmail(student.Email);
+                // svien khong ton tai hoac khong khop email - mssv
+                if (s == null || !s.MSSV.Equals(student.MSSV) || s.Role != UserRole.STUDENT)
+                return new ResultApiModel
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.NotFound,
+                    Data = "Sai thông tin sinh viên"
+                };
+
+            else
+                {
+                    var studentClass = new StudentClass
+                    {
+                        StudentId = s.Id,
+                        ClassId = classId
+
+                    };
+                    await _studentClassRepo.AddAsync(studentClass);
+                }
+
+
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = student
+            };
+
         }
 
         public async Task<ResultApiModel> CreateAsync(CreateClassDto newClass)
@@ -200,6 +366,16 @@ namespace OnlineExam.Application.Services
                 };
 
             var curClass = await base.GetByIdAsync(classId);
+            var authResult = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, curClass, new ResourceRequirement(ResourceAction.ViewDetail));
+            if (!authResult.Succeeded)
+            {
+                return new ResultApiModel
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.Forbidden
+
+                };
+            }
             if (curClass == null)
                 return new ResultApiModel
                 {

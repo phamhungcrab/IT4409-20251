@@ -7,6 +7,8 @@ using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Auth;
 using OnlineExam.Application.Services;
 using OnlineExam.Application.Services.Auth;
+using OnlineExam.Attributes;
+using OnlineExam.Domain.Enums;
 
 namespace OnlineExam.Controllers
 {
@@ -16,10 +18,13 @@ namespace OnlineExam.Controllers
     {
         private readonly IAuthService _authservice;
         private readonly IUserService _userService;
-        public AuthController(IAuthService authservice, IUserService userService) 
+        private readonly IAuthorizationService _authorizationService;
+        public AuthController(IAuthService authservice, IUserService userService,
+                                IAuthorizationService authorizationService) 
         { 
             _authservice = authservice;
             _userService = userService;
+            _authorizationService = authorizationService;
         }
        
         
@@ -37,8 +42,10 @@ namespace OnlineExam.Controllers
         [Route("logout")]
         public async Task<IActionResult> Logout(LogoutDto logout)
         {
+
             ResultApiModel apiResultModel = new ResultApiModel();
             apiResultModel = await  _authservice.Logout(logout);
+            if (apiResultModel.MessageCode == ResponseCode.Unauthorized) return Unauthorized("Forbidden: You do not have permission to perform this action.");
             return Ok(apiResultModel);
         }
 
@@ -48,6 +55,7 @@ namespace OnlineExam.Controllers
         {
             ResultApiModel apiResultModel = new ResultApiModel();
             apiResultModel = await _authservice.ChangePassword(changePassword);
+            if (apiResultModel.MessageCode == ResponseCode.Unauthorized) return Unauthorized("Forbidden: You do not have permission to perform this action.");
             return Ok(apiResultModel);
         }
 

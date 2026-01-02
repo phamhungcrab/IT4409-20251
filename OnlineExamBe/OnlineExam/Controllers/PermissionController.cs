@@ -12,7 +12,7 @@ namespace OnlineExam.Controllers
     
         [ApiController]
         [Route("api/[controller]")]
-        [SessionAuthorize(UserRole.ADMIN)]
+        [SessionAuthorize]
         public class PermissionController : Controller
         {
             private IPermissionService _permissionService;

@@ -1,4 +1,5 @@
-﻿using OnlineExam.Application.Dtos.ResponseDtos;
+﻿using OnlineExam.Application.Dtos.PermissionFolder;
+using OnlineExam.Application.Dtos.ResponseDtos;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using System;
@@ -11,6 +12,6 @@ namespace OnlineExam.Application.Interfaces.PermissionFolder
 {
     public interface IUserPermissionService : ICrudService<UserPermission>
     {
-        public Task<List<Permission>> GetUserPermission(int userId);
+        public Task<List<PermissionDto>> GetUserPermission(int userId);
     }
 }

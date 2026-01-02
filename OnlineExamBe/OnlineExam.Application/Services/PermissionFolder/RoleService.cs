@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using OnlineExam.Application.Dtos.PermissionFolder;
 using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Dtos.RoleDtos;
 using OnlineExam.Application.Interfaces.PermissionFolder;
 using OnlineExam.Application.Interfaces.PermissionService;
 using OnlineExam.Application.Services.Base;
@@ -9,7 +11,9 @@ using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
+using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -21,7 +25,7 @@ namespace OnlineExam.Application.Services.PermissionFolder
         private IRepository<RolePermission> _rolePermissionRepo;
         public RoleService(IRepository<Role> repository
                         , IPermissionService permissionService
-                        ,IRepository<RolePermission> rolePermissionRepo) : base(repository)
+                        , IRepository<RolePermission> rolePermissionRepo) : base(repository)
         {
             _permissionService = permissionService;
             _rolePermissionRepo = rolePermissionRepo;
@@ -30,7 +34,7 @@ namespace OnlineExam.Application.Services.PermissionFolder
         public async Task<ResultApiModel> AddRolePermission(int roleId, int permissionId)
         {
             var role = await GetByIdAsync(roleId);
-            if (role == null) 
+            if (role == null)
             {
                 return new ResultApiModel
                 {
@@ -41,8 +45,8 @@ namespace OnlineExam.Application.Services.PermissionFolder
 
             }
 
-            var Permission = (await _permissionService.GetByIdAsync(permissionId));
-            if(Permission == null)
+            var permission = (await _permissionService.GetByIdAsync(permissionId));
+            if (permission == null)
             {
                 return new ResultApiModel
                 {
@@ -52,8 +56,8 @@ namespace OnlineExam.Application.Services.PermissionFolder
                 };
             }
 
-            var checkExist = await _rolePermissionRepo.FindAsync(c => (c.RoleId  == roleId) && (c.PermissionId == permissionId));
-            if (checkExist != null)
+            var checkExist = await _rolePermissionRepo.FindAsync(c => (c.RoleId == roleId) && (c.PermissionId == permissionId));
+            if (checkExist.Any())
             {
                 return new ResultApiModel
                 {
@@ -74,35 +78,42 @@ namespace OnlineExam.Application.Services.PermissionFolder
             {
                 Status = true,
                 MessageCode = ResponseCode.Success,
-                Data = newItem
+                Data = new
+                {
+                    Role = new RoleSimpleDto(role),
+                    Permission = new  PermissionSimpleDto(permission)
+                }
             };
 
         }
 
-        public async Task<List<Permission>> GetPermissionByRole(UserRole roleCode)
+        public async Task<List<PermissionDto>?> GetPermissionByRole(UserRole roleCode)
         {
             var checkRole = (await _repository.FindAsync(c => c.Code == roleCode)).FirstOrDefault();
             if (checkRole == null)
             {
                 return null;
             }
-            var result = new List<Permission>();
-            result = await _rolePermissionRepo.Query()
+            var result = new List<PermissionDto>();
+            var test = await _rolePermissionRepo.Query().Where(c => c.RoleId == checkRole.Id).Include(c => c.Permission).ToListAsync();
+            var test2 = test.Select(c => new PermissionDto(c.Permission)).ToList();
+            result = (await _rolePermissionRepo.Query()
                                                   .Where(c => c.RoleId == checkRole.Id)
-                                                  .Include("Permission")
-                                                  .Select(c => c.Permission)
-                                                  .ToListAsync();
+                                                  .Include(c => c.Permission).ToListAsync())
+                                                  .Select(c => new PermissionDto(c.Permission)).ToList();
+                                                  
             return result;
         }
-        public async Task<List<Permission>> GetPermissionByRole(int roleId)
+        public async Task<List<PermissionDto>> GetPermissionByRole(int roleId)
         {
-            
-            var result = new List<Permission>();
-            result = await _rolePermissionRepo.Query()
+
+            var result = new List<PermissionDto>();
+            result = (await _rolePermissionRepo.Query()
                                                   .Where(c => c.RoleId == roleId)
-                                                  .Include("Permission")
-                                                  .Select(c => c.Permission)
-                                                  .ToListAsync();
+                                                  .Include(c => c.Permission).ToListAsync())
+                                                  .Select(c =>new PermissionDto(c.Permission))
+                                                  .ToList();
+            
             return result;
         }
         public async Task<ResultApiModel> RemoveRolePermission(int roleId, int permissionId)
@@ -118,7 +129,7 @@ namespace OnlineExam.Application.Services.PermissionFolder
                 };
             }
 
-           _rolePermissionRepo.DeleteAsync(checkRole);
+            _rolePermissionRepo.DeleteAsync(checkRole);
             await _rolePermissionRepo.SaveChangesAsync();
             return new ResultApiModel
             {
@@ -141,7 +152,7 @@ namespace OnlineExam.Application.Services.PermissionFolder
                 Data = "Role không có chức năng này"
             };
 
-             _rolePermissionRepo.DeleteAsync(rolePermission);
+            _rolePermissionRepo.DeleteAsync(rolePermission);
             await _rolePermissionRepo.SaveChangesAsync();
 
             return new ResultApiModel
@@ -151,6 +162,57 @@ namespace OnlineExam.Application.Services.PermissionFolder
                 Status = true,
             };
 
+        }
+        public async Task<ResultApiModel> Create(CreateRoleDto role)
+        {
+            var checkExistCode = (await _repository.FindAsync(c => c.Code == role.Code)).ToList();
+            if (checkExistCode.Any())
+            {
+                return new ResultApiModel
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.Conflict,
+                    Data = "Trùng mã code role"
+                };
+            }
+
+
+            var newItem = new Role
+            {
+                Code = role.Code,
+
+            };
+            await CreateAsync(newItem);
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = new RoleSimpleDto(newItem)
+            };
+        }
+        public async Task<ResultApiModel> Update(CreateRoleDto update)
+        {
+            var checkExistCode = (await _repository.FindAsync(c => c.Code == update.Code)).ToList();
+            if (!checkExistCode.Any())
+            {
+                return new ResultApiModel
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.NotFound,
+                    Data = "Không tồn tại role"
+                };
+            }
+
+
+            var role = checkExistCode.First();
+            role.Code = update.Code;
+            await UpdateAsync(role);
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = new RoleSimpleDto(role)
+            };
         }
     }
 }

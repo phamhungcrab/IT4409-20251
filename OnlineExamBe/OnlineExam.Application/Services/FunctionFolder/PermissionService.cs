@@ -66,7 +66,7 @@ namespace OnlineExam.Application.Services.PermissionFolder
             {
                 Status = true,
                 MessageCode = ResponseCode.Success,
-                Data = newItem
+                Data = new PermissionDto(newItem)
             };
         }
 
@@ -95,7 +95,7 @@ namespace OnlineExam.Application.Services.PermissionFolder
 
         }
 
-        public async Task<ResultApiModel> GetByCode(string code)
+        public async Task<ResultApiModel?> GetByCode(string code)
         {
             var per = (await _repository.FindAsync(c => c.Code == code, "GroupPermission"))
                                             .Select(c => new PermissionDto(c))
@@ -111,7 +111,7 @@ namespace OnlineExam.Application.Services.PermissionFolder
         }
         public async Task<ResultApiModel> Update(UpdatePermissionDto update)
         {
-            Permission checkExist= (await _repository.FindAsync(c => c.Id == update.Id)).FirstOrDefault();
+            Permission? checkExist= (await _repository.FindAsync(c => c.Id == update.Id)).FirstOrDefault();
             if (checkExist == null)
             {
                 return new ResultApiModel
@@ -157,7 +157,7 @@ namespace OnlineExam.Application.Services.PermissionFolder
             {
                 Status = true,
                 MessageCode = ResponseCode.Success,
-                Data = checkExist
+                Data = new PermissionDto(checkExist)
             };
 
         }

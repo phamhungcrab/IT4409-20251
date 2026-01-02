@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.Question;
+using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Dtos.UserDtos;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services;
+using OnlineExam.Attributes;
 using OnlineExam.Domain.Entities;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -18,7 +21,18 @@ namespace OnlineExam.Controllers
             _service = service;
         }
 
+        [HttpPost]
+        [Route("search-for-admin")]
+        [SessionAuthorize]
+        public async Task<IActionResult> Search(SearchQuestionDto search)
+        {
+            ResultApiModel apiResultModel = new ResultApiModel();
+            apiResultModel = await _service.SearchForAdminAsync(search);
+            return Ok(apiResultModel);
+        }
+
         [HttpGet("get-all")]
+        [SessionAuthorize]
         public async Task<IActionResult> GetAll()
         {
             var result = await _service.GetAllAsync();
@@ -27,6 +41,7 @@ namespace OnlineExam.Controllers
 
         
         [HttpPost("import-question")]
+        [SessionAuthorize("F0411")]
         public async Task<IActionResult> ImportList(IFormFile file)
         {
             if (file == null || file.Length == 0)
@@ -55,6 +70,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpGet("{id}")]
+        [SessionAuthorize("F0422")]
         public async Task<IActionResult> GetById(int id)
         {
             var entity = await _service.GetByIdAsync(id);
@@ -62,6 +78,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpPost("create-question")]
+        [SessionAuthorize("F0411")]
         public async Task<IActionResult> Create([FromBody] CreateQuestionDto dto)
         {
             if (dto == null) return BadRequest("Lỗi question trống");
@@ -80,6 +97,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpPut("update-question")]
+        [SessionAuthorize("F0413")]
         public async Task<IActionResult> Update([FromBody] UpdateQuestionDto dto)
         {
             var entity = await _service.GetByIdAsync(dto.Id);
@@ -98,6 +116,7 @@ namespace OnlineExam.Controllers
 
 
         [HttpDelete("{id}")]
+        [SessionAuthorize("F0414")]
         public async Task<IActionResult> Delete(int id)
         {
             var ok = await _service.DeleteAsync(id);

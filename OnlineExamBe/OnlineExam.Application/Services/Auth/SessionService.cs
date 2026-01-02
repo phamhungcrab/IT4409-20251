@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using OnlineExam.Application.Dtos.Cache_Memory;
+using OnlineExam.Application.Dtos.PermissionFolder;
 using OnlineExam.Application.Helper;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Auth;
@@ -42,7 +43,7 @@ namespace OnlineExam.Application.Services.Auth
 
         public T? Get<T>(string key)
         {
-            return _cache.TryGetValue(key, out T value) ? value : default;
+            return _cache.TryGetValue(key, out T? value) ? value : default;
         }
 
         public async Task<Session?> GetBySessionStringAsync(string sessionString)
@@ -65,8 +66,8 @@ namespace OnlineExam.Application.Services.Auth
                 SessionString = RanNumGenHelper.generateRandomString(256),
                 UserId = user.Id,
                 UserRole = user.Role,
-                IssuedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(expiresAfter)
+                IssuedAt = DateTime.Now,
+                ExpiresAt = DateTime.Now.AddMinutes(expiresAfter)
             };
 
             var oldSession = await _repository.FindAsync(c => c.UserId == user.Id);
@@ -78,10 +79,10 @@ namespace OnlineExam.Application.Services.Auth
 
             await CreateAsync(session);
 
-            var listRolePer = await _roleService.GetPermissionByRole(user.Role) ?? Enumerable.Empty<Permission>(); 
-            var listSpecialPer = await _userPermissionService.GetUserPermission(user.Id) ?? Enumerable.Empty<Permission>();
-            var userPermission = new List<Permission>(listSpecialPer);
-            userPermission.Union(listRolePer);
+            var listRolePer = await _roleService.GetPermissionByRole(user.Role) ?? Enumerable.Empty<PermissionDto>(); 
+            var listSpecialPer = await _userPermissionService.GetUserPermission(user.Id) ?? Enumerable.Empty<PermissionDto>();
+            var userPermission = new List<PermissionDto>(listSpecialPer);
+            userPermission = userPermission.Union(listRolePer).ToList();
 
             var info = new SessionCacheDto
             {
@@ -141,12 +142,12 @@ namespace OnlineExam.Application.Services.Auth
                 return null;
             }
 
-            if(!userRoles.IsNullOrEmpty() && !userRoles.Contains(session.UserRole))
+            if(!(userRoles == null || userRoles.Length ==0) && !userRoles.Contains(session.UserRole))
             {
                 return null;
             }
 
-            if (session.ExpiresAt < DateTime.UtcNow) 
+            if (session.ExpiresAt < DateTime.Now) 
             { 
                 return null;   
             }
@@ -158,8 +159,8 @@ namespace OnlineExam.Application.Services.Auth
             var session = Get<SessionCacheDto>(sessionString);
             if (session != null)
             {
-                if(session.ExpiresAt > DateTime.UtcNow)
-                session!.ExpiresAt = DateTime.UtcNow.AddMinutes(addMinutes);
+                if(session.ExpiresAt > DateTime.Now)
+                session!.ExpiresAt = DateTime.Now.AddMinutes(addMinutes);
                 Set(sessionString, session);
             }
         }

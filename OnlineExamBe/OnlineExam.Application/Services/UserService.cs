@@ -1,7 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using OnlineExam.Application.Dtos.ReponseDtos;
-using OnlineExam.Application.Dtos.RequestDtos;
 using OnlineExam.Application.Dtos.RequestDtos.UserDtos;
 using OnlineExam.Application.Dtos.ResponseDtos;
 using OnlineExam.Application.Dtos.UserDtos;
@@ -27,10 +26,13 @@ namespace OnlineExam.Application.Services
     public class UserService : CrudService<User>,IUserService
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IAuthorizationService _authorizationService;
 
-        public UserService(IRepository<User> repository, IHttpContextAccessor httpContextAccessor) : base(repository)
+        public UserService(IRepository<User> repository, IHttpContextAccessor httpContextAccessor,
+                            IAuthorizationService authorizationService) : base(repository)
         {
             _httpContextAccessor = httpContextAccessor;
+            _authorizationService = authorizationService;
         }
         #region Admin
         /// <summary>
@@ -336,6 +338,7 @@ namespace OnlineExam.Application.Services
         /// <returns></returns>
         public async Task<ResultApiModel> UserUpdateAsync(UserUpdateDto userUpdate)
         {
+            
             if (userUpdate.Email == null)
             {
                 return new ResultApiModel()
@@ -387,6 +390,7 @@ namespace OnlineExam.Application.Services
         {
             var user = await _repository.FindAsync(u => u.Email.Equals(email));
             if (!user.Any()) return null;
+
             else return user.First();
         }
 

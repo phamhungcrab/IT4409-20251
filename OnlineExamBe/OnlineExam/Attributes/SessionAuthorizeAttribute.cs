@@ -3,58 +3,67 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Auth;
 using OnlineExam.Application.Services.Auth;
+using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using System.Security.Claims;
 
 namespace OnlineExam.Attributes
 {
-    public class SessionAuthorizeAttribute : Attribute, IAsyncAuthorizationFilter
+    public class SessionAuthorizeAttribute : Attribute, IAuthorizationFilter
     {
-        private readonly UserRole[] _roles = { UserRole.STUDENT, UserRole.ADMIN, UserRole.TEACHER };
-
-        public SessionAuthorizeAttribute(params UserRole[] roles )
+        //private readonly UserRole[] _roles = { UserRole.STUDENT, UserRole.ADMIN, UserRole.TEACHER };
+        private readonly string[]? _perCodes ;
+        public SessionAuthorizeAttribute(params string[] perCodes )
         {
-            _roles = roles.Length > 0 ? roles : new[] { UserRole.STUDENT, UserRole.ADMIN, UserRole.TEACHER };
+            // _roles = roles.Length > 0 ? roles : new[] { UserRole.STUDENT, UserRole.ADMIN, UserRole.TEACHER };
+            _perCodes = perCodes ?? Array.Empty<string>(); ;
 
         }
 
-        async Task IAsyncAuthorizationFilter.OnAuthorizationAsync(AuthorizationFilterContext context)
+         void IAuthorizationFilter.OnAuthorization(AuthorizationFilterContext context)
         {
-            var _sessionService = context.HttpContext.RequestServices.GetRequiredService<ISessionService>();
-            var _userService = context.HttpContext.RequestServices.GetRequiredService<IUserService>();
+            var metadata = context.ActionDescriptor.EndpointMetadata
+                          .OfType<SessionAuthorizeAttribute>()
+                          .FirstOrDefault();
 
-            var sessionString = context.HttpContext.Request.Headers["Session"].FirstOrDefault();
-            if (string.IsNullOrEmpty(sessionString))
-            {
-                context.Result = new UnauthorizedObjectResult("Missing session.");
-                return;
-            }
+            var actualCodes = metadata?._perCodes ?? this._perCodes;
 
+            var userRole = context.HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (userRole == UserRole.ADMIN.ToString()) return;
 
-            var session = await _sessionService.ValidateSession(sessionString, _roles);
-
-
-            if (session == null)
+            // chi admin moi co quyen thuc hien
+            if (actualCodes == null)
             {
                 context.Result = new UnauthorizedObjectResult("Forbidden: You do not have permission to perform this action.");
                 return;
             }
-            await _sessionService.ExtendSessionAsync(sessionString);
+            string pass = "F0000";
+            if (actualCodes.Contains(pass))
+            {
+                return;
+            }
+            var permissionsClaim = context.HttpContext.User.FindFirst("Permissions")?.Value;
+                if (!string.IsNullOrEmpty(permissionsClaim))
+            {
+                var hasPermission = permissionsClaim.Split(",")
+                                                     .Intersect(actualCodes.Select(p => p.Trim()).ToArray());
+                if (hasPermission.Any())
+                {
+                    return;
+                }
+                else
+                {
+                    context.Result = new UnauthorizedObjectResult("Forbidden: You do not have permission to perform this action.");
+                    return;
+                }
+            }
+            else
+            {
+                context.Result = new UnauthorizedObjectResult("Unauthorized");
+                return;
+            }
+            
 
-
-            //var session = await _sessionService.GetBySessionStringAsync(sessionString);
-            //var user = await _userService.GetByIdAsync(session!.UserId);
-            //var claims = new List<Claim>
-            //{
-            //    new Claim(ClaimTypes.NameIdentifier, session.UserId.ToString()),
-            //    new Claim(ClaimTypes.Role, session.UserRole.ToString()),
-            //    new Claim(ClaimTypes.Name, user.FullName),
-            //    new Claim(ClaimTypes.Email, user.Email),
-            //    new Claim("MSSV", user.MSSV)
-            //};
-
-            //var identity = new ClaimsIdentity(claims, "SessionAuth");
-            //context.HttpContext.User = new ClaimsPrincipal(identity);
         }
     }
 }
