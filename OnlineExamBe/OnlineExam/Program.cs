@@ -17,8 +17,6 @@ using OnlineExam.Application.Interfaces.PermissionService;
 using OnlineExam.Application.Services.PermissionService;
 using OnlineExam.Application.Services.PermissionFolder;
 using OnlineExam.Application.Interfaces.PermissionFolder;
-using Microsoft.AspNetCore.Authorization;
-using OnlineExam.Infrastructure.Policy.Handlers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,6 +62,8 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+
+
 // Đăng ký DbContext
 builder.Services.AddDbContext<ExamSystemDbContext>(options =>
     options.UseSqlServer(
@@ -87,9 +87,7 @@ builder.Services.AddHttpContextAccessor();
 
 
 
-builder.Services.AddSingleton<IAuthorizationHandler, InClassAuthorizationHandler>();
-builder.Services.AddSingleton<IAuthorizationHandler, IsUserAuthorizationHandler>();
-builder.Services.AddSingleton<IAuthorizationHandler, IsUserIdAuthorizationHandler>();
+
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped(typeof(ICrudService<>), typeof(CrudService<>));
 builder.Services.AddScoped<IAuthService,AuthService>();
@@ -125,11 +123,13 @@ app.UseHttpsRedirection();
 
 app.UseWebSockets();
 
-app.UseMiddleware<SessionMiddleware>();
+app.UseRouting();
+
+app.UseCors("AllowFrontend");
+
+//app.UseMiddleware<SessionMiddleware>();
 
 app.UseSession();
-
-app.UseRouting();
 
 app.UseAuthentication();
 

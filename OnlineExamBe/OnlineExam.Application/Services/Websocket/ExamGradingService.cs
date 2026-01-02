@@ -41,6 +41,7 @@ namespace OnlineExam.Application.Services.Websocket
                 .ToListAsync();
 
             float totalScore = 0;
+            float totalScoreExam = 0;
             var saveList = new List<StudentQuestion>();
 
             foreach (var qe in correctList)
@@ -50,6 +51,8 @@ namespace OnlineExam.Application.Services.Websocket
                 studentAnswer = studentAnswer ?? "";
 
                 string normalizedStudentAnswer = NormalizeAnswer(studentAnswer);
+
+                totalScoreExam += qe.Point;
 
                 bool isCorrect = CheckMultipleCorrect(qe.CorrectAnswer, normalizedStudentAnswer);
 
@@ -76,12 +79,16 @@ namespace OnlineExam.Application.Services.Websocket
                 .Query()
                 .FirstOrDefaultAsync(x => x.ExamId == examId && x.StudentId == studentId);
 
+            double rawScore = totalScoreExam == 0 ? 0 : (totalScore / totalScoreExam) * 10;
+
+            float finalScore = (float)(Math.Round(rawScore * 2, MidpointRounding.AwayFromZero) / 2);
+
 
             if (examStudent != null)
             {
                 examStudent.EndTime = DateTime.Now;
                 examStudent.Status = ExamStatus.COMPLETED;
-                examStudent.Points = totalScore;
+                examStudent.Points = finalScore;
 
                 _examStudentRepo.UpdateAsync(examStudent);
                 await _examStudentRepo.SaveChangesAsync();
