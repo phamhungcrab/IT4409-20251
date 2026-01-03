@@ -19,5 +19,7 @@ namespace OnlineExam.Domain.Enums
         Submit, // svien nop bai
         AddMenber, // them thanh vien vao lop hay vao nhom co the thi
         Logout,
+        StartExam
+
     }
 }
