@@ -1,22 +1,24 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Auth;
+using OnlineExam.Application.Interfaces.PermissionFolder;
+using OnlineExam.Application.Interfaces.PermissionService;
 using OnlineExam.Application.Interfaces.Websocket;
 using OnlineExam.Application.Services;
 using OnlineExam.Application.Services.Auth;
 using OnlineExam.Application.Services.Base;
+using OnlineExam.Application.Services.PermissionFolder;
+using OnlineExam.Application.Services.PermissionService;
 using OnlineExam.Application.Services.Websocket;
 using OnlineExam.Application.Settings;
 using OnlineExam.Domain.Interfaces;
 using OnlineExam.Infrastructure.Data;
+using OnlineExam.Infrastructure.Policy.Handlers;
 using OnlineExam.Infrastructure.Repositories;
 using OnlineExam.Middleware;
-using Microsoft.AspNetCore.HttpOverrides;
-using OnlineExam.Application.Interfaces.PermissionService;
-using OnlineExam.Application.Services.PermissionService;
-using OnlineExam.Application.Services.PermissionFolder;
-using OnlineExam.Application.Interfaces.PermissionFolder;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -86,8 +88,9 @@ builder.Services.AddSession(option =>
 builder.Services.AddHttpContextAccessor();
 
 
-
-
+builder.Services.AddSingleton<IAuthorizationHandler, InClassAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, IsUserAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, IsUserIdAuthorizationHandler>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped(typeof(ICrudService<>), typeof(CrudService<>));
 builder.Services.AddScoped<IAuthService,AuthService>();
@@ -127,7 +130,7 @@ app.UseRouting();
 
 app.UseCors("AllowFrontend");
 
-//app.UseMiddleware<SessionMiddleware>();
+app.UseMiddleware<SessionMiddleware>();
 
 app.UseSession();
 

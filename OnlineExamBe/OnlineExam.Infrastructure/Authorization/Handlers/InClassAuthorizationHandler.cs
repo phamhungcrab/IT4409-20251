@@ -14,9 +14,9 @@ namespace OnlineExam.Infrastructure.Policy.Handlers
     public class InClassAuthorizationHandler : AuthorizationHandler<ResourceRequirement, Class>
     {
 
-        //protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, ResourceRequirement requirement, Class resource)
+        //protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, ResourceRequirement requirement, Class? resource)
         //{
-        //    if(resource == null) return Task.CompletedTask;
+        //    if (resource == null) return Task.CompletedTask;
 
         //    var userId = int.Parse(context.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
@@ -39,14 +39,14 @@ namespace OnlineExam.Infrastructure.Policy.Handlers
         //    if (context.User.IsInRole("STUDENT"))
         //    {
 
-        //        if ((requirement.Action == ResourceAction.ViewDetail || requirement.Action == ResourceAction.View) && resource.StudentClasses.Any(s => s.StudentId == userId))
+        //        if ((requirement.Action == ResourceAction.ViewDetail || requirement.Action == ResourceAction.View || requirement.Action == ResourceAction.StartExam) && resource.StudentClasses.Any(s => s.StudentId == userId))
         //            context.Succeed(requirement);
         //    }
 
         //    return Task.CompletedTask;
         //}
 
-        protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, ResourceRequirement requirement, Class resource)
+        protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, ResourceRequirement requirement, Class? resource)
         {
             context.Succeed(requirement);
 

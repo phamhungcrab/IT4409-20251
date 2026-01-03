@@ -21,7 +21,7 @@ namespace OnlineExam.Infrastructure.Policy.Handlers
         /// <param name="requirement"></param>
         /// <param name="resource"></param>
         /// <returns></returns>
-        //protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, ResourceRequirement requirement, User resource)
+        //protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, ResourceRequirement requirement, User? resource)
         //{
         //    if(resource == null) return Task.CompletedTask;
 
@@ -46,7 +46,7 @@ namespace OnlineExam.Infrastructure.Policy.Handlers
         //    return Task.CompletedTask;
         //}
 
-        protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, ResourceRequirement requirement, User resource)
+        protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, ResourceRequirement requirement, User? resource)
         {
             context.Succeed(requirement);
 

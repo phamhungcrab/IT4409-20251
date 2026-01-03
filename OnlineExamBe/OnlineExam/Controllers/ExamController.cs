@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.ExamDtos;
 using OnlineExam.Application.Dtos.ExamStudent;
 using OnlineExam.Application.Dtos.ResponseDtos;
@@ -9,6 +10,7 @@ using OnlineExam.Attributes;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
+using OnlineExam.Infrastructure.Policy.Requirements;
 
 namespace OnlineExam.Controllers
 {
@@ -18,10 +20,16 @@ namespace OnlineExam.Controllers
     {
         private readonly IExamService _examService;
         private readonly IRepository<ExamStudent> _examStudentRepo;
-        public ExamController(IExamService examService , IRepository<ExamStudent> examStudentRepo)
+        private readonly IAuthorizationService _authorizationService;
+        private readonly IClassService _classService;
+        public ExamController(IExamService examService, IRepository<ExamStudent> examStudentRepo,
+                              IAuthorizationService authorizationService,
+                              IClassService classService)
         {
             _examService = examService;
             _examStudentRepo = examStudentRepo;
+            _authorizationService = authorizationService;
+            _classService = classService;
         }
 
         [HttpPost]
@@ -128,6 +136,15 @@ namespace OnlineExam.Controllers
 
             var exam = await _examService.GetByIdAsync(dto.ExamId);
             if (exam == null) return BadRequest("Exam not found");
+
+
+            var c = await _classService.GetByIdAsync(exam.ClassId, ["StudentClasses"]);
+
+            var authResult = await _authorizationService.AuthorizeAsync(User, c, new ResourceRequirement(ResourceAction.StartExam));
+            if (!authResult.Succeeded)
+            {
+                return Unauthorized("Forbidden: You do not have permission to perform this action.");
+            }
 
             var state = await _examService.GetExamStudent(dto.ExamId, dto.StudentId);
 
