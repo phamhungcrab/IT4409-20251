@@ -178,5 +178,35 @@ export const examService = {
     return await apiClient.get<ExamGenerateResultDto>(
       `/api/Exam/exams/${examId}/current-question?studentId=${studentId}`
     );
+  },
+
+  /**
+   * getExamStudentsStatus(examId):
+   * - Lấy trạng thái làm bài và điểm của tất cả sinh viên trong kỳ thi
+   * - Gọi GET /api/Exam/{examId}/students-status
+   */
+  getExamStudentsStatus: async (examId: number): Promise<ExamStudentsStatusResponse> => {
+    return await apiClient.get<ExamStudentsStatusResponse>(
+      `/api/Exam/${examId}/students-status`
+    );
   }
 };
+
+/**
+ * ExamStudentsStatusResponse:
+ * - Response từ API /api/Exam/{examId}/students-status
+ */
+export interface ExamStudentsStatusResponse {
+  examId: number;
+  examName: string;
+  students: ExamStudentStatus[];
+}
+
+export interface ExamStudentStatus {
+  studentId: number;
+  studentName: string;
+  mssv: string;
+  status: 'COMPLETED' | 'IN_PROGRESS' | null;
+  score: number | null;
+  submittedAt: string | null;
+}

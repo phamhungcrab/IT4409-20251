@@ -2,23 +2,8 @@ import apiClient from '../utils/apiClient';
 
 /**
  * ClassDto:
- * - “Dto” = Data Transfer Object = gói dữ liệu trao đổi giữa FE và BE.
- * - Đây là kiểu dữ liệu “lớp học” mà backend trả về cho frontend.
- *
- * Giải thích các trường:
- * - id         : mã lớp (ID trong hệ thống)
- * - name       : tên lớp (VD: "IT3180 - Nhóm 08")
- * - teacherId  : ID giáo viên phụ trách lớp
- * - subjectId  : ID môn học
- *
- * Các trường optional (có thể có hoặc không, tuỳ backend trả):
- * - subjectName   : tên môn học
- * - teacherName   : tên giáo viên
- * - studentCount  : số lượng sinh viên trong lớp
- *
- * Lưu ý:
- * - Dấu ? nghĩa là “có thể không tồn tại”.
- * - Nếu backend không trả về field đó thì TypeScript vẫn không báo lỗi.
+ * - "Dto" = Data Transfer Object = gói dữ liệu trao đổi giữa FE và BE.
+ * - Đây là kiểu dữ liệu "lớp học" mà backend trả về cho frontend.
  */
 export interface ClassDto {
   id: number;
@@ -28,16 +13,32 @@ export interface ClassDto {
   subjectName?: string;
   teacherName?: string;
   studentCount?: number;
+  // Thêm từ API get-by-subject-for-teacher
+  teacher?: {
+    id: number;
+    mssv: string;
+    fullName: string;
+    email: string;
+    role: string;
+  };
+  subject?: {
+    id: number;
+    name: string;
+    subjectCode: string;
+    totalChapters: number;
+  };
+  exams?: Array<{
+    id: number;
+    name: string;
+    startTime: string;
+    endTime: string;
+    durationMinutes: number;
+  }>;
 }
 
 /**
  * CreateClassDto:
  * - Kiểu dữ liệu frontend gửi lên khi tạo lớp mới.
- *
- * Giải thích:
- * - name      : tên lớp
- * - teacherId : ID giáo viên được gán vào lớp
- * - subjectId : ID môn học
  */
 export interface CreateClassDto {
   name: string;
@@ -45,47 +46,24 @@ export interface CreateClassDto {
   subjectId: number;
 }
 
-/**
- * unwrap<T>(res):
- *
- * Mục tiêu:
- * - Một số API (hoặc apiClient) có thể trả dữ liệu theo nhiều “kiểu vỏ bọc” khác nhau:
- *   1) Trả thẳng dữ liệu:           res = [ ... ]
- *   2) Trả theo chuẩn Axios:        res = { data: ... }
- *   3) Trả theo kiểu backend C#:    res = { Data: ... }   (PascalCase)
- *
- * => unwrap sẽ cố gắng “bóc” dữ liệu thật ra để FE dùng thống nhất.
- *
- * Giải thích khái niệm Generic <T>:
- * - <T> là “kiểu dữ liệu bạn mong muốn nhận được”.
- * - Ví dụ: unwrap<ClassDto[]>(res) nghĩa là “hãy trả cho tôi dữ liệu dạng ClassDto[]”.
- *
- * Lưu ý:
- * - res: any vì có thể là nhiều dạng khác nhau.
- * - unwrap chỉ là “hỗ trợ”, nếu backend trả format lạ hơn thì unwrap sẽ không bóc đúng.
- */
-// Hủy bỏ hàm unwrap cũ vì apiClient đã tự xử lý bóc tách dữ liệu
-// const unwrap = <T>(res: any): T => { ... }
-
 export const classService = {
   /**
    * getAll():
    * - Gọi API lấy tất cả lớp.
-   * - Trả về mảng ClassDto[]
    */
   getAll: async (): Promise<ClassDto[]> => {
-    // apiClient đã tự unwrap, nên chỉ cần cast kiểu hoặc truyền generic
     return await apiClient.get<ClassDto[]>('/api/CLass/get-all') as unknown as ClassDto[];
   },
 
   /**
    * getByTeacherAndSubject(teacherId, subjectId?):
    * - Lấy danh sách lớp theo giáo viên (teacherId)
+   * - API trả về thông tin lớp, môn học, và danh sách bài thi
    */
   getByTeacherAndSubject: async (teacherId: number, subjectId?: number): Promise<ClassDto[]> => {
     const url = subjectId
-      ? `/api/CLass/get-by-teacher-and-subject?teacherId=${teacherId}&subjectId=${subjectId}`
-      : `/api/CLass/get-by-teacher-and-subject?teacherId=${teacherId}`;
+      ? `/api/CLass/get-by-subject-for-teacher?teacherId=${teacherId}&subjectId=${subjectId}`
+      : `/api/CLass/get-by-subject-for-teacher?teacherId=${teacherId}`;
 
     return await apiClient.get<ClassDto[]>(url) as unknown as ClassDto[];
   },
@@ -96,6 +74,14 @@ export const classService = {
    */
   create: async (data: CreateClassDto): Promise<any> => {
     return await apiClient.post<any>('/api/CLass/create', data);
+  },
+
+  /**
+   * getById(classId):
+   * - Lấy chi tiết 1 lớp học kèm các kỳ thi
+   */
+  getById: async (classId: number): Promise<ClassDto> => {
+    return await apiClient.get<ClassDto>(`/api/CLass/get-by-id/${classId}`) as unknown as ClassDto;
   },
 
   /**

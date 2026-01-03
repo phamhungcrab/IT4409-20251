@@ -134,6 +134,23 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.2);
 }
 
+select option {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-credentials-auto-fill-button:hover,
+input[type="password"]::-webkit-credentials-auto-fill-button:active {
+  visibility: hidden;
+  display: none;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

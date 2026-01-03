@@ -110,6 +110,22 @@ builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IExamGradingService, ExamGradingService>();
 builder.Services.AddSingleton<IExamAnswerCache, ExamAnswerCache>();
 
+// CORS configuration
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:5173",           // Dev frontend (Vite)
+                "https://localhost:5173",          // Dev frontend HTTPS
+                "https://it4409-fe.vercel.app"     // Production frontend
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
 
 var app = builder.Build();
 

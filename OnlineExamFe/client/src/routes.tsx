@@ -46,6 +46,7 @@ import RoleGuard from './components/RoleGuard';
  *  - Nếu không có <Suspense> ở App.tsx thì lazy sẽ lỗi.
  */
 const HomePage = lazy(() => import('./pages/HomePage'));
+const TeacherClassDetailPage = lazy(() => import('./pages/home/TeacherClassDetail'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const ExamListPage = lazy(() => import('./pages/ExamListPage'));
 const ExamRoomPage = lazy(() => import('./pages/ExamRoomPage'));
@@ -91,6 +92,14 @@ export const appRoutes: RouteObject[] = [
          */
         index: true,
         element: <HomePage />,
+      },
+      {
+        path: 'teacher/classes/:classId',
+        element: (
+          <RoleGuard allowedRoles={['Teacher']}>
+            <TeacherClassDetailPage />
+          </RoleGuard>
+        ),
       },
       {
         /**
