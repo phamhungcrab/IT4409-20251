@@ -76,8 +76,8 @@ namespace OnlineExam.Middleware
                                 await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed", CancellationToken.None);
                                 break;
                             }
-                            var remainingTime = exam.DurationMinutes * 60 - (int)(DateTime.UtcNow - examStudent.StartTime).TotalSeconds;
-                            if (remainingTime <= 0 || exam.EndTime <= DateTime.UtcNow)
+                            var remainingTime = exam.DurationMinutes * 60 - (int)(DateTime.Now - examStudent.StartTime).TotalSeconds;
+                            if (remainingTime <= 0 || exam.EndTime <= DateTime.Now)
                             {
                                 await HandleSubmitExam(socket, examId, studentId);
                                 break;

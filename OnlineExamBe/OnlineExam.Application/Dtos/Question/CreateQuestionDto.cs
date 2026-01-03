@@ -28,6 +28,7 @@ namespace OnlineExam.Application.Dtos.Question
         public QuestionType Type { get; set; }
         public int SubjectId { get; set; }
         public int Chapter { get; set; } = 1;
+
     }
 
     public class UpdateQuestionDto

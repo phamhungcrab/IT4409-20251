@@ -9,7 +9,6 @@
  * - Component UI chỉ cần gọi hàm (getResultsByStudent, getResultDetail)
  * - Không phải viết axios/URL lặp lại ở nhiều chỗ
  */
-
 import apiClient from '../utils/apiClient';
 
 /**

@@ -1,7 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OnlineExam.Application.Dtos.ClassDtos;
 //using Microsoft.IdentityModel.Tokens;
 using OnlineExam.Application.Dtos.ExamDtos;
 using OnlineExam.Application.Dtos.ExamStudent;
+using OnlineExam.Application.Dtos.ResponseDtos;
+using OnlineExam.Application.Dtos.SearchClassDtos;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services.Base;
 using OnlineExam.Domain.Entities;
@@ -48,12 +51,121 @@ namespace OnlineExam.Application.Services
             _exam2Repo = exam2Repo;
         }
 
+        public async Task<ResultApiModel> SearchForAdminAsync(SearchExamDto searchModel)
+        {
+            var query = _repository.Query();
+            if (!string.IsNullOrEmpty(searchModel.Name))
+            {
+                var name = searchModel.Name.ToLower().Trim();
+                query = query.Where(c => c.Name.ToLower().Trim().Contains(name));
+            }
+            if (searchModel.StartTimeFrom != null)
+            {
+                query = query.Where(c => c.StartTime >= searchModel.StartTimeFrom);
+            }
+
+            if (searchModel.StartTimeTo != null)
+            {
+                query = query.Where(c => c.StartTime <= searchModel.StartTimeTo);
+            }
+            if (searchModel.EndTimeFrom != null)
+            {
+                query = query.Where(c => c.EndTime >= searchModel.EndTimeFrom);
+            }
+
+            if (searchModel.EndTimeTo != null)
+            {
+                query = query.Where(c => c.EndTime <= searchModel.EndTimeTo);
+            }
+            var totalItems = await query.CountAsync();
+
+            var exams = await query
+                .Skip((searchModel.PageNumber - 1) * searchModel.PageSize)
+                .Take(searchModel.PageSize)
+                .Select(c => new ExamSimpleDto(c))
+                .ToListAsync();
+
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = new
+                {
+                    TotalItems = totalItems,
+                    Users = exams
+                }
+            };
+
+        }
         public async Task<ExamStudent?> GetExamStudent(int examId, int studentId)
         {
             var exis = await _examStudentRepo
                 .Query()
                 .FirstOrDefaultAsync(x => x.StudentId == studentId && x.ExamId == examId);
             return exis;
+        }
+
+        public async Task<ExamStudentsStatusResponse> GetPreviewScoreStudentsExam(int examId)
+        {
+            var exam = await _exam2Repo.Query()
+                .AsNoTracking()
+                .Where(e => e.Id == examId)
+                .Select(e => new
+                {
+                    e.Id,
+                    e.Name,
+                    e.ClassId
+                })
+                .FirstOrDefaultAsync();
+
+            if (exam == null)
+                throw new Exception("Exam not found");
+
+
+            var studentsInClass = await _studentClassRepo.Query()
+               .AsNoTracking()
+               .Where(sc => sc.ClassId == exam.ClassId)
+               .Include(sc => sc.Student)
+               .ToListAsync();
+
+            if (!studentsInClass.Any())
+            {
+                return new ExamStudentsStatusResponse
+                {
+                    ExamId = exam.Id,
+                    ExamName = exam.Name,
+                    Students = new List<ExamStudentStatusDto>()
+                };
+            }
+
+            var examStudents = await _examStudentRepo.Query()
+                .AsNoTracking()
+                .Where(es => es.ExamId == examId)
+                .ToListAsync();
+
+            var examStudentMap = examStudents
+                .ToDictionary(es => es.StudentId);
+
+            var students = studentsInClass
+                .Where(sc => sc.Student != null)
+                .Select(sc => { 
+                    var student = sc.Student!; 
+                    examStudentMap.TryGetValue(student.Id, out var es); 
+                    return new ExamStudentStatusDto {
+                        StudentId = student.Id, 
+                        StudentName = student.FullName, 
+                        MSSV = student.MSSV, 
+                        Status = es?.Status, 
+                        Score = es?.Points, 
+                        SubmittedAt = es?.EndTime 
+                    }; 
+                }).ToList();
+
+            return new ExamStudentsStatusResponse {
+                ExamId = exam.Id, 
+                ExamName = exam.Name, 
+                Students = students 
+            };
         }
 
         public async Task<ExamResultSummaryDto> GetResultSummary(int examId, int studentId)
@@ -337,15 +449,29 @@ namespace OnlineExam.Application.Services
             )
         {
             var questions = await _questionRepo
-                .FindAsync(q =>
-                q.SubjectId == subjectId &&
-                q.Chapter == chapter &&
-                (int)q.Difficulty == difficulty);
+                .Query()
+                .Where(q =>
+                    q.SubjectId == subjectId &&
+                    q.Chapter == chapter &&
+                    q.Difficulty == (QuestionDifficulty)difficulty
+                )
+                .ToListAsync();
 
-            return questions
-                .OrderBy(q => Guid.NewGuid())
-                .Take(count)
-                .ToList();
+            var listQuestions = new List<Question>();
+
+            while (listQuestions.Count < count)
+            {
+                var remain = count - listQuestions.Count;
+
+                var picked = questions
+                    .OrderBy(_ => Guid.NewGuid())
+                    .Take(remain)
+                    .ToList();
+
+                listQuestions.AddRange(picked);
+            }
+
+            return listQuestions;
         }
 
         private void BuildQuestionExam(List<QuestionExam> list, Exam? exam, List<Question> questions, int StudentId)

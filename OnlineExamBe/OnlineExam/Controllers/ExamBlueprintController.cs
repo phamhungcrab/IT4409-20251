@@ -18,11 +18,18 @@ namespace OnlineExam.Controllers
         }
 
         [HttpPost("create")]
-        [SessionAuthorize("F0511")]
+        //[SessionAuthorize("F0511")]
         public async Task<IActionResult> Create([FromBody] CreateExamBlueprintDto dto)
         {
-            var result = await _examBlueprintService.CreateBlueprintAsync(dto);
-            return Ok(result);
+            try
+            {
+                var result = await _examBlueprintService.CreateBlueprintAsync(dto);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpGet("get-all")]
@@ -41,16 +48,30 @@ namespace OnlineExam.Controllers
         [SessionAuthorize("F0000")]
         public async Task<IActionResult> GetDetail(int id)
         {
-            var result = await _examBlueprintService.GetDetailAsync(id);
-            return Ok(result);
+            try
+            {
+                var result = await _examBlueprintService.GetDetailAsync(id);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            } 
         }
 
         [HttpPut("update/{id}")]
-        [SessionAuthorize("F0513")]
+        //[SessionAuthorize("F0513")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateExamBlueprintDto dto)
         {
-            var result = await _examBlueprintService.UpdateBlueprintAsync(id, dto);
-            return Ok(result);
+            try
+            {
+                var result = await _examBlueprintService.UpdateBlueprintAsync(id, dto);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            } 
         }
 
         [HttpDelete("delete/{id}")]

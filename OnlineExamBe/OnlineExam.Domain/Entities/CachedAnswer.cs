@@ -12,6 +12,6 @@ namespace OnlineExam.Domain.Entities
         public int QuestionId { get; set; }     // Id câu hỏi gốc
         public string Answer { get; set; } = "";
         //public int TimeSpent { get; set; }      // Thời gian làm câu
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.Now;
     }
 }

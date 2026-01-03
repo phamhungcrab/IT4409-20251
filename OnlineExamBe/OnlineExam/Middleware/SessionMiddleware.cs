@@ -34,6 +34,11 @@ namespace OnlineExam.Middleware
 
             // Lấy session từ Header, nếu không có thì thử từ Query param
             var sessionString = context.Request.Headers["Session"].FirstOrDefault();
+
+            //if (path.Trim().ToLower().Contains("wss://") || path.Trim().ToLower().Contains("wss://"))
+            //    sessionString = context.Request.Query["Session"].FirstOrDefault();
+
+
             if (string.IsNullOrEmpty(sessionString))
             {
                 sessionString = context.Request.Query["session"].FirstOrDefault();

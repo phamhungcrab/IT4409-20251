@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using OnlineExam.Application.Dtos.ReponseDtos;
-using OnlineExam.Application.Dtos.RequestDtos;
 using OnlineExam.Application.Dtos.RequestDtos.UserDtos;
 using OnlineExam.Application.Dtos.ResponseDtos;
 using OnlineExam.Application.Dtos.UserDtos;

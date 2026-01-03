@@ -87,7 +87,7 @@ namespace OnlineExam.Application.Services.PermissionFolder
 
         }
 
-        public async Task<List<PermissionDto>> GetPermissionByRole(UserRole roleCode)
+        public async Task<List<PermissionDto>?> GetPermissionByRole(UserRole roleCode)
         {
             var checkRole = (await _repository.FindAsync(c => c.Code == roleCode)).FirstOrDefault();
             if (checkRole == null)

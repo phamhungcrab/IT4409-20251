@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
 using OnlineExam.Application.Dtos.ClassDtos;
 using OnlineExam.Application.Dtos.ResponseDtos;
@@ -10,12 +11,7 @@ using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
 using OnlineExam.Infrastructure.Policy.Requirements;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Security.Claims;
 
 namespace OnlineExam.Application.Services
 {
@@ -46,23 +42,76 @@ namespace OnlineExam.Application.Services
             _httpContextAccessor = httpContextAccessor;
         }
 
+        public async Task<ResultApiModel> SearchForAdminAsync(Dtos.SearchClassDtos.SearchClassDto searchModel)
+        {
+            var query = _repository.Query();
+            if (!string.IsNullOrEmpty(searchModel.Name))
+            {
+                var name = searchModel.Name.ToLower().Trim();
+                query = query.Where(c => c.Name.ToLower().Trim().Contains(name));
+            }
+
+            if (searchModel.TeacherId != null)
+            {
+                query = query.Where(c => c.TeacherId == searchModel.TeacherId);
+            }
+
+            if (searchModel.SubjectId != null)
+            {
+                query = query.Where(c => c.SubjectId == searchModel.SubjectId);
+            }
+
+            
+            var totalItems = await query.CountAsync();
+
+            var classes = await query
+                .Skip((searchModel.PageNumber - 1) * searchModel.PageSize)
+                .Take(searchModel.PageSize)
+                .Select(c => new ClassDto(c))
+                .ToListAsync();
+
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = new
+                {
+                    TotalItems = totalItems,
+                    Users = classes
+                }
+            };
+
+        }
+
+
+        
         /// <summary>
         /// tim class theo dieu kien teacherId hoac subjectId
         /// </summary>
         /// <param name="teacherId"></param>
         /// <param name="subjectId"></param>
         /// <returns></returns>
-        public async Task<ResultApiModel> GetByTeacherAndSubject(int? teacherId = null, int? subjectId = null)
+        public async Task<ResultApiModel> GetByTeacherAndSubject(int teacherId , int? subjectId = null)
         {
-            
+
+            var authResult = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, teacherId, new ResourceRequirement(ResourceAction.ViewDetail));
+            if (!authResult.Succeeded)
+            {
+                return new ResultApiModel
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.Forbidden
+
+                };
+            }
             var sClass = (await _repository.FindAsync(c => (subjectId == null ? true : c.SubjectId.Equals(subjectId))
-                                                     &&((teacherId) == null ? true: c.TeacherId.Equals(teacherId)),
+                                                     &&c.TeacherId.Equals(teacherId),
                                                      "Teacher", "Subject", "Exams"
                                                      ))
                                                      .Select(c => new ClassDto(c))
                                                      .ToList();
-           
-           
+            
+     
             return new ResultApiModel
             {
                 Status = true,
@@ -72,9 +121,45 @@ namespace OnlineExam.Application.Services
 
 
         }
-        
-        
-        
+
+        /// <summary>
+        /// lay dsach lop sinh vien dang hoc
+        /// </summary>
+        /// <param name="studentId"></param>
+        /// <returns></returns>
+        public async Task<ResultApiModel> GetClassesForCurrentStudent(int studentId)
+        {
+
+            //admin van qua dc
+            var authResult = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, studentId, new ResourceRequirement(ResourceAction.ViewDetail));
+            if (!authResult.Succeeded)
+            {
+                return new ResultApiModel
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.Forbidden
+
+                };
+            }
+
+            var sClass = (await _studentClassRepo.FindAsync(c => c.StudentId == studentId,
+                                                     "Class", "Student"
+                                                     ))
+                                                     .Where(c => c.Class != null)
+                                                     .Select(c => new ClassDto(c.Class))
+                                                     .ToList();
+
+
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = sClass
+            };
+
+
+        }
+
 
         public async Task<ResultApiModel> GetStudents(int classId)
         {

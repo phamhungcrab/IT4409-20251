@@ -19,23 +19,29 @@ namespace OnlineExam.Application.Services
     {
         public readonly IRepository<ExamBlueprintChapter> _chapterRepo;
         public readonly IRepository<Exam> _examRepo;
+        public readonly IRepository<Question> _questionRepo;
         public ExamBlueprintService(
             IRepository<ExamBlueprint> blueprintRepo,
             IRepository<Exam> examRepo,
+            IRepository<Question> questionRepo,
             IRepository<ExamBlueprintChapter> chapterRepo
         ) : base(blueprintRepo)
         {
             _chapterRepo = chapterRepo;
             _examRepo = examRepo;
+            _questionRepo = questionRepo;
         }
 
         public async Task<ExamBlueprintDto> CreateBlueprintAsync(CreateExamBlueprintDto dto)
         {
+            //Kiem tra xem db có ít nhất 1 câu hỏi cho câu hỏi với độ khó chương đó không
+            await ValidateBlueprintAsync(dto);
+
             var blueprint = new ExamBlueprint
             {
                 SubjectId = dto.SubjectId,
-                CreatedAt = DateTime.UtcNow
-            };
+                CreatedAt = DateTime.Now
+            };            
 
             await base.CreateAsync(blueprint);
 
@@ -88,6 +94,9 @@ namespace OnlineExam.Application.Services
             int blueprintId,
             CreateExamBlueprintDto dto)
         {
+            //Kiem tra xem db có ít nhất 1 câu hỏi cho câu hỏi với độ khó chương đó không
+            await ValidateBlueprintAsync(dto);
+
             var blueprint = await _repository
                 .Query()
                 .Include(b => b.Chapters)
@@ -160,6 +169,41 @@ namespace OnlineExam.Application.Services
                     VeryHardCount = c.VeryHardCount
                 }).ToList()
             };
+        }
+
+        private async Task ValidateBlueprintAsync(CreateExamBlueprintDto dto)
+        {
+            if (dto.Chapters == null || !dto.Chapters.Any())
+                throw new Exception("Blueprint phải có ít nhất 1 chapter");
+
+            foreach (var ch in dto.Chapters)
+            {
+                await EnsureQuestionExists(dto.SubjectId, ch.Chapter, QuestionDifficulty.Easy, ch.EasyCount);
+                await EnsureQuestionExists(dto.SubjectId, ch.Chapter, QuestionDifficulty.Medium, ch.MediumCount);
+                await EnsureQuestionExists(dto.SubjectId, ch.Chapter, QuestionDifficulty.Hard, ch.HardCount);
+                await EnsureQuestionExists(dto.SubjectId, ch.Chapter, QuestionDifficulty.VeryHard, ch.VeryHardCount);
+            }
+        }
+
+        private async Task EnsureQuestionExists(
+            int subjectId,
+            int chapter,
+            QuestionDifficulty difficulty,
+            int requiredCount)
+        {
+            if (requiredCount <= 0) return;
+
+            var exists = await _questionRepo
+                .Query()
+                .AnyAsync(q =>
+                    q.SubjectId == subjectId &&
+                    q.Chapter == chapter &&
+                    q.Difficulty == difficulty);
+
+            if (!exists)
+                throw new Exception(
+                    $"Không có câu hỏi cho Subject={subjectId}, Chapter={chapter}, Difficulty={difficulty}"
+                );
         }
     }
 }

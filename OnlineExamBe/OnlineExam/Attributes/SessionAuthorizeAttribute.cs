@@ -22,46 +22,48 @@ namespace OnlineExam.Attributes
 
          void IAuthorizationFilter.OnAuthorization(AuthorizationFilterContext context)
         {
-            var metadata = context.ActionDescriptor.EndpointMetadata
-                          .OfType<SessionAuthorizeAttribute>()
-                          .FirstOrDefault();
+            //var metadata = context.ActionDescriptor.EndpointMetadata
+            //              .OfType<SessionAuthorizeAttribute>()
+            //              .FirstOrDefault();
 
-            var actualCodes = metadata?._perCodes ?? this._perCodes;
+            //var actualCodes = metadata?._perCodes ?? this._perCodes;
 
-            var userRole = context.HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
-            if (userRole == UserRole.ADMIN.ToString()) return;
+            //var userRole = context.HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
+            //if (userRole == UserRole.ADMIN.ToString()) return;
 
-            // chi admin moi co quyen thuc hien
-            if (actualCodes == null)
-            {
-                context.Result = new UnauthorizedObjectResult("Forbidden: You do not have permission to perform this action.");
-                return;
-            }
-            string pass = "F0000";
-            if (actualCodes.Contains(pass))
-            {
-                return;
-            }
-            var permissionsClaim = context.HttpContext.User.FindFirst("Permissions")?.Value;
-            if (!string.IsNullOrEmpty(permissionsClaim))
-            {
-                var hasPermission = permissionsClaim.Split(",")
-                                                     .Intersect(actualCodes.Select(p => p.Trim()).ToArray());
-                if (hasPermission.Any())
-                {
-                    return;
-                }
-                else
-                {
-                    context.Result = new UnauthorizedObjectResult("Forbidden: You do not have permission to perform this action.");
-                    return;
-                }
-            }
-            else
-            {
-                context.Result = new UnauthorizedObjectResult("Unauthorized");
-                return;
-            }
+            //// chi admin moi co quyen thuc hien
+            //if (actualCodes == null)
+            //{
+            //    context.Result = new UnauthorizedObjectResult("Forbidden: You do not have permission to perform this action.");
+            //    return;
+            //}
+            //string pass = "F0000";
+            //if (actualCodes.Contains(pass))
+            //{
+            //    return;
+            //}
+            //var permissionsClaim = context.HttpContext.User.FindFirst("Permissions")?.Value;
+            //    if (!string.IsNullOrEmpty(permissionsClaim))
+            //{
+            //    var hasPermission = permissionsClaim.Split(",")
+            //                                         .Intersect(actualCodes.Select(p => p.Trim()).ToArray());
+            //    if (hasPermission.Any())
+            //    {
+            //        return;
+            //    }
+            //    else
+            //    {
+            //        context.Result = new UnauthorizedObjectResult("Forbidden: You do not have permission to perform this action.");
+            //        return;
+            //    }
+            //}
+            //else
+            //{
+            //    context.Result = new UnauthorizedObjectResult("Unauthorized");
+            //    return;
+            //}
+
+            return;
             
 
         }
