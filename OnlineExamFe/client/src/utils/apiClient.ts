@@ -46,6 +46,8 @@ const apiClient = axios.create({
     // Lưu ý: với upload file (FormData) thì sẽ cần multipart/form-data (xem phần góp ý bên dưới)
     'Content-Type': 'application/json',
   },
+  // Gửi cookies/credentials trong cross-origin requests (cần cho session auth)
+  withCredentials: true,
 });
 
 /**
