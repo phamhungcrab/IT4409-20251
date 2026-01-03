@@ -30,7 +30,7 @@
  */
 
 import React, { lazy } from 'react';
-import type { RouteObject } from 'react-router-dom';
+import { Navigate, type RouteObject } from 'react-router-dom';
 import Layout from './components/Layout';
 import RoleGuard from './components/RoleGuard';
 
@@ -52,9 +52,19 @@ const ExamListPage = lazy(() => import('./pages/ExamListPage'));
 const ExamRoomPage = lazy(() => import('./pages/ExamRoomPage'));
 const ResultsPage = lazy(() => import('./pages/ResultsPage'));
 const ResultDetailPage = lazy(() => import('./pages/ResultDetailPage'));
-const AdminPage = lazy(() => import('./pages/AdminPage'));
 const ForbiddenPage = lazy(() => import('./pages/ForbiddenPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const AdminLayout = lazy(() =>
+  import('./admin/layouts/(admin)/Layout').then((m) => ({ default: m.Layout }))
+);
+const CMSHome = lazy(() => import('./admin/pages/(admin)/CMSHome'));
+const CMSAccount = lazy(() => import('./admin/pages/(admin)/CMSAccount'));
+const CMSSubject = lazy(() => import('./admin/pages/(admin)/CMSSubject'));
+const CMSClass = lazy(() => import('./admin/pages/(admin)/CMSClass'));
+const CMSClassDetail = lazy(() => import('./admin/pages/(admin)/CMSClassDetail'));
+const CMSExam = lazy(() => import('./admin/pages/(admin)/CMSExam'));
+const CMSQuestion = lazy(() => import('./admin/pages/(admin)/CMSQuestion'));
+const CMSResult = lazy(() => import('./admin/pages/(admin)/CMSResult'));
 
 /**
  * appRoutes: toàn bộ cấu hình route của ứng dụng.
@@ -69,6 +79,56 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
  *  - Layout sẽ render trang con tại <Outlet />
  */
 export const appRoutes: RouteObject[] = [
+  {
+    path: 'admin/login',
+    element: <Navigate to="/login" replace />,
+  },
+  {
+    path: 'admin',
+    element: (
+      <RoleGuard allowedRoles={['Admin']}>
+        <AdminLayout />
+      </RoleGuard>
+    ),
+    children: [
+      {
+        index: true,
+        element: <CMSHome />,
+      },
+      {
+        path: 'home',
+        element: <CMSHome />,
+      },
+      {
+        path: 'accounts',
+        element: <CMSAccount />,
+      },
+      {
+        path: 'subject',
+        element: <CMSSubject />,
+      },
+      {
+        path: 'class',
+        element: <CMSClass />,
+      },
+      {
+        path: 'class/:classId',
+        element: <CMSClassDetail />,
+      },
+      {
+        path: 'exam',
+        element: <CMSExam />,
+      },
+      {
+        path: 'questions',
+        element: <CMSQuestion />,
+      },
+      {
+        path: 'results/:examId',
+        element: <CMSResult />,
+      },
+    ],
+  },
   {
     /**
      * Route gốc (root route):
@@ -172,19 +232,6 @@ export const appRoutes: RouteObject[] = [
         element: (
           <RoleGuard allowedRoles={['Student', 'Teacher', 'Admin']}>
             <ResultDetailPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        /**
-         * Trang admin:
-         * - URL: '/admin'
-         * - Chỉ Admin mới được truy cập
-         */
-        path: 'admin',
-        element: (
-          <RoleGuard allowedRoles={['Admin']}>
-            <AdminPage />
           </RoleGuard>
         ),
       },

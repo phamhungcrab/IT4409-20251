@@ -1,4 +1,4 @@
-﻿// Quáº£n lÃ½ há»c pháº§n
+// Quản lý học phần
 import { useState, useEffect } from "react";
 import { Form } from "../../components/Form";
 import { CommonButton } from "../../components/Button";
@@ -29,23 +29,23 @@ const CMSSubject = () => {
             accessor: "id"
         },
         {
-            header: "MÃ£ há»c pháº§n",
+            header: "Mã học phần",
             accessor: "subjectCode"
         },
         {
-            header: "TÃªn há»c pháº§n",
+            header: "Tên học phần",
             accessor: "name"
         },
         {
-            header: "Sá»‘ chÆ°Æ¡ng",
+            header: "Số chương",
             accessor: "totalChapters"
         }
     ];
 
     const classFields = [
-        { name: "name", label: "TÃªn há»c pháº§n", type: "text" },
-        { name: "subjectCode", label: "MÃ£ há»c pháº§n", type: "text" },
-        { name: "totalChapters", label: "Tá»•ng sá»‘ chÆ°Æ¡ng", type: "number" }
+        { name: "name", label: "Tên học phần", type: "text" },
+        { name: "subjectCode", label: "Mã học phần", type: "text" },
+        { name: "totalChapters", label: "Tổng số chương", type: "number" }
     ];
 
     const handleAdd = () => {
@@ -88,33 +88,33 @@ const CMSSubject = () => {
     };
 
     const actions = [
-        { label: "Sá»­a", color: "indigo", onClick: handleEdit },
-        { label: "XÃ³a", color: "red", onClick: handleDelete },
+        { label: "Sửa", color: "indigo", onClick: handleEdit },
+        { label: "Xóa", color: "red", onClick: handleDelete },
     ];
 
 
     return (
         <div className="p-6 bg-gray-50 min-h-screen">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6">Quáº£n lÃ½ mÃ´n há»c</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-6">Quản lý môn học</h1>
 
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3 flex-1">
                     <input
                         type="text"
-                        placeholder="TÃ¬m kiáº¿m mÃ´n há»c..."
+                        placeholder="Tìm kiếm môn học..."
                         className="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                     />
                 </div>
 
                 <CommonButton
-                    label="+ ThÃªm mÃ´n há»c"
+                    label="+ Thêm môn học"
                     color="danger"
                     onClick={handleAdd}
                 />
 
             </div>
 
-            <Modal isOpen={open} onClose={() => setOpen(false)} title={editData ? "Sá»­a mÃ´n há»c" : "ThÃªm mÃ´n há»c"}>
+            <Modal isOpen={open} onClose={() => setOpen(false)} title={editData ? "Sửa môn học" : "Thêm môn học"}>
                 <Form
                     fields={classFields}
                     initialValues={editData || {}}
@@ -125,10 +125,10 @@ const CMSSubject = () => {
 
             <ConfirmModal
                 isOpen={!!deleteId}
-                title="XÃ³a há»c pháº§n"
-                message="Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a há»c pháº§n nÃ y? HÃ nh Ä‘á»™ng nÃ y khÃ´ng thá»ƒ hoÃ n tÃ¡c."
-                confirmLabel="XÃ³a"
-                cancelLabel="Há»§y"
+                title="Xóa học phần"
+                message="Bạn có chắc chắn muốn xóa học phần này? Hành động này không thể hoàn tác."
+                confirmLabel="Xóa"
+                cancelLabel="Hủy"
                 onConfirm={confirmDelete}
                 onCancel={() => setDeleteId(null)}
             />
@@ -136,9 +136,9 @@ const CMSSubject = () => {
             <DataTable columns={columns} data={subjects} actions={actions} />
 
             <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
-                <p>Hiá»ƒn thá»‹ {subjects.length > 0 ? `1â€“${subjects.length}` : "0"} trong {subjects.length} mÃ´n há»c</p>
+                <p>Hiển thị {subjects.length > 0 ? `1–${subjects.length}` : "0"} trong {subjects.length} môn học</p>
                 <div className="flex items-center gap-2">
-                    <button className="px-3 py-1 border rounded hover:bg-gray-100">TrÆ°á»›c</button>
+                    <button className="px-3 py-1 border rounded hover:bg-gray-100">Trước</button>
                     <button className="px-3 py-1 border rounded hover:bg-gray-100">Sau</button>
                 </div>
             </div>
@@ -147,5 +147,3 @@ const CMSSubject = () => {
 }
 
 export default CMSSubject;
-
-

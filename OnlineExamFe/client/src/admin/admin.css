@@ -1,0 +1,40 @@
+.admin-shell {
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #0f172a;
+  color-scheme: light;
+}
+
+.admin-shell a {
+  color: #0f172a;
+}
+
+.admin-shell input,
+.admin-shell textarea,
+.admin-shell select {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+  border-radius: 8px;
+}
+
+.admin-shell input:focus,
+.admin-shell textarea:focus,
+.admin-shell select:focus {
+  outline: none;
+  border-color: #aa1d2b;
+  box-shadow: 0 0 0 2px rgba(170, 29, 43, 0.15);
+}
+
+.admin-shell table thead th {
+  background-color: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  font-size: inherit;
+}
+
+.admin-shell select option {
+  background: #ffffff;
+  color: #0f172a;
+}

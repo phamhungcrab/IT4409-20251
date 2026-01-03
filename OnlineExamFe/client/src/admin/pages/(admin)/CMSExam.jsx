@@ -1,4 +1,4 @@
-﻿// Quáº£n lÃ½ bÃ i kiá»ƒm tra
+// Quản lý bài kiểm tra
 
 import { useState, useEffect } from "react";
 import { Form } from "../../components/Form";
@@ -44,7 +44,7 @@ const CMSExam = () => {
             }));
             setBlueprints(blueprintOptions);
         } catch (e) {
-            console.error("Lá»—i táº£i dá»¯ liá»‡u", e);
+            console.error("Lỗi tải dữ liệu", e);
         }
     }
 
@@ -54,16 +54,16 @@ const CMSExam = () => {
 
 
     const examFields = [
-        { name: "name", label: "TÃªn bÃ i kiá»ƒm tra", type: "text" },
+        { name: "name", label: "Tên bài kiểm tra", type: "text" },
         {
-            name: "classId", label: "Lá»›p", type: "select", options: classes
+            name: "classId", label: "Lớp", type: "select", options: classes
         },
-        { name: "examBlueprint", label: "MÃ£ template", type: "select", options: blueprints },
+        { name: "examBlueprint", label: "Mã template", type: "select", options: blueprints },
         {
-            name: "durationMinutes", label: "Thá»i gian lÃ m bÃ i", type: "number"
+            name: "durationMinutes", label: "Thời gian làm bài", type: "number"
         },
-        { name: "startTime", label: "Thá»i gian báº¯t Ä‘áº§u", type: "date" },
-        { name: "endTime", label: "Thá»i gian káº¿t thÃºc", type: "date" }
+        { name: "startTime", label: "Thời gian bắt đầu", type: "date" },
+        { name: "endTime", label: "Thời gian kết thúc", type: "date" }
     ];
 
     const handleAdd = () => {
@@ -106,21 +106,21 @@ const CMSExam = () => {
     };
 
     const actions = (exam) => [
-        { label: "Xem chi tiáº¿t", color: "gray", onClick: () => navigate(`/admin/results/${exam.id}`) },
-        { label: "Sá»­a", color: "gray", onClick: () => handleEdit(exam) },
-        { label: "XÃ³a", color: "red", onClick: () => handleDelete(exam.id) },
+        { label: "Xem chi tiết", color: "gray", onClick: () => navigate(`/admin/results/${exam.id}`) },
+        { label: "Sửa", color: "gray", onClick: () => handleEdit(exam) },
+        { label: "Xóa", color: "red", onClick: () => handleDelete(exam.id) },
     ];
 
 
     return (
         <div className="p-6 bg-gray-50 min-h-screen">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6">Quáº£n lÃ½ bÃ i kiá»ƒm tra</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-6">Quản lý bài kiểm tra</h1>
 
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3 flex-1">
                     <input
                         type="text"
-                        placeholder="TÃ¬m bÃ i kiá»ƒm tra..."
+                        placeholder="Tìm bài kiểm tra..."
                         className="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                     />
                     {/* <select
@@ -128,21 +128,21 @@ const CMSExam = () => {
                       focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 focus:outline-none 
                       shadow-sm"
                     >
-                        <option value="">Há»c pháº§n</option>
+                        <option value="">Học phần</option>
                         <option value="2">IT4409</option>
                         <option value="3">IT4321</option>
                     </select> */}
                 </div>
 
                 <CommonButton
-                    label="+ Táº¡o bÃ i kiá»ƒm tra"
+                    label="+ Tạo bài kiểm tra"
                     color="danger"
                     onClick={handleAdd}
                 />
 
             </div>
 
-            <Modal isOpen={open} onClose={() => setOpen(false)} title={editData ? "Sá»­a bÃ i kiá»ƒm tra" : "ThÃªm bÃ i kiá»ƒm tra"}>
+            <Modal isOpen={open} onClose={() => setOpen(false)} title={editData ? "Sửa bài kiểm tra" : "Thêm bài kiểm tra"}>
                 <Form
                     fields={examFields}
                     initialValues={editData || {}}
@@ -153,10 +153,10 @@ const CMSExam = () => {
 
             <ConfirmModal
                 isOpen={!!deleteId}
-                title="XÃ³a bÃ i kiá»ƒm tra"
-                message="Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a bÃ i kiá»ƒm tra nÃ y? HÃ nh Ä‘á»™ng nÃ y khÃ´ng thá»ƒ hoÃ n tÃ¡c."
-                confirmLabel="XÃ³a"
-                cancelLabel="Há»§y"
+                title="Xóa bài kiểm tra"
+                message="Bạn có chắc chắn muốn xóa bài kiểm tra này? Hành động này không thể hoàn tác."
+                confirmLabel="Xóa"
+                cancelLabel="Hủy"
                 onConfirm={confirmDelete}
                 onCancel={() => setDeleteId(null)}
             />
@@ -167,7 +167,7 @@ const CMSExam = () => {
                     <ExamCard
                         key={exam.id}
                         title={exam.name}
-                        subtitle={`Lá»›p: ${exam.classId}`}
+                        subtitle={`Lớp: ${exam.classId}`}
                         durations={exam.durationMinutes}
                         startTime={exam.startTime}
                         endTime={exam.endTime}
@@ -181,5 +181,3 @@ const CMSExam = () => {
 }
 
 export default CMSExam;
-
-

@@ -23,6 +23,8 @@
     // Allow default imports from CommonJS modules
     "esModuleInterop": false,
     "allowSyntheticDefaultImports": true,
+    // Allow importing .js/.jsx in TS project (admin code)
+    "allowJs": true,
     // Use Node module resolution algorithm
     "moduleResolution": "node",
     // Allow defining classes before they are declared

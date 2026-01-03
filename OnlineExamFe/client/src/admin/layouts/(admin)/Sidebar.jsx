@@ -1,4 +1,4 @@
-﻿import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
     Users,
     BookOpen,
@@ -33,11 +33,11 @@ export function Sidebar() {
 
     const menuItems = [
         { name: "Dashboard", icon: <Home size={18} />, path: "/admin/home" },
-        { name: "Quáº£n lÃ½ tÃ i khoáº£n", icon: <Users size={18} />, path: "/admin/accounts" },
-        { name: "Quáº£n lÃ½ há»c pháº§n", icon: <Book size={18} />, path: "/admin/subject" },
-        { name: "Quáº£n lÃ½ lá»›p há»c", icon: <BookOpen size={18} />, path: "/admin/class", },
-        { name: "Quáº£n lÃ½ bÃ i kiá»ƒm tra", icon: <ClipboardList size={18} />, path: "/admin/exam" },
-        { name: "NgÃ¢n hÃ ng cÃ¢u há»i", icon: <Database size={18} />, path: "/admin/questions" },
+        { name: "Quản lý tài khoản", icon: <Users size={18} />, path: "/admin/accounts" },
+        { name: "Quản lý học phần", icon: <Book size={18} />, path: "/admin/subject" },
+        { name: "Quản lý lớp học", icon: <BookOpen size={18} />, path: "/admin/class", },
+        { name: "Quản lý bài kiểm tra", icon: <ClipboardList size={18} />, path: "/admin/exam" },
+        { name: "Ngân hàng câu hỏi", icon: <Database size={18} />, path: "/admin/questions" },
     ];
 
     useEffect(() => {
@@ -122,10 +122,9 @@ export function Sidebar() {
                     className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium bg-gray-800 hover:bg-[#AA1D2B] hover:text-white transition-colors"
                 >
                     <LogOut size={18} />
-                    ÄÄƒng xuáº¥t
+                    Đăng xuất
                 </button>
             </div>
         </div>
     );
 }
-

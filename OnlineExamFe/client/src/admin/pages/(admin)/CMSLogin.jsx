@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { loginApi } from "../../services/(admin)/AuthApi";
@@ -16,12 +16,12 @@ const CMSLogin = () => {
     const [loading, setLoading] = useState(false);
 
     const validate = () => {
-        if (!email.trim()) return "Vui lÃ²ng nháº­p email!";
+        if (!email.trim()) return "Vui lòng nhập email!";
 
         const re = /^\S+@\S+\.\S+$/;
-        if (!re.test(email)) return "Äá»‹a chá»‰ email khÃ´ng há»£p lá»‡.";
+        if (!re.test(email)) return "Địa chỉ email không hợp lệ.";
 
-        if (!password.trim()) return "Vui lÃ²ng nháº­p máº­t kháº©u";
+        if (!password.trim()) return "Vui lòng nhập mật khẩu";
 
         return "";
     }
@@ -42,19 +42,19 @@ const CMSLogin = () => {
 
             if (data.data && data.status === true) {
                 localStorage.setItem("session", data.data.sessionString);
-                toast.success("ÄÄƒng nháº­p thÃ nh cÃ´ng!");
+                toast.success("Đăng nhập thành công!");
                 navigate("/admin/home", { replace: true });
 
 
             }
 
             else {
-                toast.error("Sai email hoáº·c máº­t kháº©u!");
+                toast.error("Sai email hoặc mật khẩu!");
             }
 
             // api.defaults.headers.common["Authorization"] = `Bearer ${data.data}`;
         } catch (e) {
-            setError(e.message || "CÃ³ lá»—i xáº£y ra. Vui lÃ²ng thá»­ láº¡i");
+            setError(e.message || "Có lỗi xảy ra. Vui lòng thử lại");
         } finally {
             setLoading(false);
         }
@@ -69,7 +69,7 @@ const CMSLogin = () => {
                     className="mx-auto h-10 w-auto"
                 />
                 <h2 className="mt-10 text-center text-2xl font-bold tracking-tight">
-                    ÄÄƒng nháº­p há»‡ thá»‘ng quáº£n trá»‹
+                    Đăng nhập hệ thống quản trị
                 </h2>
             </div>
 
@@ -85,7 +85,7 @@ const CMSLogin = () => {
                                 name="email"
                                 required
                                 autocomplete="email"
-                                placeholder="Nháº­p email..."
+                                placeholder="Nhập email..."
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="block w-full rounded-md bg-white px-3 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#AA1D2B] sm:text-sm/6" />
@@ -94,7 +94,7 @@ const CMSLogin = () => {
 
                     <div>
                         <div className="flex items-center justify-between">
-                            <label for="password" className="block text-sm/6 font-medium text-gray-900">Máº­t kháº©u</label>
+                            <label for="password" className="block text-sm/6 font-medium text-gray-900">Mật khẩu</label>
                         </div>
                         <div className="mt-2 relative">
                             <input
@@ -103,7 +103,7 @@ const CMSLogin = () => {
                                 name="password"
                                 required
                                 autocomplete="current-password"
-                                placeholder="Nháº­p máº­t kháº©u"
+                                placeholder="Nhập mật khẩu"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 className="block w-full rounded-md bg-white px-3 py-2.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-[#AA1D2B] sm:text-sm/6" />
@@ -126,7 +126,7 @@ const CMSLogin = () => {
                             type="submit"
                             className="flex w-full justify-center rounded-md bg-[#AA1D2B] px-3 py-2.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                         >
-                            ÄÄƒng nháº­p
+                            Đăng nhập
                         </button>
                     </div>
                 </form>
@@ -137,5 +137,3 @@ const CMSLogin = () => {
 };
 
 export default CMSLogin;
-
-

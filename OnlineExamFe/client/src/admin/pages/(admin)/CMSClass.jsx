@@ -1,4 +1,4 @@
-﻿//Quáº£n lÃ½ lá»›p há»c
+//Quản lý lớp học
 
 import { useEffect, useState } from "react";
 import { Form } from "../../components/Form";
@@ -48,7 +48,7 @@ const CMSClass = () => {
             setSubjects(subjectOptions);
 
         } catch (error) {
-            console.error("Lá»—i táº£i dá»¯ liá»‡u:", error);
+            console.error("Lỗi tải dữ liệu:", error);
         }
     };
 
@@ -58,16 +58,16 @@ const CMSClass = () => {
 
 
     const classFields = [
-        { name: "name", label: "TÃªn lá»›p há»c", type: "text" },
+        { name: "name", label: "Tên lớp học", type: "text" },
         {
             name: "subjectId",
-            label: "MÃ£ há»c pháº§n",
+            label: "Mã học phần",
             type: "select",
             options: subjects
         },
         {
             name: "teacherId",
-            label: "Giáº£ng viÃªn",
+            label: "Giảng viên",
             type: "select",
             options: teachers
         }
@@ -116,28 +116,28 @@ const CMSClass = () => {
     };
 
     const actions = (classroom) => [
-        { label: "Xem chi tiáº¿t", color: "gray", onClick: () => navigate(`/admin/class/${classroom.id}`) },
-        { label: "Sá»­a", color: "gray", onClick: () => handleEdit(classroom) },
-        { label: "ThÃªm sinh viÃªn", color: "gray", onClick: () => { setSelectedClassId(classroom.id); setOpenMultiple(true) } },
-        { label: "XÃ³a", color: "red", onClick: () => handleDelete(classroom.id) },
+        { label: "Xem chi tiết", color: "gray", onClick: () => navigate(`/admin/class/${classroom.id}`) },
+        { label: "Sửa", color: "gray", onClick: () => handleEdit(classroom) },
+        { label: "Thêm sinh viên", color: "gray", onClick: () => { setSelectedClassId(classroom.id); setOpenMultiple(true) } },
+        { label: "Xóa", color: "red", onClick: () => handleDelete(classroom.id) },
     ];
 
 
     return (
         <div className="p-6 bg-gray-50 min-h-screen">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6">Quáº£n lÃ½ lá»›p há»c</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-6">Quản lý lớp học</h1>
 
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3 flex-1">
                     <input
                         type="text"
-                        placeholder="TÃ¬m kiáº¿m lá»›p há»c..."
+                        placeholder="Tìm kiếm lớp học..."
                         className="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                     />
                     <select
                         className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                     >
-                        <option value="">Há»c pháº§n</option>
+                        <option value="">Học phần</option>
                         {subjects.map((s) => {
                             return <option value={s.value} key={s.value}>{s.label}</option>
                         })}
@@ -145,7 +145,7 @@ const CMSClass = () => {
                 </div>
 
                 <CommonButton
-                    label="+ ThÃªm lá»›p há»c"
+                    label="+ Thêm lớp học"
                     color="danger"
                     onClick={handleAdd}
                 />
@@ -154,15 +154,15 @@ const CMSClass = () => {
 
             <ConfirmModal
                 isOpen={!!deleteId}
-                title="XÃ³a lá»›p há»c"
-                message="Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a lá»›p há»c nÃ y? HÃ nh Ä‘á»™ng nÃ y khÃ´ng thá»ƒ hoÃ n tÃ¡c."
-                confirmLabel="XÃ³a"
-                cancelLabel="Há»§y"
+                title="Xóa lớp học"
+                message="Bạn có chắc chắn muốn xóa lớp học này? Hành động này không thể hoàn tác."
+                confirmLabel="Xóa"
+                cancelLabel="Hủy"
                 onConfirm={confirmDelete}
                 onCancel={() => setDeleteId(null)}
             />
 
-            <Modal isOpen={open} onClose={() => setOpen(false)} title={editData ? "Sá»­a lá»›p há»c" : "ThÃªm lá»›p há»c"}>
+            <Modal isOpen={open} onClose={() => setOpen(false)} title={editData ? "Sửa lớp học" : "Thêm lớp học"}>
                 <Form
                     fields={classFields}
                     initialValues={editData || {}}
@@ -174,7 +174,7 @@ const CMSClass = () => {
             <Modal
                 isOpen={openMultiple}
                 onClose={() => setOpenMultiple(false)}
-                title="ThÃªm nhiá»u tÃ i khoáº£n"
+                title="Thêm nhiều tài khoản"
             >
                 <AddStudentToClassForm
                     onSuccess={() => {
@@ -198,9 +198,9 @@ const CMSClass = () => {
             </div>
 
             <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
-                <p>Hiá»ƒn thá»‹ {classes.length > 0 ? `1â€“${classes.length}` : "0"} trong {classes.length} lá»›p há»c</p>
+                <p>Hiển thị {classes.length > 0 ? `1–${classes.length}` : "0"} trong {classes.length} lớp học</p>
                 <div className="flex items-center gap-2">
-                    <button className="px-3 py-1 border rounded hover:bg-gray-100">TrÆ°á»›c</button>
+                    <button className="px-3 py-1 border rounded hover:bg-gray-100">Trước</button>
                     <button className="px-3 py-1 border rounded hover:bg-gray-100">Sau</button>
                 </div>
             </div>
@@ -209,5 +209,3 @@ const CMSClass = () => {
 }
 
 export default CMSClass
-
-

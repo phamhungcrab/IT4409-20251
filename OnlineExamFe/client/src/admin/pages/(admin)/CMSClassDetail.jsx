@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CommonButton } from "../../components/Button";
 import { DataTable } from "../../components/DataTable";
@@ -21,7 +21,7 @@ const CMSClassDetail = () => {
       const list = studentRes.data || [];
       setStudents(list);
     } catch (error) {
-      console.error("Lá»—i táº£i chi tiáº¿t lá»›p:", error);
+      console.error("Lỗi tải chi tiết lớp:", error);
     }
   };
 
@@ -31,11 +31,11 @@ const CMSClassDetail = () => {
       accessor: "id",
     },
     {
-      header: "MÃ£ sá»‘ sinh viÃªn",
+      header: "Mã số sinh viên",
       accessor: "mssv"
     },
     {
-      header: "Há» tÃªn",
+      header: "Họ tên",
       accessor: "fullName"
     },
     {
@@ -46,7 +46,7 @@ const CMSClassDetail = () => {
 
   const studentActions = [
     {
-      label: "XÃ³a",
+      label: "Xóa",
       color: "red",
       onClick: (student) => alert(student.id)
     }
@@ -64,38 +64,38 @@ const CMSClassDetail = () => {
           onClick={() => navigate(-1)}
           className="text-sm text-gray-500 hover:text-gray-800 flex items-center gap-1"
         >
-          â† Quay láº¡i
+          ← Quay lại
         </button>
       </div>
 
       <h1 className="text-3xl font-bold text-gray-800 mb-6">
-        Chi tiáº¿t lá»›p há»c
+        Chi tiết lớp học
       </h1>
 
 
 
 
       {/* <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">ThÃ´ng tin lá»›p</h2>
+        <h2 className="text-xl font-semibold mb-4">Thông tin lớp</h2>
 
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-gray-500">TÃªn lá»›p</p>
+            <p className="text-gray-500">Tên lớp</p>
             <p className="font-medium">{classInfo.name}</p>
           </div>
 
           <div>
-            <p className="text-gray-500">Há»c pháº§n</p>
+            <p className="text-gray-500">Học phần</p>
             <p className="font-medium">{classInfo.subjectId}</p>
           </div>
 
           <div>
-            <p className="text-gray-500">Giáº£ng viÃªn</p>
+            <p className="text-gray-500">Giảng viên</p>
             <p className="font-medium">{classInfo.teacherId}</p>
           </div>
 
           <div>
-            <p className="text-gray-500">Sá»‘ sinh viÃªn</p>
+            <p className="text-gray-500">Số sinh viên</p>
             <p className="font-medium">{students.length}</p>
           </div>
         </div>
@@ -103,7 +103,7 @@ const CMSClassDetail = () => {
 
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4">
-          Danh sÃ¡ch sinh viÃªn
+          Danh sách sinh viên
         </h2>
 
         <DataTable
@@ -118,5 +118,3 @@ const CMSClassDetail = () => {
 };
 
 export default CMSClassDetail
-
-

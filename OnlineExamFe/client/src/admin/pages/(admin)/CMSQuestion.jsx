@@ -1,4 +1,4 @@
-﻿// Quáº£n lÃ½ ngÃ¢n hÃ ng cÃ¢u há»i
+// Quản lý ngân hàng câu hỏi
 import { useState, useEffect } from "react";
 import { DataTable } from "../../components/DataTable";
 import { CommonButton } from "../../components/Button";
@@ -36,7 +36,7 @@ const CMSQuestions = () => {
 
             setSubjects(subjectOptions);
         } catch (e) {
-            console.error("Lá»—i táº£i dá»¯ liá»‡u", e);
+            console.error("Lỗi tải dữ liệu", e);
         }
     }
 
@@ -98,17 +98,17 @@ const CMSQuestions = () => {
     };
 
     const questionFields = [
-        { name: "content", label: "Ná»™i dung cÃ¢u há»i", type: "text" },
+        { name: "content", label: "Nội dung câu hỏi", type: "text" },
         {
-            name: "type", label: "Loáº¡i cÃ¢u há»i", type: "select", options: [
+            name: "type", label: "Loại câu hỏi", type: "select", options: [
                 { value: "SINGLE_CHOICE", label: "Single choice" },
                 { value: "MULTI_CHOICE", label: "Multi choice" }
             ]
         },
-        { name: "point", label: "Äiá»ƒm", type: "number" },
-        { name: "answer", label: "Danh sÃ¡ch Ä‘Ã¡p Ã¡n", type: "text" },
-        { name: "subjectId", label: "Há»c pháº§n", type: "number" },
-        { name: "chapter", label: "ChÆ°Æ¡ng", type: "number" }
+        { name: "point", label: "Điểm", type: "number" },
+        { name: "answer", label: "Danh sách đáp án", type: "text" },
+        { name: "subjectId", label: "Học phần", type: "number" },
+        { name: "chapter", label: "Chương", type: "number" }
     ];
 
 
@@ -118,7 +118,7 @@ const CMSQuestions = () => {
             accessor: "id",
         },
         {
-            header: "Loáº¡i cÃ¢u há»i",
+            header: "Loại câu hỏi",
             accessor: "type",
             render: (u) => (
                 <span
@@ -134,15 +134,15 @@ const CMSQuestions = () => {
             )
         },
         {
-            header: "Ná»™i dung cÃ¢u há»i",
+            header: "Nội dung câu hỏi",
             accessor: "content"
         },
         {
-            header: "Äiá»ƒm",
+            header: "Điểm",
             accessor: "point"
         },
         {
-            header: "ÄÃ¡p Ã¡n",
+            header: "Đáp án",
             accessor: "answer",
             render: (u) => (
                 <div className="space-y-1">
@@ -151,54 +151,54 @@ const CMSQuestions = () => {
             )
         },
         {
-            header: "ÄÃ¡p Ã¡n Ä‘Ãºng",
+            header: "Đáp án đúng",
             accessor: "correctAnswer",
             render: (u) => <span>{getCorrectAnswer(u.answer)}</span>
         },
         {
-            header: "Há»c pháº§n",
+            header: "Học phần",
             accessor: "subjectId"
         },
         {
-            header: "ChÆ°Æ¡ng",
+            header: "Chương",
             accessor: "chapter"
         }
     ];
 
     const actions = [
-        { label: "Sá»­a", color: "indigo", onClick: handleEdit },
-        { label: "XÃ³a", color: "red", onClick: handleDelete },
+        { label: "Sửa", color: "indigo", onClick: handleEdit },
+        { label: "Xóa", color: "red", onClick: handleDelete },
     ];
 
     return (
         <div className="p-6 bg-gray-50 min-h-screen">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6">NgÃ¢n hÃ ng cÃ¢u há»i</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-6">Ngân hàng câu hỏi</h1>
 
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3 flex-1">
                     <input
                         type="text"
-                        placeholder="TÃ¬m kiáº¿m theo ná»™i dung cÃ¢u há»i..."
+                        placeholder="Tìm kiếm theo nội dung câu hỏi..."
                         className="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                     />
                     <select
                         className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
                     >
-                        <option value="">Táº¥t cáº£ loáº¡i cÃ¢u há»i</option>
+                        <option value="">Tất cả loại câu hỏi</option>
                         <option value="SINGLE_CHOICE">Single choice</option>
                         <option value="MULTI_CHOICE">Multi choice</option>
                     </select>
                 </div>
 
                 <CommonButton
-                    label="+ ThÃªm cÃ¢u há»i"
+                    label="+ Thêm câu hỏi"
                     color="danger"
                     onClick={handleAdd}
                 />
 
             </div>
 
-            <Modal isOpen={open} onClose={() => setOpen(false)} title={editData ? "Sá»­a lá»›p há»c" : "ThÃªm lá»›p há»c"}>
+            <Modal isOpen={open} onClose={() => setOpen(false)} title={editData ? "Sửa lớp học" : "Thêm lớp học"}>
                 <Form
                     fields={questionFields}
                     initialValues={editData || {}}
@@ -210,7 +210,7 @@ const CMSQuestions = () => {
             <Modal
                 isOpen={openMultiple}
                 onClose={() => setOpenMultiple(false)}
-                title="ThÃªm nhiá»u tÃ i khoáº£n"
+                title="Thêm nhiều tài khoản"
             >
                 <ImportQuestionForm
                     onSuccess={() => {
@@ -223,10 +223,10 @@ const CMSQuestions = () => {
 
             <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
                 <p>
-                    Hiá»ƒn thá»‹ {total > 0 ? `1â€“${total}` : "0"} trong {total} cÃ¢u há»i
+                    Hiển thị {total > 0 ? `1–${total}` : "0"} trong {total} câu hỏi
                 </p>
                 <div className="flex items-center gap-2">
-                    <button className="px-3 py-1 border rounded hover:bg-gray-100">TrÆ°á»›c</button>
+                    <button className="px-3 py-1 border rounded hover:bg-gray-100">Trước</button>
                     <button className="px-3 py-1 border rounded hover:bg-gray-100">Sau</button>
                 </div>
             </div>
@@ -236,5 +236,3 @@ const CMSQuestions = () => {
 }
 
 export default CMSQuestions;
-
-

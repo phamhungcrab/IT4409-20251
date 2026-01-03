@@ -13,6 +13,7 @@
  */
 
 import React, { Suspense } from 'react';
+import { Toaster } from 'react-hot-toast';
 import { useRoutes } from 'react-router-dom';
 import { appRoutes } from './routes';
 
@@ -71,6 +72,7 @@ const App: React.FC = () => {
         </div>
       }
     >
+      <Toaster position="top-right" />
       {/* element là cây component do useRoutes sinh ra, tùy theo URL hiện tại */}
       {element}
     </Suspense>

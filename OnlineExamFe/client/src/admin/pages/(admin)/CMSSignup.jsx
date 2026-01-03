@@ -1,4 +1,4 @@
-﻿// ÄÄƒng kÃ½
+// Đăng ký
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -12,12 +12,12 @@ const CMSSignup = () => {
     const [loading, setLoading] = useState(false);
 
     const validate = () => {
-        if (!email.trim()) return "Vui lÃ²ng nháº­p email!";
+        if (!email.trim()) return "Vui lòng nhập email!";
 
         const re = /^\S+@\S+\.\S+$/;
-        if (!re.test(email)) return "Äá»‹a chá»‰ email khÃ´ng há»£p lá»‡.";
+        if (!re.test(email)) return "Địa chỉ email không hợp lệ.";
 
-        if (!password.trim()) return "Vui lÃ²ng nháº­p máº­t kháº©u";
+        if (!password.trim()) return "Vui lòng nhập mật khẩu";
 
         return "";
     }
@@ -38,7 +38,7 @@ const CMSSignup = () => {
                 localStorage.setItem("auth-token", data.token)
             }
         } catch (e) {
-            setError(e.message || "CÃ³ lá»—i xáº£y ra. Vui lÃ²ng thá»­ láº¡i");
+            setError(e.message || "Có lỗi xảy ra. Vui lòng thử lại");
         } finally {
             setLoading(false);
         }
@@ -48,21 +48,21 @@ const CMSSignup = () => {
         <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
             <div className="max-w-md w-full bg-white shadow-lg rounded-2xl p-8">
                 <div className="text-center mb-6">
-                    <h1 className="text-2xl font-semibold">ÄÄƒng kÃ½</h1>
+                    <h1 className="text-2xl font-semibold">Đăng ký</h1>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="email">
-                            TÃªn
+                            Tên
                         </label>
                         <input
                             id="name"
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="Nháº­p há» tÃªn Ä‘áº§y Ä‘á»§ cá»§a báº¡n"
+                            placeholder="Nhập họ tên đầy đủ của bạn"
                             className="appearance-none block w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
                             required
                             aria-required
@@ -87,7 +87,7 @@ const CMSSignup = () => {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="password">
-                            Máº­t kháº©u
+                            Mật khẩu
                         </label>
                         <div className="relative">
                             <input
@@ -95,7 +95,7 @@ const CMSSignup = () => {
                                 type={showPassword ? "text" : "password"}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Nháº­p máº­t kháº©u"
+                                placeholder="Nhập mật khẩu"
                                 className="appearance-none block w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
                                 required
                                 aria-required
@@ -104,7 +104,7 @@ const CMSSignup = () => {
                                 type="button"
                                 onClick={() => setShowPassword((s) => !s)}
                                 className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-600 hover:text-gray-800"
-                                aria-label={showPassword ? "áº¨n máº­t kháº©u" : "Hiá»‡n máº­t kháº©u"}
+                                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                             >
                                 {showPassword ? (<EyeOff className="w-5 h-5 text-gray-500" />) : (<Eye className="w-5 h-5 text-gray-500" />)}
                             </button>
@@ -113,7 +113,7 @@ const CMSSignup = () => {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="password">
-                            Nháº­p láº¡i máº­t kháº©u
+                            Nhập lại mật khẩu
                         </label>
                         <div className="relative">
                             <input
@@ -121,7 +121,7 @@ const CMSSignup = () => {
                                 type={showPassword ? "text" : "password"}
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                placeholder="XÃ¡c nháº­n máº­t kháº©u"
+                                placeholder="Xác nhận mật khẩu"
                                 className="appearance-none block w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
                                 required
                                 aria-required
@@ -130,7 +130,7 @@ const CMSSignup = () => {
                                 type="button"
                                 onClick={() => setShowPassword((s) => !s)}
                                 className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-600 hover:text-gray-800"
-                                aria-label={showPassword ? "áº¨n máº­t kháº©u" : "Hiá»‡n máº­t kháº©u"}
+                                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                             >
                                 {showPassword ? (<EyeOff className="w-5 h-5 text-gray-500" />) : (<Eye className="w-5 h-5 text-gray-500" />)}
                             </button>
@@ -143,12 +143,12 @@ const CMSSignup = () => {
                             disabled={loading}
                             className="w-full inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg shadow hover:bg-indigo-700 disabled:opacity-60"
                         >
-                            ÄÄƒng kÃ½
+                            Đăng ký
                         </button>
                     </div>
 
                     <p className="text-center text-sm text-gray-500 mt-3">
-                        ÄÃ£ cÃ³ tÃ i khoáº£n? <a href="/login" className="text-indigo-600 hover:underline">ÄÄƒng nháº­p</a>
+                        Đã có tài khoản? <a href="/login" className="text-indigo-600 hover:underline">Đăng nhập</a>
                     </p>
                 </form>
             </div>
@@ -157,5 +157,3 @@ const CMSSignup = () => {
 }
 
 export default CMSSignup;
-
-

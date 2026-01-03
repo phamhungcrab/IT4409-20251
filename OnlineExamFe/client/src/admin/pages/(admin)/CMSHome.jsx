@@ -1,4 +1,4 @@
-﻿// Trang chá»§ quáº£n trá»‹
+// Trang chủ quản trị
 
 const CMSHome = () => {
     return (
@@ -9,5 +9,3 @@ const CMSHome = () => {
 }
 
 export default CMSHome
-
-
