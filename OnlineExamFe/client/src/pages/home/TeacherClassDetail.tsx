@@ -337,9 +337,9 @@ const TeacherClassDetail: React.FC = () => {
     }
 
     setCreatingClassId(classIdValue);
-    setEditingExamId(null); // Reset edit mode
+    setEditingExamId(null);
+    setEditingBlueprintId(null); // Reset blueprint ID for new creation
     setCreateError(null);
-    setSelectedBlueprintDetail(null);
     setAvailableBlueprints([]);
 
     setCreateForm({
@@ -350,14 +350,11 @@ const TeacherClassDetail: React.FC = () => {
       endTime: ''
     });
 
-    if (classDetail.subjectId) {
-      try {
-        const blueprints = await loadBlueprintsWithDetails(classDetail.subjectId);
-        setAvailableBlueprints(blueprints);
-      } catch (error) {
-        console.error('Không thể load Blueprint:', error);
-      }
-    }
+    // Reset Blueprint Form to default
+    setBlueprintForm({
+      subjectId: classDetail.subjectId || 0,
+      chapters: [{ chapter: 1, easyCount: 0, mediumCount: 0, hardCount: 0, veryHardCount: 0 }]
+    });
 
     setShowCreateModal(true);
   };
@@ -455,9 +452,9 @@ const TeacherClassDetail: React.FC = () => {
     }
 
     setEditingExamId(exam.id);
+    setEditingBlueprintId(exam.blueprintId || null); // Set blueprint ID to update
     setCreatingClassId(exam.classId || 0);
     setCreateError(null);
-    setAvailableBlueprints([]);
 
     // Helper format DateTime local
     const formatDate = (dateStr: string) => {
@@ -476,14 +473,29 @@ const TeacherClassDetail: React.FC = () => {
       endTime: formatDate(exam.endTime)
     });
 
-    // Load available blueprints
-    try {
-        const blueprints = await loadBlueprintsWithDetails(classDetail.subjectId);
-        setAvailableBlueprints(blueprints);
-        if (exam.blueprintId) {
-             handleSelectBlueprint(exam.blueprintId);
-        }
-    } catch(e) { console.error(e); }
+    // Load Blueprint Detail into Form
+    if (exam.blueprintId) {
+         try {
+             const bpDetail = await blueprintService.getById(exam.blueprintId);
+             setBlueprintForm({
+                 subjectId: bpDetail.subjectId,
+                 chapters: bpDetail.chapters || []
+             });
+         } catch(e) {
+             console.error("Failed to load blueprint detail", e);
+             // Fallback default if failed
+             setBlueprintForm({
+                subjectId: classDetail.subjectId,
+                chapters: [{ chapter: 1, easyCount: 0, mediumCount: 0, hardCount: 0, veryHardCount: 0 }]
+             });
+         }
+    } else {
+        // Reset if no blueprint
+        setBlueprintForm({
+           subjectId: classDetail.subjectId,
+           chapters: [{ chapter: 1, easyCount: 0, mediumCount: 0, hardCount: 0, veryHardCount: 0 }]
+        });
+    }
 
     setShowCreateModal(true);
   };
@@ -491,10 +503,17 @@ const TeacherClassDetail: React.FC = () => {
   const handleCreateExam = async () => {
     if (!creatingClassId) return;
 
-    const { name, durationMinutes, blueprintId, startTime, endTime } = createForm;
+    const { name, durationMinutes, startTime, endTime } = createForm;
 
-    if (!name || !durationMinutes || !blueprintId || !startTime || !endTime) {
-      setCreateError('Vui lòng nhập đầy đủ thông tin.');
+    // 1. Validate Exam Info
+    if (!name || !durationMinutes || !startTime || !endTime) {
+      setCreateError('Vui lòng nhập đầy đủ thông tin đề thi (Tên, thời gian).');
+      return;
+    }
+
+    // 2. Validate Blueprint Info
+    if (!blueprintForm.chapters || blueprintForm.chapters.length === 0) {
+      setCreateError('Vui lòng thêm ít nhất 1 chương vào cấu trúc đề.');
       return;
     }
 
@@ -502,20 +521,40 @@ const TeacherClassDetail: React.FC = () => {
     setCreateError(null);
 
     try {
-      const payload = {
+      // --- Step 1: Handle Blueprint (Create or Update) ---
+      let finalBlueprintId = editingBlueprintId || 0;
+      const subjectId = classDetail?.subjectId || 0;
+
+      const bpPayload = {
+          subjectId,
+          chapters: blueprintForm.chapters
+      };
+
+      if (finalBlueprintId) {
+           await blueprintService.updateBlueprint(finalBlueprintId, bpPayload);
+      } else {
+           const newBp = await blueprintService.create(bpPayload);
+           finalBlueprintId = newBp.id;
+      }
+
+      // --- Step 2: Handle Exam ---
+      // Fix Timezone: Convert Local Input to UTC ISO String before sending
+      const toUtcISO = (localTime: string) => new Date(localTime).toISOString();
+
+      const examPayload = {
         name,
         classId: creatingClassId,
-        blueprintId: Number(blueprintId),
+        blueprintId: Number(finalBlueprintId),
         durationMinutes: Number(durationMinutes),
-        startTime,
-        endTime
+        startTime: toUtcISO(startTime),
+        endTime: toUtcISO(endTime)
       };
 
       if (editingExamId) {
-          await examService.updateExam(editingExamId, payload);
-          showToast('Cập nhật kỳ thi thành công!', 'success');
+          await examService.updateExam(editingExamId, examPayload);
+          showToast('Cập nhật kỳ thi & cấu trúc đề thành công!', 'success');
       } else {
-          await examService.createExam(payload);
+          await examService.createExam(examPayload);
           showToast('Tạo kỳ thi thành công!', 'success');
       }
 
@@ -647,12 +686,14 @@ const TeacherClassDetail: React.FC = () => {
             >
               Kỳ thi
             </button>
+{/*
             <button
               onClick={() => openBlueprintModal(numericClassId)}
               className="btn btn-ghost text-sm px-4 py-2 border border-purple-500/30 text-purple-300 hover:bg-purple-500/10 hover:border-purple-500/50 rounded-lg font-medium"
             >
               Tạo cấu trúc đề
             </button>
+            */}
             <button
               onClick={() => openCreateModal(numericClassId)}
               className="btn btn-primary text-sm px-4 py-2 rounded-lg font-semibold shadow-lg shadow-sky-500/20 hover:shadow-sky-500/40"
@@ -1501,54 +1542,109 @@ const TeacherClassDetail: React.FC = () => {
                     }
                   />
                 </div>
-
-                <div>
-                  <label className="block text-sm text-slate-300 mb-1">Cấu trúc đề</label>
-                  <select
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white"
-                    value={createForm.blueprintId}
-                    onChange={(e) => {
-                      const bpId = Number(e.target.value);
-                      setCreateForm((f) => ({ ...f, blueprintId: bpId }));
-                      handleSelectBlueprint(bpId);
-                    }}
-                  >
-                    <option value={0}>-- Chọn Blueprint --</option>
-                    {availableBlueprints.map((bp) => (
-                      <option key={bp.id} value={bp.id}>
-                        Blueprint #{bp.id} ({bp.totalQuestions || '?'} câu) -{' '}
-                        {new Date(bp.createdAt).toLocaleDateString('vi-VN')}
-                      </option>
-                    ))}
-                  </select>
-                </div>
               </div>
 
-              {selectedBlueprintDetail && (
-                <div className="bg-sky-500/10 border border-sky-500/30 rounded-lg p-4 space-y-2">
-                  <h4 className="text-sm font-semibold text-sky-300">
-                    Chi tiết Blueprint #{selectedBlueprintDetail.id}
-                  </h4>
-                  {selectedBlueprintDetail.chapters && selectedBlueprintDetail.chapters.length > 0 ? (
-                    <div className="space-y-1">
-                      {selectedBlueprintDetail.chapters.map((ch, idx) => (
-                        <p key={idx} className="text-xs text-slate-300">
-                          • Chương {ch.chapter}:
-                          {ch.easyCount > 0 && ` ${ch.easyCount} Dễ`}
-                          {ch.mediumCount > 0 && ` ${ch.mediumCount} TB`}
-                          {ch.hardCount > 0 && ` ${ch.hardCount} Khó`}
-                          {ch.veryHardCount > 0 && ` ${ch.veryHardCount} RKhó`}
-                        </p>
-                      ))}
-                      <p className="text-sm text-sky-400 font-semibold pt-2">
-                        Tổng: {selectedBlueprintDetail.totalQuestions} câu
-                      </p>
+              {/* Blueprint Table Section */}
+              <div className="border border-white/10 rounded-lg p-4 bg-white/5 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <label className="block text-sm font-semibold text-sky-400">Cấu trúc đề (Blueprint)</label>
+                    <div className="text-xs text-slate-400">
+                        Tổng: {blueprintForm.chapters.reduce((sum, ch) => sum + (ch.easyCount||0) + (ch.mediumCount||0) + (ch.hardCount||0) + (ch.veryHardCount||0), 0)} câu
                     </div>
-                  ) : (
-                    <p className="text-xs text-slate-400">Đang tải chi tiết...</p>
-                  )}
-                </div>
-              )}
+                  </div>
+
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                      <div className="grid grid-cols-12 gap-2 text-xs text-slate-500 uppercase font-semibold text-center mb-1">
+                          <div className="col-span-2 text-left">Chương</div>
+                          <div className="col-span-2">Dễ</div>
+                          <div className="col-span-2">TBình</div>
+                          <div className="col-span-2">Khó</div>
+                          <div className="col-span-2">R.Khó</div>
+                          <div className="col-span-2"></div>
+                      </div>
+
+                      {blueprintForm.chapters.map((chapter, idx) => (
+                        <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                            <div className="col-span-2 flex items-center gap-1">
+                                <span className="text-slate-400 text-sm">#</span>
+                                <input
+                                    type="number" min="1"
+                                    className="w-full bg-transparent border-b border-white/20 text-white text-sm focus:border-sky-500 outline-none p-1"
+                                    value={chapter.chapter}
+                                    onChange={(e) => {
+                                        const newChapters = [...blueprintForm.chapters];
+                                        newChapters[idx].chapter = Number(e.target.value);
+                                        setBlueprintForm(prev => ({...prev, chapters: newChapters}));
+                                    }}
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <input type="number" min="0" className="w-full bg-slate-800 border border-white/10 rounded text-center text-white text-sm py-1"
+                                    value={chapter.easyCount}
+                                    onChange={(e) => {
+                                        const newChapters = [...blueprintForm.chapters];
+                                        newChapters[idx].easyCount = Number(e.target.value);
+                                        setBlueprintForm(prev => ({...prev, chapters: newChapters}));
+                                    }}
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <input type="number" min="0" className="w-full bg-slate-800 border border-white/10 rounded text-center text-white text-sm py-1"
+                                    value={chapter.mediumCount}
+                                     onChange={(e) => {
+                                        const newChapters = [...blueprintForm.chapters];
+                                        newChapters[idx].mediumCount = Number(e.target.value);
+                                        setBlueprintForm(prev => ({...prev, chapters: newChapters}));
+                                    }}
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <input type="number" min="0" className="w-full bg-slate-800 border border-white/10 rounded text-center text-white text-sm py-1"
+                                    value={chapter.hardCount}
+                                     onChange={(e) => {
+                                        const newChapters = [...blueprintForm.chapters];
+                                        newChapters[idx].hardCount = Number(e.target.value);
+                                        setBlueprintForm(prev => ({...prev, chapters: newChapters}));
+                                    }}
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <input type="number" min="0" className="w-full bg-slate-800 border border-white/10 rounded text-center text-white text-sm py-1"
+                                    value={chapter.veryHardCount}
+                                     onChange={(e) => {
+                                        const newChapters = [...blueprintForm.chapters];
+                                        newChapters[idx].veryHardCount = Number(e.target.value);
+                                        setBlueprintForm(prev => ({...prev, chapters: newChapters}));
+                                    }}
+                                />
+                            </div>
+                            <div className="col-span-2 text-right">
+                                {blueprintForm.chapters.length > 1 && (
+                                    <button onClick={() => {
+                                        const newChapters = blueprintForm.chapters.filter((_, i) => i !== idx);
+                                        setBlueprintForm(prev => ({...prev, chapters: newChapters}));
+                                    }} className="text-rose-400 hover:bg-rose-500/10 p-1 rounded">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                      ))}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                        const maxChapter = Math.max(0, ...blueprintForm.chapters.map(c => c.chapter));
+                        setBlueprintForm(prev => ({
+                            ...prev,
+                            chapters: [...prev.chapters, { chapter: maxChapter + 1, easyCount: 0, mediumCount: 0, hardCount: 0, veryHardCount: 0 }]
+                        }));
+                    }}
+                    className="w-full py-2 border border-dashed border-white/20 text-slate-400 text-sm rounded hover:bg-white/5 hover:text-white transition-colors"
+                  >
+                    + Thêm chương
+                  </button>
+              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>

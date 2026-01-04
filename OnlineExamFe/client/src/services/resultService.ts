@@ -22,6 +22,8 @@ export interface StudentExam {
   endTime: string;
   durationMinutes: number;
   status: string | null; // null = chưa làm, "in_progress", "COMPLETED"
+  studentStartTime?: string;
+  studentEndTime?: string;
 }
 
 /**
@@ -168,7 +170,7 @@ export const resultService = {
           examTitle: exam.examName || `Bài thi #${exam.examId}`,
           score: summary?.finalScore ?? 0,
           status: 'completed',
-          submittedAt: exam.endTime || '',
+          submittedAt: exam.studentEndTime || exam.endTime || '',
           // Thêm thông tin bổ sung
           correctCount: summary?.correctCount,
           totalQuestions: summary?.totalQuestions
