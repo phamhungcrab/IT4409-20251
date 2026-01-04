@@ -22,11 +22,30 @@
   },
   "nav": {
     "home": "Home",
-    "exams": "My Exams",
+    "exams": "Exams",
     "results": "Results",
     "admin": "Admin Dashboard",
     "dashboard": "Dashboard",
-    "login": "Login"
+    "login": "Login",
+    "classes": "Classes"
+  },
+  "dashboard": {
+    "actionCenter": {
+      "title": "Action Center",
+      "high": "High Priority",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "examMonitor": {
+      "title": "Exams",
+      "upcoming": "Upcoming",
+      "live": "Live",
+      "monitor": "Monitor"
+    },
+    "classSpotlight": {
+      "title": "Class Spotlight",
+      "enterClass": "Go to Class"
+    }
   },
   "exam": {
     "listTitle": "My Exams",

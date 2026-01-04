@@ -47,6 +47,7 @@ import RoleGuard from './components/RoleGuard';
  */
 const HomePage = lazy(() => import('./pages/HomePage'));
 const TeacherClassDetailPage = lazy(() => import('./pages/home/TeacherClassDetail'));
+const TeacherClassListPage = lazy(() => import('./pages/home/TeacherClassList'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const ExamListPage = lazy(() => import('./pages/ExamListPage'));
 const ExamRoomPage = lazy(() => import('./pages/ExamRoomPage'));
@@ -98,6 +99,14 @@ export const appRoutes: RouteObject[] = [
         element: (
           <RoleGuard allowedRoles={['Teacher']}>
             <TeacherClassDetailPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'classes',
+        element: (
+          <RoleGuard allowedRoles={['Teacher']}>
+            <TeacherClassListPage />
           </RoleGuard>
         ),
       },

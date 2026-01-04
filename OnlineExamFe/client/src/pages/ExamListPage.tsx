@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { examService } from '../services/examService';
 import { ExamDto, ExamGenerateResultDto, StudentExamDto } from '../types/exam';
 import useAuth from '../hooks/useAuth';
+import TeacherExamList from './TeacherExamList';
 
 /**
  * ExamListPage (Trang danh sách bài thi):
@@ -37,6 +38,10 @@ const ExamListPage: React.FC = () => {
    * - Nếu user = null/undefined nghĩa là chưa đăng nhập hoặc đang load lại session.
    */
   const { user } = useAuth();
+
+  if (user?.role === 'Teacher') {
+    return <TeacherExamList />;
+  }
 
   /**
    * useNavigate:

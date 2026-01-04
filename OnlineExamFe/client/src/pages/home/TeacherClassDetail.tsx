@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import TeacherClassReports from './TeacherClassReports';
 import useAuth from '../../hooks/useAuth';
 import { classService, ClassDto } from '../../services/classService';
 import { examService, ExamStudentStatus } from '../../services/examService';
@@ -15,13 +16,14 @@ interface StudentDto {
   dateOfBirth?: string; // Ngày sinh (optional nếu API không trả về)
 }
 
-type ClassSection = 'students' | 'exams' | 'status' | 'blueprints';
+type ClassSection = 'students' | 'exams' | 'status' | 'blueprints' | 'reports';
 type ToastVariant = 'success' | 'error' | 'info';
 type ToastState = { message: string; variant: ToastVariant } | null;
 type ClassExam = NonNullable<ClassDto['exams']>[number];
 
 const TeacherClassDetail: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { classId } = useParams<{ classId: string }>();
   const { user } = useAuth();
 
@@ -145,6 +147,44 @@ const TeacherClassDetail: React.FC = () => {
       toastTimeoutRef.current = null;
     }, 3000);
   };
+
+  useEffect(() => {
+    const fetchExamStatusFromUrl = async () => {
+        const params = new URLSearchParams(location.search);
+        const tab = params.get('tab');
+        const examId = params.get('examId');
+
+        if (tab === 'status' && examId) {
+            const eId = Number(examId);
+            if (!isNaN(eId)) {
+                setActiveSection('status');
+                setViewingStatusExamId(eId);
+                setLoadingStatus(true);
+                try {
+                    // Fetch status data
+                    const data = await examService.getExamStudentsStatus(eId);
+                    setExamStudentsStatus(data.students);
+                    // Try to finding exam name if exams are loaded, else placeholder
+                    const foundExam = selectedClassExams.find(x => x.id === eId);
+                    if (foundExam) {
+                        setViewingStatusExamName(foundExam.name);
+                    } else {
+                        // Fallback: If we don't have exam list yet, we might want to fetch it or just show ID
+                         setViewingStatusExamName(`Kỳ thi #${eId}`);
+                    }
+                } catch(err) {
+                    console.error("Failed to load exam status from URL", err);
+                } finally {
+                    setLoadingStatus(false);
+                }
+            }
+        } else if (tab && ['students', 'exams', 'blueprints', 'reports'].includes(tab)) {
+           setActiveSection(tab as ClassSection);
+        }
+    };
+
+    fetchExamStatusFromUrl();
+  }, [location.search, selectedClassExams.length]); // Re-run when exams loaded to update name if needed
 
   useEffect(() => {
     const fetchClassDetail = async () => {
@@ -582,7 +622,7 @@ const TeacherClassDetail: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-4">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
         <button
           type="button"
           onClick={() => handleViewStudents(numericClassId)}
@@ -624,16 +664,29 @@ const TeacherClassDetail: React.FC = () => {
         </button>
         <button
           type="button"
-          onClick={handleViewBlueprints}
+          onClick={() => setActiveSection('blueprints')}
           className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all ${
             activeSection === 'blueprints'
-              ? 'bg-purple-500/20 border-purple-500/40 text-white shadow-lg shadow-purple-500/10'
+              ? 'bg-purple-500/20 border-purple-500/50 text-white shadow-lg shadow-purple-500/10'
               : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'
           }`}
           aria-pressed={activeSection === 'blueprints'}
         >
-          <span className="block">Blueprint</span>
-          <span className="block text-xs font-normal text-slate-400">Cấu trúc đề</span>
+          <span className="block">Cấu trúc đề</span>
+          <span className="block text-xs font-normal text-slate-400">Blueprint & Ma trận</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSection('reports')}
+          className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all ${
+            activeSection === 'reports'
+              ? 'bg-emerald-500/20 border-emerald-500/50 text-white shadow-lg shadow-emerald-500/10'
+              : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'
+          }`}
+          aria-pressed={activeSection === 'reports'}
+        >
+          <span className="block">Báo cáo</span>
+          <span className="block text-xs font-normal text-slate-400">Thống kê & Điểm</span>
         </button>
       </div>
 
@@ -1317,6 +1370,16 @@ const TeacherClassDetail: React.FC = () => {
         </div>
       )}
 
+      {activeSection === 'reports' && (
+        <TeacherClassReports
+          classId={numericClassId}
+          className={classDetail?.name || ''}
+          exams={selectedClassExams}
+          students={selectedClassStudents}
+        />
+      )}
+
+      {/* Modal tạo kỳ thi */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-slate-900 border border-white/10 rounded-xl p-6 w-full max-w-lg shadow-xl space-y-4">

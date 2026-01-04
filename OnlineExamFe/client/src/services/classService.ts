@@ -87,6 +87,7 @@ export const classService = {
   /**
    * getStudentsByClass(classId):
    * - Lấy danh sách sinh viên thuộc một lớp
+   * @param classId ID lớp học
    */
   getStudentsByClass: async (classId: number): Promise<any[]> => {
     return await apiClient.get<any[]>(`/api/CLass/get-students?classId=${classId}`) as unknown as any[];

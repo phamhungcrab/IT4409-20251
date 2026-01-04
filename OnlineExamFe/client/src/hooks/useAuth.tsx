@@ -16,6 +16,7 @@ export interface User {
   id: number;
   email: string;
   role: string;
+  fullName?: string; // Thêm fullName
 }
 
 /**
@@ -159,6 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: userRes.id,
             email: userRes.email,
             role: roleStr,
+            fullName: userRes.fullName || userRes.email.split('@')[0], // Map fullName
           };
 
           setUser(userObj);
@@ -178,6 +180,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id: currentUser.id,
                 email: currentUser.email,
                 role: roleStr,
+                fullName: currentUser.fullName || currentUser.email.split('@')[0],
               };
               setUser(userObj);
               localStorage.setItem('user', JSON.stringify(userObj));

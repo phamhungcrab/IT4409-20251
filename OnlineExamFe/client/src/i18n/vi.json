@@ -22,11 +22,30 @@
     },
     "nav": {
         "home": "Trang chủ",
-        "exams": "Kỳ thi của tôi",
+        "exams": "Các kỳ thi",
         "results": "Kết quả",
         "admin": "Trang quản trị",
         "login": "Đăng nhập",
-        "dashboard": "Dashboard"
+        "dashboard": "Dashboard",
+        "classes": "Lớp học"
+    },
+    "dashboard": {
+        "actionCenter": {
+            "title": "Việc cần làm",
+            "high": "Khẩn cấp",
+            "medium": "Lưu ý",
+            "low": "Thường"
+        },
+        "examMonitor": {
+            "title": "Kỳ thi",
+            "upcoming": "Sắp tới",
+            "live": "Đang diễn ra",
+            "monitor": "Theo dõi"
+        },
+        "classSpotlight": {
+            "title": "Lớp nổi bật",
+            "enterClass": "Vào lớp"
+        }
     },
     "exam": {
         "listTitle": "Danh sách kỳ thi",
