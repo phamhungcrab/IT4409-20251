@@ -118,7 +118,7 @@ const TeacherClassDetail: React.FC = () => {
       endTime: exam.endTime,
       durationMinutes: exam.durationMinutes,
       classId: classIdValue,
-      blueprintId: 0
+      blueprintId: exam.blueprintId || (exam as any).BlueprintId || 0
     }));
 
   const refreshClassDetail = async () => {
@@ -875,6 +875,17 @@ const TeacherClassDetail: React.FC = () => {
                           {new Date(ex.endTime).toLocaleString('vi-VN')}
                         </span>
                       </div>
+                      {ex.blueprintId ? (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-slate-400">Cấu trúc đề:</span>
+                          <span className="text-purple-400 font-medium">#{ex.blueprintId}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="text-slate-400">Cấu trúc đề:</span>
+                            <span className="text-slate-500 italic">Không có</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex gap-2">

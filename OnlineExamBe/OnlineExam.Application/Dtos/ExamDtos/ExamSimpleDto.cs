@@ -19,6 +19,7 @@ namespace OnlineExam.Application.Dtos.ExamDtos
         // thời lượng làm bài
         public int DurationMinutes { get; set; } = 30;
 
+        public int? BlueprintId { get; set; }
         public ExamSimpleDto(Exam e)
         {
             Id = e.Id;
@@ -26,6 +27,7 @@ namespace OnlineExam.Application.Dtos.ExamDtos
             StartTime = e.StartTime;
             EndTime = e.EndTime;
             DurationMinutes = e.DurationMinutes;
+            BlueprintId = e.BlueprintId;
         }
     }
 }
