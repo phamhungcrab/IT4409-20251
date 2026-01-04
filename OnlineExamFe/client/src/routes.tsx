@@ -56,6 +56,8 @@ const ExamRoomPage = lazy(() => import('./pages/ExamRoomPage'));
 const ResultsPage = lazy(() => import('./pages/ResultsPage'));
 const ResultDetailPage = lazy(() => import('./pages/ResultDetailPage'));
 
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ForbiddenPage = lazy(() => import('./pages/ForbiddenPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
@@ -129,12 +131,20 @@ export const appRoutes: RouteObject[] = [
         ),
       },
       {
-        /**
-         * Trang đăng nhập:
-         * - path: 'login' => URL đầy đủ là '/login'
-         */
         path: 'login',
         element: <LoginPage />,
+      },
+      {
+        path: 'profile',
+        element: (
+          <RoleGuard allowedRoles={['Student', 'Teacher', 'Admin']}>
+            <ProfilePage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'forgot-password',
+        element: <ForgotPasswordPage />,
       },
       {
         /**

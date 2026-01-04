@@ -18,7 +18,8 @@
         "logout": "Đăng xuất",
         "loggedIn": "Đã đăng nhập",
         "loginFailed": "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
-        "welcomeBack": "Xin chào!"
+        "welcomeBack": "Xin chào!",
+        "forgotPassword": "Quên mật khẩu?"
     },
     "nav": {
         "home": "Trang chủ",

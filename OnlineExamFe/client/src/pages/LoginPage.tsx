@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useAuth from '../hooks/useAuth';
 
@@ -329,6 +329,12 @@ const LoginPage: React.FC = () => {
                   )}
                 </button>
               </div>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <Link to="/forgot-password" className="text-sm text-sky-400 hover:text-sky-300 font-medium transition-colors">
+                {t('auth.forgotPassword') || 'Quên mật khẩu?'}
+              </Link>
             </div>
 
             {/* Nút đăng nhập */}
