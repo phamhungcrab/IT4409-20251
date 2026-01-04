@@ -16,7 +16,7 @@ coverage/
 **/dist/
 **/build/
 **/coverage/
-
+docs/
 # --- TypeScript ---
 *.tsbuildinfo
 
