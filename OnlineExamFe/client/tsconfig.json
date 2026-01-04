@@ -5,7 +5,11 @@
     // Use native ES modules and produce ESM output
     "module": "ESNext",
     // Include DOM and ESNext library definitions
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ESNext"
+    ],
     // Emit JSX syntax compatible with React 17+ (JSX runtime)
     "jsx": "react-jsx",
     // Enable strict type-checking options
@@ -28,8 +32,17 @@
     // Use Node module resolution algorithm
     "moduleResolution": "node",
     // Allow defining classes before they are declared
-    "useDefineForClassFields": false
+    "useDefineForClassFields": false,
+    // Don't emit output (Vite handles compilation)
+    "noEmit": true
   },
-  "include": ["src", "tailwind.config.js"],
-  "exclude": ["node_modules", "dist", "build"]
+  "include": [
+    "src",
+    "tailwind.config.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build"
+  ]
 }

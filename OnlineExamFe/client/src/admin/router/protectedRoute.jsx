@@ -6,9 +6,9 @@ export const ProtectedRoute = ({ children }) => {
     const [isLoggedIn, setIsLoggedIn] = useState(true);
 
     useEffect(() => {
-        const session = localStorage.getItem("session");
+        const token = localStorage.getItem("token") ?? localStorage.getItem("session");
         // console.log("Token: ", token);
-        setIsLoggedIn(!!session);
+        setIsLoggedIn(!!token);
         setLoading(false);
     }, []);
 

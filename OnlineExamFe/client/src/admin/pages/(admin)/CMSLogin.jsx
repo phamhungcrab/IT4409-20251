@@ -41,7 +41,7 @@ const CMSLogin = () => {
             console.log("Login data: ", data.data);
 
             if (data.data && data.status === true) {
-                localStorage.setItem("session", data.data.sessionString);
+                localStorage.setItem("token", data.data.sessionString);
                 toast.success("Đăng nhập thành công!");
                 navigate("/admin/home", { replace: true });
 
