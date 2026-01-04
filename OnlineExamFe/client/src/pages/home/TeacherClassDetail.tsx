@@ -209,6 +209,18 @@ const TeacherClassDetail: React.FC = () => {
     fetchClassDetail();
   }, [numericClassId, isInvalidClassId, user?.id]);
 
+  useEffect(() => {
+    if (activeSection === 'blueprints' && classDetail?.subjectId) {
+      // Load blueprints nếu chưa có hoặc muốn refresh
+      // Ở đây ta load nếu list rỗng. Nếu muốn luôn refresh thì bỏ check length.
+      // Để UX tốt, nên có loading state cho blueprints
+      console.log('[DEBUG] Loading blueprints for subject', classDetail.subjectId);
+      loadBlueprintsWithDetails(classDetail.subjectId)
+        .then(setAvailableBlueprints)
+        .catch(err => console.error("Error loading blueprints tab", err));
+    }
+  }, [activeSection, classDetail?.subjectId]);
+
   useEffect(() => () => clearToastTimeout(), []);
 
   const handleViewStudents = async (classIdValue: number) => {
