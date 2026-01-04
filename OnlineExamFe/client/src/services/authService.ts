@@ -24,14 +24,13 @@ import apiClient from '../utils/apiClient';
  * UserRole (vai trò người dùng):
  *
  * Dùng enum để định nghĩa “tập giá trị cố định” cho role, ví dụ:
- * - Admin, Teacher, Student
+ * - Teacher, Student
  *
  * Vì sao dùng enum?
  * - Tránh gõ sai chuỗi: 'Admin' vs 'admin' vs 'Admim'
  * - Code dễ đọc hơn, có gợi ý (autocomplete) trong editor
  */
 export enum UserRole {
-  Admin = 'Admin',
   Teacher = 'Teacher',
   Student = 'Student'
 }
@@ -140,7 +139,7 @@ export interface LoginResponse {
     mssv: string;
     fullName: string;
     email: string;
-    role: string | UserRole; // Backend trả về string 'TEACHER', 'ADMIN'...
+    role: string | UserRole; // Backend trả về string 'TEACHER', 'STUDENT'...
     dateOfBirth: string;
   };
 }

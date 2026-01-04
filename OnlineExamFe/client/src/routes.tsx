@@ -52,7 +52,7 @@ const ExamListPage = lazy(() => import('./pages/ExamListPage'));
 const ExamRoomPage = lazy(() => import('./pages/ExamRoomPage'));
 const ResultsPage = lazy(() => import('./pages/ResultsPage'));
 const ResultDetailPage = lazy(() => import('./pages/ResultDetailPage'));
-const AdminPage = lazy(() => import('./pages/AdminPage'));
+
 const ForbiddenPage = lazy(() => import('./pages/ForbiddenPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
@@ -122,7 +122,7 @@ export const appRoutes: RouteObject[] = [
          */
         path: 'exams',
         element: (
-          <RoleGuard allowedRoles={['Student', 'Teacher', 'Admin']}>
+          <RoleGuard allowedRoles={['Student', 'Teacher']}>
             <ExamListPage />
           </RoleGuard>
         ),
@@ -151,7 +151,7 @@ export const appRoutes: RouteObject[] = [
          */
         path: 'results',
         element: (
-          <RoleGuard allowedRoles={['Student', 'Teacher', 'Admin']}>
+          <RoleGuard allowedRoles={['Student', 'Teacher']}>
             <ResultsPage />
           </RoleGuard>
         ),
@@ -170,24 +170,12 @@ export const appRoutes: RouteObject[] = [
          */
         path: 'results/:examId',
         element: (
-          <RoleGuard allowedRoles={['Student', 'Teacher', 'Admin']}>
+          <RoleGuard allowedRoles={['Student', 'Teacher']}>
             <ResultDetailPage />
           </RoleGuard>
         ),
       },
-      {
-        /**
-         * Trang admin:
-         * - URL: '/admin'
-         * - Chỉ Admin mới được truy cập
-         */
-        path: 'admin',
-        element: (
-          <RoleGuard allowedRoles={['Admin']}>
-            <AdminPage />
-          </RoleGuard>
-        ),
-      },
+
       {
         path: '403',
         element: <ForbiddenPage />,

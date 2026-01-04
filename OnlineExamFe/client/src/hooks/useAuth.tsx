@@ -6,11 +6,11 @@ import { userService } from '../services/userService';
  * Kiểu User dùng trong Frontend.
  * - id: định danh người dùng
  * - email: email đăng nhập
- * - role: vai trò (Admin/Teacher/Student)
+ * - role: vai trò (Teacher/Student)
  *
  * Lưu ý:
  * - role để dạng string vì có thể lấy từ backend trả về (string hoặc số enum)
- * - Sau đó FE tự chuẩn hoá về 'Admin' | 'Teacher' | 'Student'
+ * - Sau đó FE tự chuẩn hoá về 'Teacher' | 'Student'
  */
 export interface User {
   id: number;
@@ -109,7 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * - Gọi authService.login => nhận token
    * - Lưu token vào state + localStorage
    * - Sau đó gọi userService.findByEmail(email) để lấy id/role chuẩn
-   * - Chuẩn hoá role về đúng 'Admin' | 'Teacher' | 'Student'
+   * - Chuẩn hoá role về đúng 'Teacher' | 'Student'
    *
    * Vì sao phải gọi userService.findByEmail?
    * - Trong hệ của bạn: token có thể là session string "opaque" (không phải JWT),
@@ -153,7 +153,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const roleLower = roleStr.toLowerCase();
 
           if (roleStr === '1' || roleLower === 'teacher') roleStr = UserRole.Teacher;
-          else if (roleStr === '0' || roleLower === 'admin') roleStr = UserRole.Admin;
           else if (roleStr === '2' || roleLower === 'student') roleStr = UserRole.Student;
 
           const userObj: User = {
@@ -173,7 +172,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               let roleStr = String(currentUser.role);
               const roleLower = roleStr.toLowerCase();
               if (roleStr === '1' || roleLower === 'teacher') roleStr = UserRole.Teacher;
-              else if (roleStr === '0' || roleLower === 'admin') roleStr = UserRole.Admin;
               else if (roleStr === '2' || roleLower === 'student') roleStr = UserRole.Student;
 
               const userObj: User = {
