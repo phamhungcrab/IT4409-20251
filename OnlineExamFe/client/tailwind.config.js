@@ -17,6 +17,7 @@
 // Dòng trên chỉ là để trình soạn thảo (VSCode) hiểu kiểu dữ liệu config, gợi ý code tốt hơn.
 module.exports = {
   // `content` nói cho Tailwind biết: cần quét (scan) những file nào để tìm class Tailwind.
+  darkMode: 'class', // Add class-based dark mode support
   content: [
     "./index.html",               // quét luôn file index.html ở gốc (client/index.html)
     "./src/**/*.{js,ts,jsx,tsx}", // quét toàn bộ file trong src/ có đuôi js, ts, jsx, tsx (code React)

@@ -160,13 +160,33 @@ apiClient.interceptors.response.use(
        * - Có nơi trả `data` (không chuẩn nhưng vẫn gặp)
        */
       const data: any = error.response.data;
-      const message =
+      let message =
         data?.message ||
         data?.error ||
         data?.data ||
         data?.Message ||
-        data?.Error ||
-        'An unexpected error occurred';
+        data?.Error;
+
+      // "Phiên dịch" status code đặc thù của hệ thống sang tiếng Việt
+      if (!message && data?.status) {
+        switch (data.status) {
+          case 'not_started':
+            message = 'Bài thi chưa đến giờ bắt đầu. Vui lòng quay lại sau.';
+            break;
+          case 'expired':
+            message = 'Bài thi đã kết thúc. Bạn không thể tham gia được nữa.';
+            break;
+          case 'completed':
+            message = 'Bạn đã hoàn thành bài thi này rồi.';
+            break;
+          default:
+            message = `Trạng thái không hợp lệ: ${data.status}`;
+        }
+      }
+
+      if (!message) {
+         message = 'Đã xảy ra lỗi không xác định (An unexpected error occurred)';
+      }
 
       return Promise.reject(new Error(message));
     }

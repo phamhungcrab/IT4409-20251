@@ -41,11 +41,11 @@ const ToastItem: React.FC<{
   // ... (typeToClass và typeToProgressClass giữ nguyên, không cần paste lại để tiết kiệm)
   const typeToClass = (type: Announcement['type']) => {
     switch (type) {
-      case 'success': return 'bg-emerald-500/10 text-emerald-100 border-emerald-400/30';
-      case 'warning': return 'bg-amber-500/10 text-amber-100 border-amber-400/30';
-      case 'error':   return 'bg-rose-500/10 text-rose-100 border-rose-400/30';
+      case 'success': return 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-100 dark:border-emerald-400/30';
+      case 'warning': return 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/10 dark:text-amber-100 dark:border-amber-400/30';
+      case 'error':   return 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-500/10 dark:text-rose-100 dark:border-rose-400/30';
       case 'info':
-      default:        return 'bg-sky-500/10 text-sky-100 border-sky-400/30';
+      default:        return 'bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-500/10 dark:text-sky-100 dark:border-sky-400/30';
     }
   };
 
@@ -86,13 +86,13 @@ const ToastItem: React.FC<{
   return (
     <div
       className={
-        'glass-card relative overflow-hidden flex items-start gap-3 p-4 border mb-3 last:mb-0 transition-all duration-300 animate-slide-in ' +
+        'relative overflow-hidden flex items-start gap-3 p-4 border mb-3 last:mb-0 transition-all duration-300 animate-slide-in rounded-xl shadow-sm ' +
         typeToClass(announcement.type) +
         (isActive ? ' opacity-100 translate-x-0' : ' opacity-60 translate-x-2') // Làm mờ các item chưa active để tạo hiệu ứng thị giác
       }
     >
       {/* Icon */}
-      <div className="h-10 w-10 flex-shrink-0 flex items-center justify-center rounded-full bg-white/10 text-lg font-bold text-white">
+      <div className="h-10 w-10 flex-shrink-0 flex items-center justify-center rounded-full bg-white dark:bg-white/10 text-lg font-bold text-slate-700 dark:text-white border border-gray-100 dark:border-none shadow-sm dark:shadow-none">
         !
       </div>
 

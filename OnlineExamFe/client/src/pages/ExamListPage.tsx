@@ -70,6 +70,15 @@ const ExamListPage: React.FC = () => {
   const [completionNotice, setCompletionNotice] = useState(false);
 
   /**
+   * errorPopup:
+   * - Hiển thị lỗi đẹp mắt thay vì dùng alert()
+   */
+  const [errorPopup, setErrorPopup] = useState<{ show: boolean; message: string }>({
+    show: false,
+    message: '',
+  });
+
+  /**
    * useEffect: tải danh sách bài thi khi đã có user.
    *
    * Vì sao dependency là [user]?
@@ -264,7 +273,7 @@ const ExamListPage: React.FC = () => {
       if (response.status === 'create' || response.status === 'in_progress') {
         // Nếu không có payload thì không thể vào phòng thi (không có câu hỏi để render)
         if (!examPayload) {
-          alert('Không tải được đề thi. Vui lòng thử lại.');
+          setErrorPopup({ show: true, message: 'Không tải được đề thi. Vui lòng thử lại.' });
           return;
         }
 
@@ -289,9 +298,9 @@ const ExamListPage: React.FC = () => {
         // Đã làm xong -> hiện modal thông báo
         setCompletionNotice(true);
       } else if (response.status === 'expired') {
-        alert('Bài thi đã hết hạn!');
+        setErrorPopup({ show: true, message: 'Bài thi này đã hết hạn, bạn không tham gia được nữa.' });
       } else {
-        alert('Không thể bắt đầu bài thi. Vui lòng thử lại.');
+        setErrorPopup({ show: true, message: 'Không thể bắt đầu bài thi. Vui lòng thử lại.' });
       }
     } catch (error) {
       console.error('Lỗi khi bắt đầu bài thi', error);
@@ -302,7 +311,7 @@ const ExamListPage: React.FC = () => {
        * - Nếu không thì dùng message mặc định
        */
       const message = error instanceof Error ? error.message : 'Lỗi khi bắt đầu bài thi';
-      alert(message);
+      setErrorPopup({ show: true, message });
     }
   };
 
@@ -348,33 +357,63 @@ const ExamListPage: React.FC = () => {
         </div>
       )}
 
+      {/* Modal thông báo lỗi (Error Popup) */}
+      {errorPopup.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-500/10 flex items-center justify-center text-rose-500 text-xl font-bold">
+                !
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  Thông báo
+                </h3>
+                <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
+                  {errorPopup.message}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg font-medium hover:opacity-90 transition-opacity shadow-sm"
+                onClick={() => setErrorPopup({ show: false, message: '' })}
+              >
+                Đã hiểu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tiêu đề trang */}
       <div className="flex flex-col gap-2">
-        <p className="text-sm text-slate-300">{t('exam.listTitle')}</p>
-        <h1 className="text-3xl font-semibold text-white">Danh sách bài thi</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-300">{t('exam.listTitle')}</p>
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">Danh sách bài thi</h1>
       </div>
 
       {/* Nếu không có bài thi -> hiển thị trạng thái rỗng */}
       {!Array.isArray(exams) || exams.length === 0 ? (
-        <div className="glass-card p-6 text-slate-300">{t('exam.noExams')}</div>
+        <div className="p-6 text-slate-500 dark:text-slate-300 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl shadow-sm">{t('exam.noExams')}</div>
       ) : (
         // Có bài thi -> render dạng lưới card
         <div className="grid gap-4 md:grid-cols-2">
           {exams.map((exam) => (
-            <div key={exam.examId} className="glass-card p-5 flex flex-col gap-4 justify-between">
+            <div key={exam.examId} className="p-5 flex flex-col gap-4 justify-between bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl shadow-sm hover:shadow-md transition-shadow">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-semibold text-white">{exam.examName}</h3>
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white">{exam.examName}</h3>
 
-                  {/* Tag trạng thái bài thi (ví dụ: not_started / in_progress / completed...) */}
-                  <span className="tag">
+                  {/* Tag trạng thái */}
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-slate-200 border border-gray-200 dark:border-white/10">
                     <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
                     {exam.status}
                   </span>
                 </div>
 
                 {/* Thông tin thời lượng và thời gian bắt đầu */}
-                <div className="text-sm text-slate-300 space-y-1">
+                <div className="text-sm text-slate-500 dark:text-slate-400 space-y-1">
                   <p>
                     {t('exam.duration')}: {exam.durationMinutes} phút
                   </p>
