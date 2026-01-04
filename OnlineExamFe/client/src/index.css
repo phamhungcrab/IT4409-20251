@@ -1,0 +1,166 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0f172a;
+  --surface: #0b1729;
+  --panel: #0f1f35;
+  --primary: #2563eb;
+  --primary-soft: rgba(37, 99, 235, 0.12);
+  --accent: #22d3ee;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --border: rgba(255, 255, 255, 0.08);
+  --radius: 14px;
+  --shadow-lg: 0 15px 45px rgba(15, 23, 42, 0.45);
+  --shadow-sm: 0 10px 30px rgba(15, 23, 42, 0.25);
+}
+
+html,
+body {
+  min-height: 100%;
+  background: radial-gradient(circle at 20% 20%, rgba(34, 211, 238, 0.06), transparent 32%),
+    radial-gradient(circle at 80% 0%, rgba(37, 99, 235, 0.12), transparent 30%),
+    linear-gradient(145deg, #0b1224 0%, #0b142a 45%, #0a1630 100%);
+  color: var(--text);
+  font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+} 
+
+a {
+  color: var(--accent);
+}
+
+* {
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease,
+    transform 180ms ease, box-shadow 180ms ease;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.2);
+  color: #002c4acb;
+}
+
+.app-shell {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(12px);
+}
+
+.glass-card {
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius);
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-weight: 600;
+  padding: 0.65rem 1rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  gap: 0.35rem;
+}
+
+.btn-primary {
+  background: linear-gradient(120deg, #2563eb, #2563eb 40%, #22d3ee);
+  color: #e6f0ff;
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.35);
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
+  border-color: var(--border);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+table thead th {
+  background: rgba(255, 255, 255, 0.02);
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.78rem;
+}
+
+table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+input,
+textarea,
+select {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.2);
+}
+
+select option {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-credentials-auto-fill-button:hover,
+input[type="password"]::-webkit-credentials-auto-fill-button:active {
+  visibility: hidden;
+  display: none;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}

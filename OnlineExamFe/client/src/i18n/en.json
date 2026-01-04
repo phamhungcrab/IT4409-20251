@@ -1,0 +1,92 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "actions": "Actions",
+    "close": "Close"
+  },
+  "auth": {
+    "loginTitle": "Login to Online Exam",
+    "email": "Email Address",
+    "password": "Password",
+    "loginButton": "Sign In",
+    "logout": "Logout",
+    "loggedIn": "Logged in",
+    "loginFailed": "Login failed. Please check your credentials.",
+    "welcomeBack": "Welcome back"
+  },
+  "nav": {
+    "home": "Home",
+    "exams": "Exams",
+    "results": "Results",
+    "admin": "Admin Dashboard",
+    "dashboard": "Dashboard",
+    "login": "Login",
+    "classes": "Classes",
+    "subjects": "Subjects"
+  },
+  "dashboard": {
+    "actionCenter": {
+      "title": "Action Center",
+      "high": "High Priority",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "examMonitor": {
+      "title": "Exams",
+      "upcoming": "Upcoming",
+      "live": "Live",
+      "monitor": "Monitor"
+    },
+    "classSpotlight": {
+      "title": "Class Spotlight",
+      "enterClass": "Go to Class"
+    }
+  },
+  "exam": {
+    "listTitle": "My Exams",
+    "noExams": "No exams assigned to you at the moment.",
+    "duration": "Duration",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "status": "Status",
+    "startExam": "Start Exam",
+    "submitExam": "Submit Exam",
+    "confirmSubmit": "Are you sure you want to submit?",
+    "submitted": "Exam submitted successfully!",
+    "completedMessage": "You already completed this exam.",
+    "score": "Your score",
+    "questions": "Questions",
+    "previous": "Previous",
+    "next": "Next",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "reconnecting": "Reconnecting...",
+    "synced": "Answer synced",
+    "integrity": {
+      "focusLossTitle": "You left the exam room",
+      "focusLossBody": "We detected you were out of the exam room for {{seconds}} seconds. Please focus on the test.",
+      "leftPageTitle": "You left the exam page",
+      "leftPageBody": "Leaving the exam page is considered a violation. Please do not repeat it.",
+      "fullscreenRequiredTitle": "Fullscreen required",
+      "fullscreenRequiredBody": "Please enter fullscreen mode to continue the exam.",
+      "fullscreenExitTitle": "You exited fullscreen",
+      "fullscreenExitBody": "Exiting fullscreen is considered a violation. Please return to fullscreen.",
+      "enterFullscreen": "Enter fullscreen",
+      "acknowledge": "I understand",
+      "warningNote": "Repeated violations may be recorded as suspicious behavior."
+    }
+  },
+  "admin": {
+    "dashboard": "Admin Dashboard",
+    "announcements": "System Announcements",
+    "allExams": "All Exams",
+    "createExam": "Create New Exam",
+    "students": "Students"
+  }
+}

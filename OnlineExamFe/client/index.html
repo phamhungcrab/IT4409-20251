@@ -1,0 +1,31 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <!-- Thiết lập để trình duyệt render đúng và hỗ trợ zoom trên thiết bị di động -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Online Examination System – HUST" />
+
+  <link rel="manifest" href="/manifest.json" />
+ 
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="16x16" href="public/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="public/favicon-32x32.png">
+
+  <!-- Icon cho thiết bị iOS (iPhone, iPad) khi ghim app ra màn hình chính -->
+  <link rel="apple-touch-icon" href="public/apple-touch-icon.png">
+  <title>Online Examination System</title>
+</head>
+
+<body>
+  <!-- Thông báo sẽ hiển thị nếu trình duyệt tắt JavaScript -->
+  <noscript>Bạn cần bật JavaScript để chạy ứng dụng này.</noscript>
+  <!-- React sẽ render toàn bộ giao diện vào phần tử root này -->
+  <div id="root"></div>
+  <script type="module" src="/src/index.tsx"></script>
+  <!-- File bundle của ứng dụng sẽ được build tool (Vite) xử lý và nạp từ script này. -->
+</body>
+
+</html>

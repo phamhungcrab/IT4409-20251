@@ -1,0 +1,92 @@
+{
+    "common": {
+        "loading": "Đang tải...",
+        "error": "Đã xảy ra lỗi",
+        "success": "Thành công",
+        "save": "Lưu",
+        "cancel": "Hủy",
+        "delete": "Xóa",
+        "edit": "Sửa",
+        "actions": "Hành động",
+        "close": "Đóng"
+    },
+    "auth": {
+        "loginTitle": "Đăng nhập hệ thống thi trực tuyến",
+        "email": "Địa chỉ Email",
+        "password": "Mật khẩu",
+        "loginButton": "Đăng nhập",
+        "logout": "Đăng xuất",
+        "loggedIn": "Đã đăng nhập",
+        "loginFailed": "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
+        "welcomeBack": "Xin chào!"
+    },
+    "nav": {
+        "home": "Trang chủ",
+        "exams": "Các kỳ thi",
+        "results": "Kết quả",
+        "admin": "Trang quản trị",
+        "login": "Đăng nhập",
+        "dashboard": "Dashboard",
+        "classes": "Lớp học",
+        "subjects": "Môn học"
+    },
+    "dashboard": {
+        "actionCenter": {
+            "title": "Việc cần làm",
+            "high": "Khẩn cấp",
+            "medium": "Lưu ý",
+            "low": "Thường"
+        },
+        "examMonitor": {
+            "title": "Kỳ thi",
+            "upcoming": "Sắp tới",
+            "live": "Đang diễn ra",
+            "monitor": "Theo dõi"
+        },
+        "classSpotlight": {
+            "title": "Lớp nổi bật",
+            "enterClass": "Vào lớp"
+        }
+    },
+    "exam": {
+        "listTitle": "Danh sách kỳ thi",
+        "noExams": "Hiện tại bạn chưa có kỳ thi nào.",
+        "duration": "Thời gian",
+        "startTime": "Bắt đầu",
+        "endTime": "Kết thúc",
+        "status": "Trạng thái",
+        "startExam": "Bắt đầu thi",
+        "submitExam": "Nộp bài",
+        "confirmSubmit": "Bạn có chắc chắn muốn nộp bài không?",
+        "submitted": "Nộp bài thành công!",
+        "completedMessage": "Bạn đã hoàn thành bài thi này!",
+        "score": "Điểm của bạn",
+        "questions": "Câu hỏi",
+        "previous": "Trước",
+        "next": "Tiếp",
+        "connected": "Đã kết nối",
+        "disconnected": "Mất kết nối",
+        "reconnecting": "Đang kết nối lại...",
+        "synced": "Đã lưu bài làm",
+        "integrity": {
+            "focusLossTitle": "B\u1ea1n \u0111\u00e3 r\u1eddi kh\u1ecfi ph\u00f2ng thi",
+            "focusLossBody": "H\u1ec7 th\u1ed1ng ph\u00e1t hi\u1ec7n b\u1ea1n r\u1eddi kh\u1ecfi ph\u00f2ng thi trong {{seconds}} gi\u00e2y. H\u00e3y nghi\u1ec1m t\u00fac l\u00e0m b\u00e0i.",
+            "leftPageTitle": "B\u1ea1n \u0111\u00e3 r\u1eddi kh\u1ecfi trang l\u00e0m b\u00e0i",
+            "leftPageBody": "R\u1eddi kh\u1ecfi trang l\u00e0m b\u00e0i \u0111\u01b0\u1ee3c xem l\u00e0 vi ph\u1eadm. Vui l\u00f2ng kh\u00f4ng l\u1eb7p l\u1ea1i.",
+            "fullscreenRequiredTitle": "B\u1eaft bu\u1ed9c to\u00e0n m\u00e0n h\u00ecnh",
+            "fullscreenRequiredBody": "Vui l\u00f2ng b\u1eadt ch\u1ebf \u0111\u1ed9 to\u00e0n m\u00e0n h\u00ecnh \u0111\u1ec3 ti\u1ebfp t\u1ee5c l\u00e0m b\u00e0i.",
+            "fullscreenExitTitle": "B\u1ea1n \u0111\u00e3 tho\u00e1t to\u00e0n m\u00e0n h\u00ecnh",
+            "fullscreenExitBody": "Tho\u00e1t to\u00e0n m\u00e0n h\u00ecnh \u0111\u01b0\u1ee3c xem l\u00e0 vi ph\u1eadm. H\u00e3y quay l\u1ea1i ch\u1ebf \u0111\u1ed9 to\u00e0n m\u00e0n h\u00ecnh.",
+            "enterFullscreen": "V\u00e0o to\u00e0n m\u00e0n h\u00ecnh",
+            "acknowledge": "\u0110\u00e3 hi\u1ec3u",
+            "warningNote": "N\u1ebfu t\u00e1i di\u1ec5n nhi\u1ec1u l\u1ea7n, h\u1ec7 th\u1ed1ng s\u1ebd ghi nh\u1eadn h\u00e0nh vi nghi ng\u1edd."
+        }
+    },
+    "admin": {
+        "dashboard": "Bảng điều khiển Admin",
+        "announcements": "Thông báo hệ thống",
+        "allExams": "Tất cả kỳ thi",
+        "createExam": "Tạo kỳ thi mới",
+        "students": "Sinh viên"
+    }
+}
