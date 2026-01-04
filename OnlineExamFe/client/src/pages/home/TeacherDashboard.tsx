@@ -71,7 +71,7 @@ const TeacherDashboard: React.FC = () => {
       </div>
 
       {/* Main Grid Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto lg:h-[500px]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* 2. Exam Monitor (Kỳ thi) - Priority 2 */}
         <div className="lg:col-span-6 h-full">
             <ExamMonitorCard

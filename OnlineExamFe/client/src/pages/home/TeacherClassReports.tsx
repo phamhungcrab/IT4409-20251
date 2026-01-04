@@ -197,25 +197,28 @@ const TeacherClassReports: React.FC<TeacherClassReportsProps> = ({ classId, clas
            {/* Chart Distribution (Simple CSS Bar Chart) */}
            <div className="panel p-4 md:col-span-1 border-white/10 bg-white/5 print:border-gray-300 print:bg-none">
               <h3 className="text-slate-400 text-sm uppercase tracking-wider mb-3">Phổ điểm</h3>
-              <div className="flex items-end h-24 gap-2">
+              <div className="flex items-end h-40 gap-2 mt-4">
                  {currentStats.scoreDistribution.map((count, idx) => {
                     const maxCount = Math.max(...currentStats.scoreDistribution) || 1;
-                    const heightPercent = (count / maxCount) * 100;
+                    // Min height 10% để luôn thấy chân cột nếu có dữ liệu > 0
+                    let heightPercent = (count / maxCount) * 100;
+                    if (count > 0 && heightPercent < 10) heightPercent = 10;
+
                     const labels = ['0-2', '2-4', '4-6', '6-8', '8-10'];
                     const colors = ['bg-rose-500', 'bg-orange-500', 'bg-yellow-500', 'bg-sky-500', 'bg-emerald-500'];
 
                     return (
-                       <div key={idx} className="flex-1 flex flex-col items-center group relative">
+                       <div key={idx} className="flex-1 flex flex-col items-center justify-end h-full group relative">
                           {/* Tooltip */}
-                          <div className="absolute -top-8 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                          <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none shadow-lg border border-white/10">
                               {count} bài ({labels[idx]})
                           </div>
 
                           <div
-                             className={`w-full rounded-t-sm transition-all duration-500 ${colors[idx]} opacity-80 hover:opacity-100`}
-                             style={{ height: `${heightPercent}%` }}
+                             className={`w-full max-w-[40px] rounded-t-sm transition-all duration-500 ${colors[idx]} ${count > 0 ? 'opacity-90 hover:opacity-100' : 'opacity-20 h-[1px]'}`}
+                             style={{ height: count > 0 ? `${heightPercent}%` : '1px' }}
                           ></div>
-                          <div className="text-[10px] text-slate-400 mt-1">{labels[idx]}</div>
+                          <div className="text-[10px] text-slate-400 mt-2 font-medium">{labels[idx]}</div>
                        </div>
                     );
                  })}

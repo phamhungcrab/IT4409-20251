@@ -27,7 +27,8 @@
     "admin": "Admin Dashboard",
     "dashboard": "Dashboard",
     "login": "Login",
-    "classes": "Classes"
+    "classes": "Classes",
+    "subjects": "Subjects"
   },
   "dashboard": {
     "actionCenter": {
@@ -66,7 +67,20 @@
     "connected": "Connected",
     "disconnected": "Disconnected",
     "reconnecting": "Reconnecting...",
-    "synced": "Answer synced"
+    "synced": "Answer synced",
+    "integrity": {
+      "focusLossTitle": "You left the exam room",
+      "focusLossBody": "We detected you were out of the exam room for {{seconds}} seconds. Please focus on the test.",
+      "leftPageTitle": "You left the exam page",
+      "leftPageBody": "Leaving the exam page is considered a violation. Please do not repeat it.",
+      "fullscreenRequiredTitle": "Fullscreen required",
+      "fullscreenRequiredBody": "Please enter fullscreen mode to continue the exam.",
+      "fullscreenExitTitle": "You exited fullscreen",
+      "fullscreenExitBody": "Exiting fullscreen is considered a violation. Please return to fullscreen.",
+      "enterFullscreen": "Enter fullscreen",
+      "acknowledge": "I understand",
+      "warningNote": "Repeated violations may be recorded as suspicious behavior."
+    }
   },
   "admin": {
     "dashboard": "Admin Dashboard",

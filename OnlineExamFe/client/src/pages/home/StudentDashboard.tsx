@@ -124,10 +124,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user }) => {
               <p className="text-xs text-slate-400">Xem lại điểm số và lịch sử làm bài của bạn.</p>
            </Link>
 
-           <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
-              <div className="text-purple-400 font-medium mb-1">Hồ sơ cá nhân</div>
-              <p className="text-xs text-slate-400">Cập nhật thông tin và mật khẩu.</p>
-           </div>
+
         </div>
       </section>
     </>

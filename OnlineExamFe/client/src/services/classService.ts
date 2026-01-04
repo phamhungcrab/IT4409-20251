@@ -91,5 +91,16 @@ export const classService = {
    */
   getStudentsByClass: async (classId: number): Promise<any[]> => {
     return await apiClient.get<any[]>(`/api/CLass/get-students?classId=${classId}`) as unknown as any[];
+  },
+
+  /**
+   * getClassesForStudent():
+   * - Lấy danh sách lớp mà sinh viên hiện tại đang tham gia
+   */
+  getClassesForStudent: async (studentId?: number): Promise<ClassDto[]> => {
+    const url = studentId
+      ? `/api/CLass/get-classes-for-student?studentId=${studentId}`
+      : '/api/CLass/get-classes-for-student';
+    return await apiClient.get<ClassDto[]>(url) as unknown as ClassDto[];
   }
 };

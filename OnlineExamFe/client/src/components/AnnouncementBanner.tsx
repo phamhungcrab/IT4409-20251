@@ -86,18 +86,18 @@ const ToastItem: React.FC<{
   return (
     <div
       className={
-        'relative overflow-hidden flex items-start gap-3 p-4 border mb-3 last:mb-0 transition-all duration-300 animate-slide-in rounded-xl shadow-sm ' +
+        'relative overflow-hidden flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3 p-3 sm:p-4 border mb-3 last:mb-0 transition-all duration-300 animate-slide-in rounded-xl shadow-sm ' +
         typeToClass(announcement.type) +
         (isActive ? ' opacity-100 translate-x-0' : ' opacity-60 translate-x-2') // Làm mờ các item chưa active để tạo hiệu ứng thị giác
       }
     >
       {/* Icon */}
-      <div className="h-10 w-10 flex-shrink-0 flex items-center justify-center rounded-full bg-white dark:bg-white/10 text-lg font-bold text-slate-700 dark:text-white border border-gray-100 dark:border-none shadow-sm dark:shadow-none">
+      <div className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 flex items-center justify-center rounded-full bg-white dark:bg-white/10 text-lg font-bold text-slate-700 dark:text-white border border-gray-100 dark:border-none shadow-sm dark:shadow-none">
         !
       </div>
 
       {/* Nội dung */}
-      <div className="flex-1">
+      <div className="flex-1 w-full">
         <p className="text-sm leading-relaxed">{announcement.message}</p>
       </div>
 
@@ -105,7 +105,7 @@ const ToastItem: React.FC<{
       <button
         type="button"
         onClick={() => onClose(announcement.id)}
-        className="btn btn-ghost px-3 py-2 text-sm hover:-translate-y-0.5"
+        className="btn btn-ghost self-end sm:self-auto sm:ml-auto px-2 py-1.5 text-xs sm:px-3 sm:py-2 sm:text-sm hover:-translate-y-0.5"
         aria-label={t('common.close')}
       >
         ×
@@ -141,7 +141,7 @@ const AnnouncementBanner: React.FC<AnnouncementBannerProps> = ({ announcements }
   if (visible.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2 sm:gap-3">
       {visible.map((ann, index) => (
         <ToastItem
           key={ann.id}

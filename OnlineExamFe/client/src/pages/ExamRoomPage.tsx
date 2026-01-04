@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import useAuth from '../hooks/useAuth';
 import { useExam } from '../hooks/useExam';
 import { useTimer } from '../hooks/useTimer';
+import { useExamIntegrity } from '../hooks/useExamIntegrity';
 import QuestionCard from '../components/QuestionCard';
 import { examService } from '../services/examService';
 
@@ -163,6 +164,21 @@ const ExamRoomPage: React.FC = () => {
    */
   const [submitResult, setSubmitResult] = useState<{ success?: boolean } | null>(null);
 
+  const {
+    activeAlert,
+    fullscreenGate,
+    isFullscreenSupported,
+    clearAlert,
+    requestFullscreen,
+    markLeftPage,
+  } = useExamIntegrity({
+    examId,
+    enabled: Boolean(user && examId && !submitResult),
+    focusLossThresholdMs: 5000,
+    requireFullscreen: true,
+    debug: import.meta.env.DEV,
+  });
+
   // =========================================================
   // 3) BIẾN “KHÔI PHỤC” TRẠNG THÁI KHI REFRESH (RECOVERY)
   // =========================================================
@@ -189,6 +205,7 @@ const ExamRoomPage: React.FC = () => {
   // Ref để break circular dependency giữa useTimer và useExam
   // useTimer cần gọi submitExam khi hết giờ, nhưng useExam lại cần setRemainingTime của useTimer
   const submitExamRef = React.useRef<() => void>(() => {});
+  const submitResultRef = React.useRef(submitResult);
 
   // =========================================================
   // 4) HOOK ĐẾM GIỜ: useTimer (MOVE LÊN TRƯỚC)
@@ -267,6 +284,18 @@ const ExamRoomPage: React.FC = () => {
   useEffect(() => {
     submitExamRef.current = submitExam;
   }, [submitExam]);
+
+  useEffect(() => {
+    submitResultRef.current = submitResult;
+  }, [submitResult]);
+
+  useEffect(() => {
+    return () => {
+      if (!submitResultRef.current) {
+        markLeftPage('route-change');
+      }
+    };
+  }, [markLeftPage]);
 
   // =========================================================
   // 6) HÀM MAP CÂU HỎI TỪ BACKEND -> FRONTEND + KHÔI PHỤC ĐÁP ÁN TỪ localStorage
@@ -603,6 +632,33 @@ const ExamRoomPage: React.FC = () => {
     }
   };
 
+  const focusLossSeconds =
+    activeAlert?.kind === 'focus-loss'
+      ? Math.max(5, Math.ceil((activeAlert.durationMs ?? 0) / 1000))
+      : 5;
+
+  const integrityTitle = activeAlert
+    ? activeAlert.kind === 'focus-loss'
+      ? t('exam.integrity.focusLossTitle')
+      : t('exam.integrity.leftPageTitle')
+    : '';
+
+  const integrityBody = activeAlert
+    ? activeAlert.kind === 'focus-loss'
+      ? t('exam.integrity.focusLossBody', { seconds: focusLossSeconds })
+      : t('exam.integrity.leftPageBody')
+    : '';
+
+  const fullscreenTitle =
+    fullscreenGate === 'exit'
+      ? t('exam.integrity.fullscreenExitTitle')
+      : t('exam.integrity.fullscreenRequiredTitle');
+
+  const fullscreenBody =
+    fullscreenGate === 'exit'
+      ? t('exam.integrity.fullscreenExitBody')
+      : t('exam.integrity.fullscreenRequiredBody');
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header dính trên cùng: trạng thái kết nối, timer, nút nộp */}
@@ -781,6 +837,54 @@ const ExamRoomPage: React.FC = () => {
                 className="btn btn-primary px-4 py-2"
               >
                 {t('exam.submitExam')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {fullscreenGate && isFullscreenSupported && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/85 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-white/10 rounded-xl p-6 w-full max-w-lg shadow-2xl space-y-4 text-center">
+            <div className="space-y-2">
+              <h3 className="text-2xl font-semibold text-white">{fullscreenTitle}</h3>
+              <p className="text-sm text-slate-300">{fullscreenBody}</p>
+              {fullscreenGate === 'exit' && (
+                <p className="text-xs text-amber-200/90">
+                  {t('exam.integrity.warningNote')}
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-center gap-3 pt-2">
+              <button
+                onClick={requestFullscreen}
+                className="btn btn-primary px-5 py-2"
+              >
+                {t('exam.integrity.enterFullscreen')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeAlert && !fullscreenGate && (
+        <div className="fixed inset-0 z-[55] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-white/10 rounded-xl p-6 w-full max-w-md shadow-2xl space-y-4 text-center">
+            <div className="space-y-2">
+              <h3 className="text-2xl font-semibold text-white">{integrityTitle}</h3>
+              <p className="text-sm text-slate-300">{integrityBody}</p>
+              <p className="text-xs text-amber-200/90">
+                {t('exam.integrity.warningNote')}
+              </p>
+            </div>
+
+            <div className="flex justify-center gap-3 pt-2">
+              <button
+                onClick={clearAlert}
+                className="btn btn-primary px-5 py-2"
+              >
+                {t('exam.integrity.acknowledge')}
               </button>
             </div>
           </div>

@@ -92,6 +92,29 @@ const Layout: React.FC = () => {
           </svg>
         ),
       });
+      // Lớp học
+      links.push({
+        path: '/student/classes',
+        label: t('nav.classes') || 'Lớp học',
+        icon: (
+           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+           </svg>
+        ),
+      });
+
+      // Môn học
+      links.push({
+        path: '/student/subjects',
+        label: t('nav.subjects') || 'Môn học',
+        icon: (
+           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+           </svg>
+        ),
+      });
+
       // Danh sách bài thi
       links.push({
         path: '/exams',
@@ -166,17 +189,17 @@ const Layout: React.FC = () => {
       <div className="flex-1 flex flex-col">
         {/* Header dính lên đầu trang (sticky) để khi scroll vẫn thấy */}
         <header className="sticky top-0 z-20 backdrop-blur-md border-b border-white/5 bg-slate-900/70">
-          <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             {/* Tiêu đề khu vực quản lý */}
             <div>
-              <p className="text-xs uppercase tracking-[0.35em] text-sky-200/70">
-                Online Exam
-              </p>
-              <h1 className="text-2xl font-semibold text-white">Control Center</h1>
+                <p className="text-[10px] uppercase tracking-[0.3em] text-sky-200/70 sm:text-xs sm:tracking-[0.35em]">
+                  Online Exam
+                </p>
+                <h1 className="text-xl font-semibold text-white sm:text-2xl">Control Center</h1>
             </div>
 
             {/* Cụm bên phải: chọn ngôn ngữ + khu thông tin user + nút logout */}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               {/* Bộ chọn ngôn ngữ: EN/VI */}
               <div className="flex rounded-full border border-white/10 bg-white/5 p-1">
                 {['en', 'vi'].map((lng) => (
@@ -189,7 +212,7 @@ const Layout: React.FC = () => {
                      * Nếu không:
                      *  - button bình thường
                      */
-                    className={`px-3 py-1 text-sm rounded-full ${
+                    className={`px-2.5 py-1 text-xs sm:text-sm rounded-full ${
                       i18n.language === lng
                         ? 'bg-white text-slate-900 shadow-sm'
                         : 'text-sky-100'
@@ -205,7 +228,7 @@ const Layout: React.FC = () => {
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-full border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors shadow-sm text-slate-500 dark:text-gray-300"
+                className="shrink-0 p-2 rounded-full border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors shadow-sm text-slate-500 dark:text-gray-300"
                 title={theme === 'dark' ? 'Chuyển sang chế độ Sáng' : 'Chuyển sang chế độ Tối'}
               >
                 {theme === 'dark' ? (
@@ -221,22 +244,24 @@ const Layout: React.FC = () => {
 
               {/* Nếu đã đăng nhập -> hiển thị thông tin user và nút logout */}
               {user && (
-                <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-3 py-2 shadow-sm">
+                <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2 py-1.5 shadow-sm sm:gap-3 sm:px-3 sm:py-2">
                   {/* Avatar giả lập: lấy 2 ký tự đầu của email */}
-                  <div className="h-9 w-9 rounded-full bg-gradient-to-br from-sky-500 to-blue-700 flex items-center justify-center text-sm font-semibold text-white">
+                  <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gradient-to-br from-sky-500 to-blue-700 flex items-center justify-center text-sm font-semibold text-white">
                     {user.email.slice(0, 2).toUpperCase()}
                   </div>
 
                   {/* Text hiển thị user đang login */}
-                  <div className="text-left">
-                    <p className="text-xs text-slate-300">{t('auth.loggedIn')}</p>
-                    <p className="text-sm font-semibold text-white">{user.email}</p>
+                  <div className="min-w-0 text-left">
+                    <p className="hidden text-xs text-slate-300 sm:block">{t('auth.loggedIn')}</p>
+                    <p className="max-w-[160px] truncate text-sm font-semibold text-white sm:max-w-none">
+                      {user.email}
+                    </p>
                   </div>
 
                   {/* Nút logout: gọi hàm logout từ useAuth */}
                   <button
                     onClick={logout}
-                    className="btn btn-ghost text-sm px-3 py-2 hover:-translate-y-0.5"
+                    className="btn btn-ghost px-2 py-1.5 text-xs sm:px-3 sm:py-2 sm:text-sm hover:-translate-y-0.5"
                     aria-label={t('auth.logout')}
                   >
                     {t('auth.logout')}
@@ -248,8 +273,8 @@ const Layout: React.FC = () => {
         </header>
 
 
-        <div className="lg:hidden px-6 pt-4">
-          <nav className="flex gap-3 flex-wrap">
+        <div className="lg:hidden px-4 pt-4 sm:px-6">
+          <nav className="flex flex-wrap gap-2 sm:gap-3">
             {getLinks().map((link) => (
               <Link
                 key={link.path}
@@ -262,10 +287,10 @@ const Layout: React.FC = () => {
           </nav>
         </div>
 
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-4 sm:p-6 overflow-auto">
           {/* Nếu đã login và có announcements -> hiển thị banner thông báo ở đầu trang */}
           {user && announcements.length > 0 && (
-            <div className="mb-6">
+            <div className="mb-4 sm:mb-6">
               <AnnouncementBanner announcements={announcements} />
             </div>
           )}

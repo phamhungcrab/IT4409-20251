@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { examService } from '../services/examService';
@@ -55,6 +55,13 @@ const ExamListPage: React.FC = () => {
    * - Danh sách bài thi của sinh viên.
    */
   const [exams, setExams] = useState<StudentExamDto[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredExams = useMemo(() => {
+    if (!searchTerm) return exams;
+    const lower = searchTerm.toLowerCase();
+    return exams.filter((e) => e.examName.toLowerCase().includes(lower));
+  }, [exams, searchTerm]);
 
   /**
    * loading:
@@ -393,13 +400,31 @@ const ExamListPage: React.FC = () => {
         <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">Danh sách bài thi</h1>
       </div>
 
+      {/* Search Input */}
+      <div className="relative max-w-md">
+         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+         </div>
+         <input
+            type="text"
+            className="block w-full pl-10 pr-3 py-2.5 bg-white dark:bg-slate-900 border border-gray-300 dark:border-white/10 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+            placeholder="Tìm kiếm bài thi..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+         />
+      </div>
+
       {/* Nếu không có bài thi -> hiển thị trạng thái rỗng */}
-      {!Array.isArray(exams) || exams.length === 0 ? (
-        <div className="p-6 text-slate-500 dark:text-slate-300 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl shadow-sm">{t('exam.noExams')}</div>
+      {!Array.isArray(filteredExams) || filteredExams.length === 0 ? (
+        <div className="p-6 text-slate-500 dark:text-slate-300 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl shadow-sm">
+           {searchTerm ? `Không tìm thấy bài thi nào phù hợp với "${searchTerm}"` : t('exam.noExams')}
+        </div>
       ) : (
         // Có bài thi -> render dạng lưới card
         <div className="grid gap-4 md:grid-cols-2">
-          {exams.map((exam) => (
+          {filteredExams.map((exam) => (
             <div key={exam.examId} className="p-5 flex flex-col gap-4 justify-between bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl shadow-sm hover:shadow-md transition-shadow">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
