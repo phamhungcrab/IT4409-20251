@@ -701,7 +701,7 @@ const TeacherClassDetail: React.FC = () => {
           type="button"
           onClick={() => handleViewExams(numericClassId)}
           className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all ${
-            activeSection === 'exams'
+            activeSection === 'exams' || activeSection === 'status'
               ? 'bg-emerald-500/20 border-emerald-500/40 text-white shadow-lg shadow-emerald-500/10'
               : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'
           }`}
@@ -710,19 +710,7 @@ const TeacherClassDetail: React.FC = () => {
           <span className="block">Kỳ thi</span>
           <span className="block text-xs font-normal text-slate-400">Tạo & theo dõi</span>
         </button>
-        <button
-          type="button"
-          onClick={() => setActiveSection('status')}
-          className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all ${
-            activeSection === 'status'
-              ? 'bg-amber-500/20 border-amber-500/40 text-white shadow-lg shadow-amber-500/10'
-              : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'
-          }`}
-          aria-pressed={activeSection === 'status'}
-        >
-          <span className="block">Trạng thái</span>
-          <span className="block text-xs font-normal text-slate-400">Bài làm & điểm</span>
-        </button>
+
         <button
           type="button"
           onClick={() => setActiveSection('blueprints')}
@@ -888,6 +876,8 @@ const TeacherClassDetail: React.FC = () => {
                       )}
                     </div>
 
+
+
                     <div className="flex gap-2">
                        {/* Nút Sửa */}
                       <button
@@ -902,9 +892,9 @@ const TeacherClassDetail: React.FC = () => {
 
                       <button
                         onClick={() => handleViewExamStudentsStatus(ex.id, ex.name)}
-                        className="flex-1 btn btn-ghost text-sm px-4 py-2.5 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50 rounded-lg font-medium transition-all"
+                        className="flex-1 btn btn-ghost text-sm px-4 py-2.5 bg-white/5 border border-white/10 text-slate-200 hover:bg-white/10 hover:border-white/20 rounded-lg font-medium transition-all"
                       >
-                        Xem trạng thái
+                        Chi tiết
                       </button>
                       <button
                         onClick={() => setDeleteConfirm({ show: true, examId: ex.id, examName: ex.name })}
@@ -937,6 +927,8 @@ const TeacherClassDetail: React.FC = () => {
                   onClick={() => {
                     setViewingStatusExamId(null);
                     setExamStudentsStatus([]);
+                    setActiveSection('exams');
+                    refreshClassDetail();
                   }}
                   className="text-xs text-slate-400 hover:text-white"
                 >
