@@ -79,7 +79,14 @@ class MonitoringService {
    * - Giới hạn số lần reconnect.
    * - Tránh loop vô hạn nếu server chết hẳn hoặc URL sai.
    */
-  private maxReconnectAttempts = 50;
+  private maxReconnectAttempts = 5;
+
+  /**
+   * isConnecting:
+   * - Cờ đánh dấu đang trong quá trình tạo kết nối.
+   * - Ngăn việc gọi initSocket() trùng lặp.
+   */
+  private isConnecting = false;
 
   /**
    * reconnectTimeoutId:
@@ -128,8 +135,10 @@ class MonitoringService {
     onStatusChange?: (status: 'connecting' | 'connected' | 'disconnected') => void,
     onOpen?: () => void
   ): WebSocket | null {
+
     // Nếu URL đổi hoặc socket đã chết hẳn -> Connect mới
     if (this.url !== url || !this.socket || this.socket.readyState === WebSocket.CLOSED) {
+      console.log(`[MonitoringService] Connecting new socket. Old URL: ${this.url}, New URL: ${url}`);
       this.disconnect();
       this.url = url;
       this.onMessageCallback = onMessage;
@@ -174,6 +183,13 @@ class MonitoringService {
     // Không có URL => không thể connect
     if (!this.url) return;
 
+    // Chống tạo trùng: nếu đang connecting thì không tạo thêm
+    if (this.isConnecting) {
+      console.log('[MonitoringService] Already connecting, skip duplicate initSocket');
+      return;
+    }
+    this.isConnecting = true;
+
     // Clear timeout cũ (tránh chạy reconnect “kép”)
     if (this.reconnectTimeoutId) clearTimeout(this.reconnectTimeoutId);
 
@@ -195,7 +211,8 @@ class MonitoringService {
     this.socket.onopen = () => {
       console.log('✅ [MonitoringService] Connected');
 
-      // Reset count vì đã connect lại OK
+      // Reset flags
+      this.isConnecting = false;
       this.reconnectAttempts = 0;
 
       // Báo UI: connected
@@ -222,6 +239,9 @@ class MonitoringService {
     // Khi socket bị đóng
     this.socket.onclose = (event) => {
       console.log('❌ [MonitoringService] Disconnected', event.code, event.reason);
+
+      // Reset connecting flag
+      this.isConnecting = false;
 
       // Báo UI: disconnected
       if (this.onStatusChangeCallback) this.onStatusChangeCallback('disconnected');
@@ -276,6 +296,24 @@ class MonitoringService {
 
   /**
    * =========================
+   * suppressReconnect()
+   * =========================
+   * Dùng khi client biết sẽ đóng socket (ví dụ: submit bài),
+   * để tránh auto-reconnect sau khi server chủ động đóng.
+   */
+  public suppressReconnect(reason?: string) {
+    if (reason) {
+      console.log(`[MonitoringService] Suppress reconnect: ${reason}`);
+    }
+    this.isIntentionalClose = true;
+    if (this.reconnectTimeoutId) {
+      clearTimeout(this.reconnectTimeoutId);
+      this.reconnectTimeoutId = null;
+    }
+  }
+
+  /**
+   * =========================
    * disconnect()
    * =========================
    * Ngắt kết nối chủ động từ client.
@@ -288,7 +326,9 @@ class MonitoringService {
    * - Set socket=null để trạng thái “đã hủy”.
    */
   public disconnect() {
+    console.log('[MonitoringService] Disconnect called');
     this.isIntentionalClose = true;
+    this.isConnecting = false; // Reset để cho phép connect lại
     if (this.reconnectTimeoutId) clearTimeout(this.reconnectTimeoutId);
 
     if (this.socket) {

@@ -166,22 +166,6 @@ export const appRoutes: RouteObject[] = [
       },
       {
         /**
-         * Phòng thi:
-         * - URL: '/exam/:examId'
-         * - ':examId' là tham số động trên URL
-         *   Ví dụ: /exam/10 => examId = '10'
-         *
-         * Chỉ Student mới được vào phòng thi => bọc RoleGuard.
-         */
-        path: 'exam/:examId',
-        element: (
-          <RoleGuard allowedRoles={['Student']}>
-            <ExamRoomPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        /**
          * Trang danh sách kết quả:
          * - URL: '/results'
          * - Cho phép nhiều role xem (Student/Teacher/Admin) tùy nghiệp vụ
@@ -230,6 +214,20 @@ export const appRoutes: RouteObject[] = [
         element: <NotFoundPage />,
       },
     ],
+  },
+
+  /**
+   * Phòng thi - Route độc lập (KHÔNG có Layout):
+   * - Ẩn Sidebar và Header để học sinh không thể rời phòng thi
+   * - Ngăn lỗi WebSocket bị duplicate khi bấm điều hướng
+   */
+  {
+    path: '/exam/:examId',
+    element: (
+      <RoleGuard allowedRoles={['Student']}>
+        <ExamRoomPage />
+      </RoleGuard>
+    ),
   },
 ];
 

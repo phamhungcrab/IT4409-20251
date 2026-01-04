@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { authService, LoginDto, UserRole } from '../services/authService';
 import { userService } from '../services/userService';
+import { monitoringService } from '../services/monitoringService';
 
 /**
  * Kiểu User dùng trong Frontend.
@@ -213,6 +214,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * - API logout lỗi vẫn không nên giữ session UI.
    */
   const logout = () => {
+    // FIX: Force disconnect mọi kết nối WebSocket (tránh treo socket khi login lại)
+    monitoringService.disconnect();
+
     if (user) {
       authService.logout({ userId: user.id }).catch(console.error);
     }

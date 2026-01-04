@@ -20,6 +20,17 @@ export const useExam = ({
   onError,
   onTimeSync,
 }: UseExamProps) => {
+  const debugEnabled =
+    typeof window !== 'undefined' &&
+    (import.meta.env.DEV || localStorage.getItem('ws_debug') === '1');
+  const debugLog = useCallback(
+    (event: string, payload?: Record<string, unknown>) => {
+      if (!debugEnabled) return;
+      console.log('[useExam]', event, payload ?? {});
+    },
+    [debugEnabled]
+  );
+
   const [connectionState, setConnectionState] = useState<
     'connecting' | 'connected' | 'reconnecting' | 'disconnected'
   >('disconnected');
@@ -32,6 +43,9 @@ export const useExam = ({
 
   // Heartbeat interval
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const submitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const submitForceCloseRef = useRef<NodeJS.Timeout | null>(null);
+  const submitRequestedRef = useRef(false);
 
   // Update refs
   useEffect(() => {
@@ -40,6 +54,20 @@ export const useExam = ({
     onSubmittedRef.current = onSubmitted;
     onErrorRef.current = onError;
   }, [onTimeSync, onSynced, onSubmitted, onError]);
+
+  const clearSubmitTimeout = useCallback(() => {
+    if (submitTimeoutRef.current) {
+      clearTimeout(submitTimeoutRef.current);
+      submitTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearSubmitForceClose = useCallback(() => {
+    if (submitForceCloseRef.current) {
+      clearTimeout(submitForceCloseRef.current);
+      submitForceCloseRef.current = null;
+    }
+  }, []);
 
   // Lấy token
   const token = localStorage.getItem('token');
@@ -54,6 +82,8 @@ export const useExam = ({
     const urlWithToken = token
       ? `${wsUrl}${wsUrl.includes('?') ? '&' : '?'}session=${encodeURIComponent(token)}`
       : wsUrl;
+    const safeUrl = urlWithToken.replace(/session=[^&]+/, 'session=***');
+    debugLog('connect', { url: safeUrl, examId, studentId });
 
     monitoringService.connect(
       urlWithToken,
@@ -75,6 +105,12 @@ export const useExam = ({
           // (Backend trả submitted cho cả SubmitAnswer và SubmitExam,
           //  nhưng SubmitAnswer có questionId, SubmitExam thì không)
           if (!data.questionId && !data.QuestionId) {
+            // Đóng socket ngay khi nộp bài xong (tránh reconnect loop)
+            submitRequestedRef.current = false;
+            clearSubmitTimeout();
+            clearSubmitForceClose();
+            debugLog('submitted_ack');
+            monitoringService.disconnect();
             onSubmittedRef.current?.(data);
           } else {
             // Đây là response của SubmitAnswer, không làm gì
@@ -107,7 +143,7 @@ export const useExam = ({
         }, 30000); // 30 giây
       }
     );
-  }, [wsUrl, token]);
+  }, [clearSubmitForceClose, clearSubmitTimeout, debugLog, examId, studentId, wsUrl, token]);
 
   // Effect khởi tạo kết nối
   useEffect(() => {
@@ -115,10 +151,20 @@ export const useExam = ({
 
     // Cleanup khi unmount
     return () => {
+      debugLog('cleanup_disconnect');
+      console.log('[useExam] Cleanup - calling disconnect');
       monitoringService.disconnect();
       if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+      if (submitTimeoutRef.current) {
+        clearTimeout(submitTimeoutRef.current);
+        submitTimeoutRef.current = null;
+      }
+      if (submitForceCloseRef.current) {
+        clearTimeout(submitForceCloseRef.current);
+        submitForceCloseRef.current = null;
+      }
     };
-  }, [connect]); // connect thay đổi khi wsUrl/token đổi
+  }, [connect, debugLog]); // connect thay đổi khi wsUrl/token đổi
 
   // Các hàm tiện ích gửi lên server
   const syncAnswer = useCallback(
@@ -142,8 +188,33 @@ export const useExam = ({
   );
 
   const submitExam = useCallback(() => {
+    if (submitRequestedRef.current) return;
+    submitRequestedRef.current = true;
+    clearSubmitTimeout();
+    clearSubmitForceClose();
+    debugLog('submit_request');
+
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
+    monitoringService.suppressReconnect('submit');
     monitoringService.send({ Action: 'SubmitExam' });
-  }, []);
+
+    submitForceCloseRef.current = setTimeout(() => {
+      if (!submitRequestedRef.current) return;
+      debugLog('submit_force_close');
+      monitoringService.disconnect();
+    }, 1200);
+
+    submitTimeoutRef.current = setTimeout(() => {
+      if (!submitRequestedRef.current) return;
+      submitRequestedRef.current = false;
+      debugLog('submit_fallback_close');
+      monitoringService.disconnect();
+      onSubmittedRef.current?.({ status: 'submitted', fallback: true });
+    }, 4000);
+  }, [clearSubmitForceClose, clearSubmitTimeout, debugLog]);
 
   return {
     connectionState,
