@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /admin/
-Sitemap: https://online-exam-hust.onrender.com/sitemap.xml
+Sitemap: https://manhhangmobile.store/sitemap.xml

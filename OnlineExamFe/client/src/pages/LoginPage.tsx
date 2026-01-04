@@ -205,7 +205,7 @@ const LoginPage: React.FC = () => {
       <Helmet>
         <title>Đăng nhập | Hệ thống Thi Trực Tuyến HUST</title>
         <meta name="description" content="Cổng đăng nhập hệ thống thi trắc nghiệm trực tuyến HUST. Dành cho sinh viên và giảng viên tra cứu lịch thi, làm bài thi và xem kết quả." />
-        <link rel="canonical" href="https://online-exam-hust.onrender.com/login" />
+        <link rel="canonical" href="https://manhhangmobile.store/login" />
       </Helmet>
       {/* Khung ngoài: chiếm toàn bộ chiều cao màn hình, canh giữa nội dung */}
       <div className="min-h-screen flex items-center justify-center px-4">
