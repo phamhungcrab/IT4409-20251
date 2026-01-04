@@ -199,6 +199,10 @@ export const examService = {
    */
   deleteExam: async (examId: number): Promise<void> => {
     return await apiClient.delete<void>(`/api/Exam/delete/${examId}`);
+  },
+
+  updateExam: async (id: number, data: CreateExamForTeacherOrAdmin): Promise<any> => {
+    return await apiClient.put(`/api/Exam/update/${id}`, data);
   }
 };
 

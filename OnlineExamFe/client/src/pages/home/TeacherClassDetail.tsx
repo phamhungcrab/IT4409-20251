@@ -88,6 +88,7 @@ const TeacherClassDetail: React.FC = () => {
   const [creatingBlueprint, setCreatingBlueprint] = useState(false);
   const [blueprintError, setBlueprintError] = useState<string | null>(null);
   const [editingBlueprintId, setEditingBlueprintId] = useState<number | null>(null);
+  const [editingExamId, setEditingExamId] = useState<number | null>(null); // State sửa exam
   const [toast, setToast] = useState<ToastState>(null);
   const toastTimeoutRef = useRef<number | null>(null);
   const toastClasses: Record<ToastVariant, string> = {
@@ -324,6 +325,7 @@ const TeacherClassDetail: React.FC = () => {
     }
 
     setCreatingClassId(classIdValue);
+    setEditingExamId(null); // Reset edit mode
     setCreateError(null);
     setSelectedBlueprintDetail(null);
     setAvailableBlueprints([]);
@@ -434,6 +436,46 @@ const TeacherClassDetail: React.FC = () => {
     }
   };
 
+  const openEditExamModal = async (exam: ExamDto) => {
+    if (!classDetail?.subjectId) {
+       showToast('Không tìm thấy thông tin lớp học.', 'error');
+       return;
+    }
+
+    setEditingExamId(exam.id);
+    setCreatingClassId(exam.classId || 0);
+    setCreateError(null);
+    setAvailableBlueprints([]);
+
+    // Helper format DateTime local
+    const formatDate = (dateStr: string) => {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        // Adjust local timezone
+        const local = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+        return local.toISOString().slice(0, 16);
+    };
+
+    setCreateForm({
+      name: exam.name,
+      durationMinutes: exam.durationMinutes,
+      blueprintId: exam.blueprintId || 0,
+      startTime: formatDate(exam.startTime),
+      endTime: formatDate(exam.endTime)
+    });
+
+    // Load available blueprints
+    try {
+        const blueprints = await loadBlueprintsWithDetails(classDetail.subjectId);
+        setAvailableBlueprints(blueprints);
+        if (exam.blueprintId) {
+             handleSelectBlueprint(exam.blueprintId);
+        }
+    } catch(e) { console.error(e); }
+
+    setShowCreateModal(true);
+  };
+
   const handleCreateExam = async () => {
     if (!creatingClassId) return;
 
@@ -457,12 +499,19 @@ const TeacherClassDetail: React.FC = () => {
         endTime
       };
 
-      await examService.createExam(payload);
+      if (editingExamId) {
+          await examService.updateExam(editingExamId, payload);
+          showToast('Cập nhật kỳ thi thành công!', 'success');
+      } else {
+          await examService.createExam(payload);
+          showToast('Tạo kỳ thi thành công!', 'success');
+      }
+
       await refreshClassDetail();
       setShowCreateModal(false);
       setActiveSection('exams');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Tạo kỳ thi thất bại.';
+      const message = error instanceof Error ? error.message : (editingExamId ? 'Cập nhật thất bại.' : 'Tạo kỳ thi thất bại.');
       setCreateError(message);
     } finally {
       setCreating(false);
@@ -817,6 +866,17 @@ const TeacherClassDetail: React.FC = () => {
                     </div>
 
                     <div className="flex gap-2">
+                       {/* Nút Sửa */}
+                      <button
+                        onClick={() => openEditExamModal(ex)}
+                        className="btn text-sm px-4 py-2.5 bg-sky-500/20 border border-sky-500/40 text-sky-300 hover:bg-sky-500/30 hover:border-sky-500/60 rounded-lg font-medium transition-all"
+                        aria-label="Sửa kỳ thi"
+                      >
+                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                         </svg>
+                      </button>
+
                       <button
                         onClick={() => handleViewExamStudentsStatus(ex.id, ex.name)}
                         className="flex-1 btn btn-ghost text-sm px-4 py-2.5 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50 rounded-lg font-medium transition-all"
@@ -1384,7 +1444,9 @@ const TeacherClassDetail: React.FC = () => {
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-slate-900 border border-white/10 rounded-xl p-6 w-full max-w-lg shadow-xl space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-xl font-semibold text-white">Tạo kỳ thi</h3>
+              <h3 className="text-xl font-semibold text-white">
+                {editingExamId ? 'Cập nhật kỳ thi' : 'Tạo kỳ thi'}
+              </h3>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-slate-300 hover:text-white"
@@ -1510,7 +1572,7 @@ const TeacherClassDetail: React.FC = () => {
                 className="btn btn-primary px-4 py-2"
                 disabled={creating}
               >
-                {creating ? 'Đang tạo...' : 'Tạo kỳ thi'}
+                {creating ? (editingExamId ? 'Đang cập nhật...' : 'Đang tạo...') : (editingExamId ? 'Cập nhật' : 'Tạo kỳ thi')}
               </button>
             </div>
           </div>
