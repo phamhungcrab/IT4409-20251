@@ -189,6 +189,16 @@ export const examService = {
     return await apiClient.get<ExamStudentsStatusResponse>(
       `/api/Exam/${examId}/students-status`
     );
+  },
+
+  /**
+   * deleteExam(examId):
+   * - Xóa kỳ thi theo ID
+   * - Gọi DELETE /api/Exam/delete/{id}
+   * - Chỉ teacher/admin có quyền xóa exam thuộc lớp của mình
+   */
+  deleteExam: async (examId: number): Promise<void> => {
+    return await apiClient.delete<void>(`/api/Exam/delete/${examId}`);
   }
 };
 

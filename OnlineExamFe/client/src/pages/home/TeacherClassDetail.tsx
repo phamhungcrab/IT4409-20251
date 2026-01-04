@@ -84,6 +84,7 @@ const TeacherClassDetail: React.FC = () => {
   });
   const [creatingBlueprint, setCreatingBlueprint] = useState(false);
   const [blueprintError, setBlueprintError] = useState<string | null>(null);
+  const [editingBlueprintId, setEditingBlueprintId] = useState<number | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const toastTimeoutRef = useRef<number | null>(null);
   const toastClasses: Record<ToastVariant, string> = {
@@ -91,6 +92,19 @@ const TeacherClassDetail: React.FC = () => {
     error: 'bg-rose-500/15 border-rose-500/40 text-rose-200',
     info: 'bg-sky-500/15 border-sky-500/40 text-sky-200'
   };
+
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    show: boolean;
+    examId: number | null;
+    examName: string;
+  }>({ show: false, examId: null, examName: '' });
+  const [deleting, setDeleting] = useState(false);
+
+  const [deleteBlueprintConfirm, setDeleteBlueprintConfirm] = useState<{
+    show: boolean;
+    blueprintId: number | null;
+  }>({ show: false, blueprintId: null });
+  const [deletingBlueprint, setDeletingBlueprint] = useState(false);
 
   const mapClassExams = (classIdValue: number, exams: ClassDto['exams'] = []): ExamDto[] =>
     (exams ?? []).map((exam: ClassExam) => ({
@@ -242,6 +256,26 @@ const TeacherClassDetail: React.FC = () => {
     }
   };
 
+  const loadBlueprintsWithDetails = async (subjectId: number) => {
+    const allBlueprints = await blueprintService.getAll();
+    const filtered = allBlueprints.filter((bp) => bp.subjectId === subjectId);
+
+    // Fetch chi tiết cho từng blueprint để có chapters data
+    const detailedBlueprints = await Promise.all(
+      filtered.map(async (bp) => {
+        try {
+          const detailed = await blueprintService.getById(bp.id);
+          return detailed;
+        } catch (err) {
+          console.warn(`Không thể load chi tiết blueprint ${bp.id}`, err);
+          return bp; // Fallback về blueprint cơ bản
+        }
+      })
+    );
+
+    return detailedBlueprints;
+  };
+
   const openCreateModal = async (classIdValue: number) => {
     if (!classDetail || classDetail.id !== classIdValue) {
       showToast('Không tìm thấy thông tin lớp học.', 'error');
@@ -263,9 +297,8 @@ const TeacherClassDetail: React.FC = () => {
 
     if (classDetail.subjectId) {
       try {
-        const allBlueprints = await blueprintService.getAll();
-        const filtered = allBlueprints.filter((bp) => bp.subjectId === classDetail.subjectId);
-        setAvailableBlueprints(filtered);
+        const blueprints = await loadBlueprintsWithDetails(classDetail.subjectId);
+        setAvailableBlueprints(blueprints);
       } catch (error) {
         console.error('Không thể load Blueprint:', error);
       }
@@ -358,6 +391,57 @@ const TeacherClassDetail: React.FC = () => {
     }
   };
 
+  const handleDeleteExam = async () => {
+    if (!deleteConfirm.examId) return;
+
+    setDeleting(true);
+    try {
+      await examService.deleteExam(deleteConfirm.examId);
+      await refreshClassDetail();
+      setDeleteConfirm({ show: false, examId: null, examName: '' });
+      showToast('Xóa kỳ thi thành công!', 'success');
+    } catch (error) {
+      console.error('Không thể xóa kỳ thi:', error);
+      showToast('Xóa kỳ thi thất bại. Vui lòng thử lại.', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteBlueprint = async () => {
+    if (!deleteBlueprintConfirm.blueprintId) return;
+
+    setDeletingBlueprint(true);
+    try {
+      await blueprintService.deleteBlueprint(deleteBlueprintConfirm.blueprintId);
+      // Refresh blueprint list
+      if (classDetail?.subjectId) {
+        const blueprints = await loadBlueprintsWithDetails(classDetail.subjectId);
+        setAvailableBlueprints(blueprints);
+      }
+      setDeleteBlueprintConfirm({ show: false, blueprintId: null });
+      showToast('Xóa blueprint thành công!', 'success');
+    } catch (error) {
+      console.error('Không thể xóa blueprint:', error);
+      showToast('Xóa blueprint thất bại. Vui lòng thử lại.', 'error');
+    } finally {
+      setDeletingBlueprint(false);
+    }
+  };
+
+  const handleViewBlueprints = async () => {
+    try {
+      setActiveSection('blueprints');
+      if (classDetail?.subjectId) {
+        const blueprints = await loadBlueprintsWithDetails(classDetail.subjectId);
+        setAvailableBlueprints(blueprints);
+      }
+    } catch (error) {
+      console.error('Không thể tải danh sách blueprint', error);
+      showToast('Không thể tải danh sách blueprint.', 'error');
+    }
+  };
+
   const studentCount = classDetail?.studentCount ?? selectedClassStudents.length;
   const examCount = classDetail?.exams?.length ?? selectedClassExams.length;
 
@@ -441,21 +525,21 @@ const TeacherClassDetail: React.FC = () => {
 
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Sinh viên</p>
-            <p className="text-2xl font-bold text-white">{studentCount}</p>
-            <p className="text-xs text-slate-400">Danh sách và thông tin lớp</p>
+            <p className="text-sm uppercase tracking-[0.15em] text-slate-400 font-semibold">Sinh viên</p>
+            <p className="text-3xl font-bold text-white">{studentCount}</p>
+            <p className="text-sm text-slate-400">Danh sách và thông tin lớp</p>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Kỳ thi</p>
-            <p className="text-2xl font-bold text-white">{examCount}</p>
-            <p className="text-xs text-slate-400">Quản lý lịch thi</p>
+            <p className="text-sm uppercase tracking-[0.15em] text-slate-400 font-semibold">Kỳ thi</p>
+            <p className="text-3xl font-bold text-white">{examCount}</p>
+            <p className="text-sm text-slate-400">Quản lý lịch thi</p>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Mã môn</p>
-            <p className="text-2xl font-bold text-white">
+            <p className="text-sm uppercase tracking-[0.15em] text-slate-400 font-semibold">Mã môn</p>
+            <p className="text-3xl font-bold text-white">
               {classDetail?.subject?.subjectCode || 'N/A'}
             </p>
-            <p className="text-xs text-slate-400">Theo chương trình học</p>
+            <p className="text-sm text-slate-400">Theo chương trình học</p>
           </div>
         </div>
       </div>
@@ -502,7 +586,7 @@ const TeacherClassDetail: React.FC = () => {
         </button>
         <button
           type="button"
-          onClick={() => setActiveSection('blueprints')}
+          onClick={handleViewBlueprints}
           className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all ${
             activeSection === 'blueprints'
               ? 'bg-purple-500/20 border-purple-500/40 text-white shadow-lg shadow-purple-500/10'
@@ -541,9 +625,9 @@ const TeacherClassDetail: React.FC = () => {
                 <table className="w-full text-left">
                   <thead className="border-b-2 border-white/10">
                     <tr>
-                      <th className="py-3 px-4 text-xs font-semibold uppercase text-slate-400">MSSV</th>
-                      <th className="py-3 px-4 text-xs font-semibold uppercase text-slate-400">Họ tên</th>
-                      <th className="py-3 px-4 text-xs font-semibold uppercase text-slate-400">Email</th>
+                      <th className="py-3 px-4 text-sm font-semibold uppercase text-slate-400">MSSV</th>
+                      <th className="py-3 px-4 text-sm font-semibold uppercase text-slate-400">Họ tên</th>
+                      <th className="py-3 px-4 text-sm font-semibold uppercase text-slate-400">Email</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -552,13 +636,13 @@ const TeacherClassDetail: React.FC = () => {
                         key={student.id}
                         className="border-b border-white/5 last:border-0 hover:bg-white/[0.03] transition-colors"
                       >
-                        <td className="py-3 px-4 text-sm font-mono text-sky-400">
+                        <td className="py-3 px-4 text-base font-mono text-sky-400">
                           {student.mssv || student.id}
                         </td>
-                        <td className="py-3 px-4 text-sm font-medium text-white">
+                        <td className="py-3 px-4 text-base font-medium text-white">
                           {student.fullName || 'N/A'}
                         </td>
-                        <td className="py-3 px-4 text-sm text-slate-300">{student.email}</td>
+                        <td className="py-3 px-4 text-base text-slate-300">{student.email}</td>
                       </tr>
                     ))}
 
@@ -634,12 +718,23 @@ const TeacherClassDetail: React.FC = () => {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => handleViewExamStudentsStatus(ex.id, ex.name)}
-                      className="w-full btn btn-ghost text-sm px-4 py-2.5 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50 rounded-lg font-medium transition-all"
-                    >
-                      Xem trạng thái sinh viên
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleViewExamStudentsStatus(ex.id, ex.name)}
+                        className="flex-1 btn btn-ghost text-sm px-4 py-2.5 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50 rounded-lg font-medium transition-all"
+                      >
+                        Xem trạng thái
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm({ show: true, examId: ex.id, examName: ex.name })}
+                        className="btn btn-ghost text-sm px-4 py-2.5 border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/50 rounded-lg font-medium transition-all"
+                        aria-label="Xóa kỳ thi"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -758,27 +853,167 @@ const TeacherClassDetail: React.FC = () => {
         )}
 
         {activeSection === 'blueprints' && (
-          <div className="panel p-5 border border-white/10 rounded-xl bg-white/5 space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold text-white">Cấu trúc đề</h3>
-              <p className="text-sm text-slate-400">
-                Thiết lập blueprint để phân bổ số câu theo chương và độ khó.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-sm text-slate-400">Danh sách Blueprint</p>
+                  <div className="group relative">
+                    <svg className="w-4 h-4 text-slate-500 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="invisible group-hover:visible absolute left-0 top-6 z-10 w-80 p-3 bg-slate-800 border border-purple-500/30 rounded-lg shadow-xl">
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        <span className="font-semibold text-purple-400">Blueprint (Cấu trúc đề)</span> là bản thiết kế chi tiết phân bổ câu hỏi theo <span className="text-sky-400">chương</span> và <span className="text-amber-400">độ khó</span>.
+                        Mỗi blueprint định nghĩa số câu Dễ/Trung bình/Khó/Rất khó cho từng chương, giúp tạo đề thi cân đối và công bằng.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <h3 className="text-xl font-semibold text-white">
+                  {classDetail?.subject?.name || 'Cấu trúc đề'}
+                </h3>
+              </div>
               <button
                 onClick={() => openBlueprintModal(numericClassId)}
                 className="btn btn-primary text-sm px-4 py-2 rounded-lg"
               >
                 + Tạo blueprint
               </button>
-              <button
-                onClick={() => openCreateModal(numericClassId)}
-                className="btn btn-ghost text-sm px-4 py-2 border border-white/20"
-              >
-                Tạo kỳ thi từ blueprint
-              </button>
             </div>
+
+            {availableBlueprints.length === 0 ? (
+              <div className="text-center py-12 border border-dashed border-purple-500/30 rounded-xl bg-purple-500/5">
+                <svg className="w-16 h-16 mx-auto mb-4 text-purple-400/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="text-slate-400 mb-4">Chưa có blueprint nào cho môn học này</p>
+                <button
+                  onClick={() => openBlueprintModal(numericClassId)}
+                  className="btn btn-primary px-4 py-2 text-sm rounded-lg"
+                >
+                  + Tạo blueprint đầu tiên
+                </button>
+              </div>
+            ) : (
+              <div className="grid gap-4 lg:grid-cols-2">
+                {availableBlueprints.map((bp) => (
+                  <div
+                    key={bp.id}
+                    className="panel border border-white/10 rounded-xl bg-gradient-to-br from-white/5 to-purple-500/5 hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-200"
+                  >
+                    {/* Header */}
+                    <div className="flex items-start justify-between p-5 pb-3 border-b border-white/5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                          <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-white">
+                            Blueprint #{bp.id}
+                          </h3>
+                          <p className="text-xs text-slate-400">
+                            {new Date(bp.createdAt).toLocaleDateString('vi-VN')}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-sm bg-purple-500/20 text-purple-300 px-3 py-1.5 rounded-full font-semibold">
+                        {bp.totalQuestions || 0} câu
+                      </span>
+                    </div>
+
+                    {/* Chapter Details */}
+                    <div className="p-5 space-y-3">
+                      {bp.chapters && bp.chapters.length > 0 ? (
+                        <>
+                          <div className="flex items-center gap-2 mb-2">
+                            <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                            <span className="text-sm font-semibold text-slate-300">
+                              Cấu trúc: {bp.chapters.length} chương
+                            </span>
+                          </div>
+                          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            {bp.chapters.map((ch, idx) => {
+                              const total = (ch.easyCount || 0) + (ch.mediumCount || 0) + (ch.hardCount || 0) + (ch.veryHardCount || 0);
+                              return (
+                                <div key={idx} className="bg-white/5 rounded-lg p-3 border border-white/5">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-medium text-white">
+                                      Chương {ch.chapter}
+                                    </span>
+                                    <span className="text-xs text-slate-400">
+                                      {total} câu
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {ch.easyCount > 0 && (
+                                      <span className="inline-flex items-center gap-1 text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                        {ch.easyCount} Dễ
+                                      </span>
+                                    )}
+                                    {ch.mediumCount > 0 && (
+                                      <span className="inline-flex items-center gap-1 text-xs bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+                                        {ch.mediumCount} TB
+                                      </span>
+                                    )}
+                                    {ch.hardCount > 0 && (
+                                      <span className="inline-flex items-center gap-1 text-xs bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded border border-amber-500/20">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                        {ch.hardCount} Khó
+                                      </span>
+                                    )}
+                                    {ch.veryHardCount > 0 && (
+                                      <span className="inline-flex items-center gap-1 text-xs bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded border border-rose-500/20">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                        {ch.veryHardCount} RKhó
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-sm text-slate-400 italic">Chưa có chi tiết cấu trúc</p>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 p-5 pt-3 border-t border-white/5">
+                      <button
+                        onClick={async () => {
+                          setCreateForm((f) => ({ ...f, blueprintId: bp.id }));
+                          await handleSelectBlueprint(bp.id);
+                          openCreateModal(numericClassId);
+                        }}
+                        className="flex-1 btn btn-ghost text-sm px-4 py-2.5 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/50 rounded-lg font-medium transition-all"
+                      >
+                        <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Tạo kỳ thi
+                      </button>
+                      <button
+                        onClick={() => setDeleteBlueprintConfirm({ show: true, blueprintId: bp.id })}
+                        className="btn btn-ghost text-sm px-3 py-2.5 border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/50 rounded-lg font-medium transition-all"
+                        aria-label="Xóa blueprint"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1154,6 +1389,94 @@ const TeacherClassDetail: React.FC = () => {
                 disabled={creating}
               >
                 {creating ? 'Đang tạo...' : 'Tạo kỳ thi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirm.show && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-slate-900 border border-rose-500/30 rounded-xl p-6 w-full max-w-md shadow-xl space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-white">Xác nhận xóa kỳ thi</h3>
+              <button
+                onClick={() => setDeleteConfirm({ show: false, examId: null, examName: '' })}
+                className="text-slate-300 hover:text-white"
+                aria-label="Đóng"
+                disabled={deleting}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-slate-300 text-sm">
+                Bạn có chắc chắn muốn xóa kỳ thi <span className="font-semibold text-white">"{deleteConfirm.examName}"</span> không?
+              </p>
+              <p className="text-rose-300 text-sm border border-rose-400/40 bg-rose-500/10 rounded-lg p-3">
+                ⚠️ Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan đến kỳ thi sẽ bị xóa.
+              </p>
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteConfirm({ show: false, examId: null, examName: '' })}
+                className="btn btn-ghost text-sm px-4 py-2 border border-white/20 text-slate-300 hover:text-white rounded-lg"
+                disabled={deleting}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleDeleteExam}
+                disabled={deleting}
+                className="btn btn-ghost text-sm px-4 py-2 border border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 hover:border-rose-500/50 rounded-lg disabled:opacity-50"
+              >
+                {deleting ? 'Đang xóa...' : 'Xóa kỳ thi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteBlueprintConfirm.show && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-slate-900 border border-rose-500/30 rounded-xl p-6 w-full max-w-md shadow-xl space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-white">Xác nhận xóa Blueprint</h3>
+              <button
+                onClick={() => setDeleteBlueprintConfirm({ show: false, blueprintId: null })}
+                className="text-slate-300 hover:text-white"
+                aria-label="Đóng"
+                disabled={deletingBlueprint}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-slate-300 text-sm">
+                Bạn có chắc chắn muốn xóa <span className="font-semibold text-white">Blueprint #{deleteBlueprintConfirm.blueprintId}</span> không?
+              </p>
+              <p className="text-rose-300 text-sm border border-rose-400/40 bg-rose-500/10 rounded-lg p-3">
+                ⚠️ Hành động này không thể hoàn tác. Blueprint sẽ bị xóa vĩnh viễn.
+              </p>
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteBlueprintConfirm({ show: false, blueprintId: null })}
+                className="btn btn-ghost text-sm px-4 py-2 border border-white/20 text-slate-300 hover:text-white rounded-lg"
+                disabled={deletingBlueprint}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleDeleteBlueprint}
+                disabled={deletingBlueprint}
+                className="btn btn-ghost text-sm px-4 py-2 border border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 hover:border-rose-500/50 rounded-lg disabled:opacity-50"
+              >
+                {deletingBlueprint ? 'Đang xóa...' : 'Xóa Blueprint'}
               </button>
             </div>
           </div>
