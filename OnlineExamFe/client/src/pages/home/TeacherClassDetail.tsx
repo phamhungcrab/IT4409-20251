@@ -12,6 +12,7 @@ interface StudentDto {
   fullName: string;
   email: string;
   mssv: string;
+  dateOfBirth?: string; // Ngày sinh (optional nếu API không trả về)
 }
 
 type ClassSection = 'students' | 'exams' | 'status' | 'blueprints';
@@ -314,10 +315,31 @@ const TeacherClassDetail: React.FC = () => {
     }
 
     setBlueprintError(null);
+    setEditingBlueprintId(null);
     setBlueprintForm({
       subjectId: classDetail.subjectId,
       chapters: [{ chapter: 1, easyCount: 0, mediumCount: 0, hardCount: 0, veryHardCount: 0 }]
     });
+    setShowBlueprintModal(true);
+  };
+
+  const openEditBlueprintModal = async (blueprint: Blueprint) => {
+    if (!classDetail?.subjectId) {
+      showToast('Không tìm thấy thông tin lớp học.', 'error');
+      return;
+    }
+
+    setBlueprintError(null);
+    setEditingBlueprintId(blueprint.id);
+
+    // Pre-populate form với data hiện tại
+    setBlueprintForm({
+      subjectId: blueprint.subjectId,
+      chapters: blueprint.chapters && blueprint.chapters.length > 0
+        ? blueprint.chapters
+        : [{ chapter: 1, easyCount: 0, mediumCount: 0, hardCount: 0, veryHardCount: 0 }]
+    });
+
     setShowBlueprintModal(true);
   };
 
@@ -331,11 +353,27 @@ const TeacherClassDetail: React.FC = () => {
     setBlueprintError(null);
 
     try {
-      await blueprintService.create(blueprintForm);
+      if (editingBlueprintId) {
+        // Update mode
+        await blueprintService.updateBlueprint(editingBlueprintId, blueprintForm);
+        showToast('Cập nhật blueprint thành công!', 'success');
+      } else {
+        // Create mode
+        await blueprintService.create(blueprintForm);
+        showToast('Tạo cấu trúc đề thành công!', 'success');
+      }
+
+      // Refresh blueprint list
+      if (classDetail?.subjectId) {
+        const blueprints = await loadBlueprintsWithDetails(classDetail.subjectId);
+        setAvailableBlueprints(blueprints);
+      }
+
       setShowBlueprintModal(false);
-      showToast('Tạo cấu trúc đề thành công!', 'success');
+      setEditingBlueprintId(null);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Tạo Blueprint thất bại';
+      const message = error instanceof Error ? error.message :
+        (editingBlueprintId ? 'Cập nhật Blueprint thất bại' : 'Tạo Blueprint thất bại');
       setBlueprintError(message);
     } finally {
       setCreatingBlueprint(false);
@@ -627,6 +665,7 @@ const TeacherClassDetail: React.FC = () => {
                     <tr>
                       <th className="py-3 px-4 text-sm font-semibold uppercase text-slate-400">MSSV</th>
                       <th className="py-3 px-4 text-sm font-semibold uppercase text-slate-400">Họ tên</th>
+                      <th className="py-3 px-4 text-sm font-semibold uppercase text-slate-400">Ngày sinh</th>
                       <th className="py-3 px-4 text-sm font-semibold uppercase text-slate-400">Email</th>
                     </tr>
                   </thead>
@@ -641,6 +680,12 @@ const TeacherClassDetail: React.FC = () => {
                         </td>
                         <td className="py-3 px-4 text-base font-medium text-white">
                           {student.fullName || 'N/A'}
+                        </td>
+                        <td className="py-3 px-4 text-base text-slate-300">
+                          {student.dateOfBirth
+                            ? new Date(student.dateOfBirth).toLocaleDateString('vi-VN')
+                            : '-'
+                          }
                         </td>
                         <td className="py-3 px-4 text-base text-slate-300">{student.email}</td>
                       </tr>
@@ -694,7 +739,7 @@ const TeacherClassDetail: React.FC = () => {
                 {selectedClassExams.map((ex) => (
                   <div
                     key={ex.id}
-                    className="panel p-5 border border-white/10 rounded-xl bg-white/5 hover:border-sky-500/30 hover:shadow-lg hover:shadow-sky-500/10 transition-all duration-200"
+                    className="group panel p-5 border border-white/10 rounded-xl bg-white/5 hover:border-sky-500/30 hover:shadow-lg hover:shadow-sky-500/10 transition-all duration-200"
                   >
                     <div className="flex items-start justify-between mb-4">
                       <h3 className="text-lg font-semibold text-white flex-1 pr-2">{ex.name}</h3>
@@ -727,7 +772,7 @@ const TeacherClassDetail: React.FC = () => {
                       </button>
                       <button
                         onClick={() => setDeleteConfirm({ show: true, examId: ex.id, examName: ex.name })}
-                        className="btn btn-ghost text-sm px-4 py-2.5 border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/50 rounded-lg font-medium transition-all"
+                        className="btn text-sm px-4 py-2.5 bg-rose-500/20 border border-rose-500/40 text-rose-300 hover:bg-rose-500/30 hover:border-rose-500/60 rounded-lg font-medium transition-all opacity-0 group-hover:opacity-100"
                         aria-label="Xóa kỳ thi"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -896,11 +941,11 @@ const TeacherClassDetail: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid gap-4 lg:grid-cols-2">
+              <div className="grid gap-4">
                 {availableBlueprints.map((bp) => (
                   <div
                     key={bp.id}
-                    className="panel border border-white/10 rounded-xl bg-gradient-to-br from-white/5 to-purple-500/5 hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-200"
+                    className="group panel border border-white/10 rounded-xl bg-gradient-to-br from-white/5 to-purple-500/5 hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-200"
                   >
                     {/* Header */}
                     <div className="flex items-start justify-between p-5 pb-3 border-b border-white/5">
@@ -1001,8 +1046,17 @@ const TeacherClassDetail: React.FC = () => {
                         Tạo kỳ thi
                       </button>
                       <button
+                        onClick={() => openEditBlueprintModal(bp)}
+                        className="btn btn-ghost text-sm px-3 py-2.5 border border-sky-500/30 text-sky-400 hover:bg-sky-500/10 hover:border-sky-500/50 rounded-lg font-medium transition-all opacity-0 group-hover:opacity-100"
+                        aria-label="Sửa blueprint"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
                         onClick={() => setDeleteBlueprintConfirm({ show: true, blueprintId: bp.id })}
-                        className="btn btn-ghost text-sm px-3 py-2.5 border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/50 rounded-lg font-medium transition-all"
+                        className="btn text-sm px-3 py-2.5 bg-rose-500/20 border border-rose-500/40 text-rose-300 hover:bg-rose-500/30 hover:border-rose-500/60 rounded-lg font-medium transition-all opacity-0 group-hover:opacity-100"
                         aria-label="Xóa blueprint"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1109,7 +1163,9 @@ const TeacherClassDetail: React.FC = () => {
           <div className="bg-slate-900 border border-white/10 rounded-xl p-6 w-full max-w-2xl shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-xl font-semibold text-white">Tạo Cấu Trúc Đề</h3>
+                <h3 className="text-xl font-semibold text-white">
+                  {editingBlueprintId ? 'Sửa Cấu Trúc Đề' : 'Tạo Cấu Trúc Đề'}
+                </h3>
                 <p className="text-sm text-slate-400">
                   Môn: {classDetail?.subject?.name || `Môn #${classDetail?.subjectId ?? 'N/A'}`}
                 </p>
@@ -1251,7 +1307,10 @@ const TeacherClassDetail: React.FC = () => {
                 className="btn btn-primary px-4 py-2"
                 disabled={creatingBlueprint}
               >
-                {creatingBlueprint ? 'Đang tạo...' : 'Tạo Blueprint'}
+                {creatingBlueprint
+                  ? (editingBlueprintId ? 'Đang cập nhật...' : 'Đang tạo...')
+                  : (editingBlueprintId ? 'Cập nhật Blueprint' : 'Tạo Blueprint')
+                }
               </button>
             </div>
           </div>

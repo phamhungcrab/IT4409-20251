@@ -16,6 +16,7 @@
     "password": "Password",
     "loginButton": "Sign In",
     "logout": "Logout",
+    "loggedIn": "Logged in",
     "loginFailed": "Login failed. Please check your credentials.",
     "welcomeBack": "Welcome back"
   },

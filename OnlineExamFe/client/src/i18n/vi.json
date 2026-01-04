@@ -16,6 +16,7 @@
         "password": "Mật khẩu",
         "loginButton": "Đăng nhập",
         "logout": "Đăng xuất",
+        "loggedIn": "Đã đăng nhập",
         "loginFailed": "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
         "welcomeBack": "Xin chào!"
     },
