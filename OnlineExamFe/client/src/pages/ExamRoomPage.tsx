@@ -143,16 +143,46 @@ const ExamRoomPage: React.FC = () => {
    * Dùng Record<number, any> vì câu tự luận có thể là string,
    * còn trắc nghiệm thường là string nối bằng '|'.
    */
-  /*
-   * answerStatus:
-   * - Lưu trạng thái đồng bộ của từng câu hỏi:
-   *   'synced': Đã được BE xác nhận (Tô xanh).
-   *   'pending': Đã gửi/đang chờ/offline (Tô vàng).
-   *   undefined: Chưa làm hoặc chưa rõ.
+  /**
+   * AnswerEntry: Gộp cả đáp án + trạng thái vào 1 object
    */
-  const [answerStatus, setAnswerStatus] = useState<Record<number, 'synced' | 'pending'>>({});
+  type AnswerEntry = {
+    answer: string;
+    status: 'pending' | 'synced';
+    order: number;
+  };
 
-  const [answers, setAnswers] = useState<Record<number, any>>({});
+  /**
+   * answerMap: 1 Map duy nhất chứa tất cả thông tin đáp án
+   * - Key: questionId
+   * - Value: { answer, status, order }
+   * - Persist vào localStorage để không mất khi F5
+   */
+  const answerMapStorageKey = `exam_${examId}_answerMap`;
+
+  // Load từ localStorage khi khởi tạo
+  const loadAnswerMap = (): Record<number, AnswerEntry> => {
+    try {
+      const saved = localStorage.getItem(answerMapStorageKey);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {};
+  };
+
+  const [answerMap, setAnswerMap] = useState<Record<number, AnswerEntry>>(loadAnswerMap);
+
+  // Persist vào localStorage mỗi khi answerMap thay đổi
+  useEffect(() => {
+    try {
+      localStorage.setItem(answerMapStorageKey, JSON.stringify(answerMap));
+    } catch {}
+  }, [answerMap, answerMapStorageKey]);
+
+  // Helper: Lấy answer text từ answerMap
+  const getAnswer = (questionId: number): string | undefined => answerMap[questionId]?.answer;
+
+  // Helper: Lấy status từ answerMap
+  const getStatus = (questionId: number): 'pending' | 'synced' | undefined => answerMap[questionId]?.status;
 
   /**
    * currentQuestionIndex:
@@ -254,61 +284,33 @@ const ExamRoomPage: React.FC = () => {
     onAnswerSubmitted: (data: any) => {
       const qId = data.questionId ?? data.QuestionId;
       if (qId) {
-        setAnswerStatus((prev) => ({ ...prev, [qId]: 'synced' }));
+        setAnswerMap((prev) => ({
+          ...prev,
+          [qId]: prev[qId] ? { ...prev[qId], status: 'synced' } : { answer: '', status: 'synced', order: 0 }
+        }));
       }
     },
 
     onSynced: (syncedData) => {
       if (Array.isArray(syncedData)) {
-        const incoming: Record<number, any> = {};
-        const incomingIds: number[] = [];
-        const syncedIds: number[] = [];
+        setAnswerMap((prev) => {
+          const next = { ...prev };
+          syncedData.forEach((item: any) => {
+            const qId = item.questionId ?? item.QuestionId ?? item.id ?? item.Id;
+            const orderVal = item.order ?? item.Order ?? 0;
+            if (qId !== undefined && qId !== null) {
+              const raw = item.answer ?? item.Answer;
+              const answerText = Array.isArray(raw) ? raw.join('|') : String(raw ?? '');
 
-        syncedData.forEach((item: any) => {
-          const qId = item.questionId ?? item.QuestionId ?? item.id ?? item.Id;
-
-          if (qId !== undefined && qId !== null) {
-            incomingIds.push(qId);
-            const raw = item.answer ?? item.Answer;
-
-            if (Array.isArray(raw)) {
-              incoming[qId] = raw.join('|');
-            } else if (raw !== undefined && raw !== null) {
-              incoming[qId] = String(raw);
-            }
-          }
-        });
-
-        if (Object.keys(incoming).length > 0) {
-          setAnswers((prev) => {
-            const next = { ...prev };
-            Object.entries(incoming).forEach(([id, value]) => {
-              const qId = Number(id);
-              if (answerStatus[qId] !== 'pending' || prev[qId] == null) {
-                next[qId] = value;
+              // Chỉ update nếu local chưa có hoặc local đang synced (không ghi đè pending)
+              if (!next[qId] || next[qId].status === 'synced') {
+                next[qId] = { answer: answerText, status: 'synced', order: orderVal };
               }
-            });
-            return next;
-          });
-
-          incomingIds.forEach((qId) => {
-            const localValue = answers[qId];
-            const serverValue = incoming[qId];
-            if (localValue == null || String(localValue) === String(serverValue)) {
-              syncedIds.push(qId);
             }
           });
-        }
-
-        if (syncedIds.length > 0) {
-          setAnswerStatus((prev) => {
-            const next = { ...prev };
-            syncedIds.forEach((id) => (next[id] = 'synced'));
-            return next;
-          });
-        }
+          return next;
+        });
       }
-
       console.log(t('exam.synced'));
     },
 
@@ -471,7 +473,17 @@ const ExamRoomPage: React.FC = () => {
     });
 
     if (Object.keys(savedAnswers).length > 0) {
-      setAnswers((prev) => ({ ...prev, ...savedAnswers }));
+      // Merge saved answers vào answerMap với status 'synced' (đã có từ localStorage cũ)
+      setAnswerMap((prev) => {
+        const next = { ...prev };
+        Object.entries(savedAnswers).forEach(([id, value]) => {
+          const qId = Number(id);
+          if (!next[qId]) {
+            next[qId] = { answer: String(value), status: 'synced', order: qId };
+          }
+        });
+        return next;
+      });
     }
   };
 
@@ -605,15 +617,16 @@ const ExamRoomPage: React.FC = () => {
       answerText = selectedOpts.join('|');
     }
 
-    // (1) cập nhật UI & đánh dấu pending (Vàng)
-    setAnswers((prev) => ({ ...prev, [questionId]: answerText }));
-    setAnswerStatus((prev) => ({ ...prev, [questionId]: 'pending' }));
+    // (1) Cập nhật answerMap với status pending (Vàng)
+    setAnswerMap((prev) => ({
+      ...prev,
+      [questionId]: { answer: answerText, status: 'pending', order }
+    }));
 
     // (2) đồng bộ realtime lên server
     syncAnswer(questionId, order, answerText);
 
-    // (3) lưu localStorage để refresh không mất đáp án
-    localStorage.setItem(`exam_${examId}_q_${questionId}`, JSON.stringify(answerText));
+    // (3) localStorage riêng không cần nữa vì answerMap đã persist
   };
 
   /**
@@ -657,7 +670,7 @@ const ExamRoomPage: React.FC = () => {
    * - Lấy đáp án đã lưu của câu hiện tại từ answers.
    * - Dạng thường là string (VD: "Đáp án A|Đáp án C") hoặc tự luận.
    */
-  const selectedValue = currentQuestion ? answers[currentQuestion.id] : undefined;
+  const selectedValue = currentQuestion ? getAnswer(currentQuestion.id) : undefined;
 
   /**
    * selectedOptions:
@@ -809,8 +822,9 @@ const ExamRoomPage: React.FC = () => {
               */}
               <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-4">
                 {questions.map((q, idx) => {
-                  const status = answerStatus[q.id];
-                  const hasAnswer = !!answers[q.id];
+                  const entry = answerMap[q.id];
+                  const status = entry?.status;
+                  const hasAnswer = !!entry?.answer;
 
                   // Logic màu sắc:
                   // - Synced (Xanh): Đã được server xác nhận

@@ -43,8 +43,34 @@ export const useExam = ({
     'connecting' | 'connected' | 'reconnecting' | 'disconnected'
   >('disconnected');
 
-  const pendingAnswersRef = useRef<Map<number, PendingAnswer>>(new Map());
+  // Khởi tạo pending từ localStorage (persist qua F5)
+  const loadPendingFromStorage = (): Map<number, PendingAnswer> => {
+    try {
+      const saved = localStorage.getItem(`exam_${examId}_pending`);
+      if (saved) {
+        const arr: PendingAnswer[] = JSON.parse(saved);
+        return new Map(arr.map(p => [p.questionId, p]));
+      }
+    } catch {}
+    return new Map();
+  };
+  const pendingAnswersRef = useRef<Map<number, PendingAnswer>>(loadPendingFromStorage());
   const hasConnectedRef = useRef(false);
+
+  // Helper: Lưu pending vào localStorage
+  const savePendingToStorage = useCallback(() => {
+    try {
+      const arr = Array.from(pendingAnswersRef.current.values());
+      localStorage.setItem(`exam_${examId}_pending`, JSON.stringify(arr));
+    } catch {}
+  }, [examId]);
+
+  // Helper: Xóa pending khỏi localStorage
+  const clearPendingFromStorage = useCallback(() => {
+    try {
+      localStorage.removeItem(`exam_${examId}_pending`);
+    } catch {}
+  }, [examId]);
 
   // Ref giữ hàm để tránh re-declared function khi dependency thay đổi
   const onTimeSyncRef = useRef(onTimeSync);
@@ -85,18 +111,21 @@ export const useExam = ({
   const rememberPendingAnswer = useCallback(
     (questionId: number, order: number, answer: any) => {
       pendingAnswersRef.current.set(questionId, { questionId, order, answer });
+      savePendingToStorage(); // Persist ngay
     },
-    []
+    [savePendingToStorage]
   );
 
   const clearPendingAnswer = useCallback((questionId: number) => {
     pendingAnswersRef.current.delete(questionId);
-  }, []);
+    savePendingToStorage(); // Cập nhật storage
+  }, [savePendingToStorage]);
 
   const clearPendingAnswers = useCallback((questionIds: number[]) => {
     if (questionIds.length === 0) return;
     questionIds.forEach((id) => pendingAnswersRef.current.delete(id));
-  }, []);
+    savePendingToStorage(); // Cập nhật storage
+  }, [savePendingToStorage]);
 
   const flushPendingAnswers = useCallback(
     (reason: string) => {
@@ -147,16 +176,14 @@ export const useExam = ({
 
         // Nhận object message
         if (data.status === 'submitted') {
-          // Ch? trigger modal n?p b?i khi KH?NG c? questionId
-          // (Backend tr? submitted cho c? SubmitAnswer v? SubmitExam,
-          //  nh?ng SubmitAnswer c? questionId, SubmitExam th? kh?ng)
           const answerQuestionId = data.questionId ?? data.QuestionId;
           if (!answerQuestionId) {
-            // ??ng socket ngay khi n?p b?i xong (tr?nh reconnect loop)
+            // SubmitExam ACK - Nộp bài xong
             submitRequestedRef.current = false;
             clearSubmitTimeout();
             clearSubmitForceClose();
             debugLog('submitted_ack');
+            clearPendingFromStorage(); // Xóa pending khỏi localStorage
             monitoringService.disconnect();
             onSubmittedRef.current?.(data);
           } else {

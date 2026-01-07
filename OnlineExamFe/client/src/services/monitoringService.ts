@@ -444,8 +444,8 @@ class MonitoringService {
 
   /**
    * queueMessage(data):
-   * - Chỉ queue những action quan trọng (SubmitAnswer, SubmitExam).
-   * - Ignored: Heartbeat, SyncState (vì khi connect lại sẽ tự gửi mới).
+   * - Chỉ queue SubmitExam (nộp bài).
+   * - SubmitAnswer được xử lý bởi pendingAnswersRef trong useExam (có localStorage persist).
    */
   private queueMessage(data: any) {
     let action = '';
@@ -455,10 +455,14 @@ class MonitoringService {
         action = payload.Action;
     }
 
-    if (action === 'SubmitAnswer' || action === 'SubmitExam') {
+    // Chỉ queue SubmitExam, SubmitAnswer để Pending trong useExam xử lý
+    if (action === 'SubmitExam') {
         console.log(`[MonitoringService] 🔴 Offline: Queued ${action}`, payload);
         this.offlineQueue.push(data);
-        this.saveOfflineQueue(); // Lưu ngay vào storage
+        this.saveOfflineQueue();
+    } else if (action === 'SubmitAnswer') {
+        // Log nhưng KHÔNG queue - useExam Pending sẽ lo
+        console.log(`[MonitoringService] 📝 SubmitAnswer offline - handled by Pending`);
     }
   }
 
