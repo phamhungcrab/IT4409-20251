@@ -7,6 +7,7 @@ import { useTimer } from '../hooks/useTimer';
 import { useExamIntegrity } from '../hooks/useExamIntegrity';
 import QuestionCard from '../components/QuestionCard';
 import { examService } from '../services/examService';
+import { webRTCService } from '../services/webRTCService';
 
 /**
  * Question:
@@ -255,6 +256,22 @@ const ExamRoomPage: React.FC = () => {
    */
   // Ref để track việc đã hiện thông báo chưa (tránh spam khi re-render hoặc timer nhảy)
   const warningRef = React.useRef<{ [key: number]: boolean }>({});
+
+  // 5) WebRTC / Proctoring
+  const localVideoRef = React.useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    // 1. Khởi tạo Camera
+    webRTCService.startLocalStream().then((stream) => {
+        if (localVideoRef.current && stream) {
+            localVideoRef.current.srcObject = stream;
+        }
+    });
+
+    return () => {
+        webRTCService.closeAll();
+    };
+  }, []);
 
   /**
    * useTimer(durationMinutes, onTimeUp, storageKey)
@@ -1055,6 +1072,22 @@ const ExamRoomPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Proctoring Camera Loopback */}
+      <div className="fixed bottom-4 left-4 z-40 bg-slate-900/80 backdrop-blur border border-white/20 rounded-lg overflow-hidden shadow-lg w-40 h-32 flex items-center justify-center group">
+         <video
+            ref={localVideoRef}
+            muted
+            autoPlay
+            playsInline
+            className="w-full h-full object-cover transform scale-x-[-1]" // Mirror image for natural feel
+         />
+         {/* Recording Indicator */}
+         <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-red-500 animate-pulse border-2 border-slate-900" title="Monitoring Active"></div>
+         <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            <span className="text-white text-xs font-semibold px-2 text-center">Monitoring Active</span>
+         </div>
+      </div>
     </div>
   );
 };
