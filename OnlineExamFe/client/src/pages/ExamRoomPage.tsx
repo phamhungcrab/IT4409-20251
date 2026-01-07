@@ -261,16 +261,16 @@ const ExamRoomPage: React.FC = () => {
     onSynced: (syncedData) => {
       if (Array.isArray(syncedData)) {
         const incoming: Record<number, any> = {};
+        const incomingIds: number[] = [];
         const syncedIds: number[] = [];
 
         syncedData.forEach((item: any) => {
           const qId = item.questionId ?? item.QuestionId ?? item.id ?? item.Id;
 
           if (qId !== undefined && qId !== null) {
-            syncedIds.push(qId);
+            incomingIds.push(qId);
             const raw = item.answer ?? item.Answer;
 
-            // Nếu server trả dạng mảng thì nối thành chuỗi "a|b|c"
             if (Array.isArray(raw)) {
               incoming[qId] = raw.join('|');
             } else if (raw !== undefined && raw !== null) {
@@ -279,12 +279,27 @@ const ExamRoomPage: React.FC = () => {
           }
         });
 
-        // Merge đáp án từ server vào answers hiện tại
         if (Object.keys(incoming).length > 0) {
-          setAnswers((prev) => ({ ...prev, ...incoming }));
+          setAnswers((prev) => {
+            const next = { ...prev };
+            Object.entries(incoming).forEach(([id, value]) => {
+              const qId = Number(id);
+              if (answerStatus[qId] !== 'pending' || prev[qId] == null) {
+                next[qId] = value;
+              }
+            });
+            return next;
+          });
+
+          incomingIds.forEach((qId) => {
+            const localValue = answers[qId];
+            const serverValue = incoming[qId];
+            if (localValue == null || String(localValue) === String(serverValue)) {
+              syncedIds.push(qId);
+            }
+          });
         }
 
-        // Cập nhật trạng thái synced cho các câu đã có trên server
         if (syncedIds.length > 0) {
           setAnswerStatus((prev) => {
             const next = { ...prev };

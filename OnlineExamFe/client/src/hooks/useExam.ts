@@ -12,6 +12,12 @@ interface UseExamProps {
   onError?: (msg: string) => void;
 }
 
+type PendingAnswer = {
+  questionId: number;
+  order: number;
+  answer: any;
+};
+
 export const useExam = ({
   wsUrl,
   studentId,
@@ -36,6 +42,9 @@ export const useExam = ({
   const [connectionState, setConnectionState] = useState<
     'connecting' | 'connected' | 'reconnecting' | 'disconnected'
   >('disconnected');
+
+  const pendingAnswersRef = useRef<Map<number, PendingAnswer>>(new Map());
+  const hasConnectedRef = useRef(false);
 
   // Ref giữ hàm để tránh re-declared function khi dependency thay đổi
   const onTimeSyncRef = useRef(onTimeSync);
@@ -73,6 +82,39 @@ export const useExam = ({
     }
   }, []);
 
+  const rememberPendingAnswer = useCallback(
+    (questionId: number, order: number, answer: any) => {
+      pendingAnswersRef.current.set(questionId, { questionId, order, answer });
+    },
+    []
+  );
+
+  const clearPendingAnswer = useCallback((questionId: number) => {
+    pendingAnswersRef.current.delete(questionId);
+  }, []);
+
+  const clearPendingAnswers = useCallback((questionIds: number[]) => {
+    if (questionIds.length === 0) return;
+    questionIds.forEach((id) => pendingAnswersRef.current.delete(id));
+  }, []);
+
+  const flushPendingAnswers = useCallback(
+    (reason: string) => {
+      const pending = Array.from(pendingAnswersRef.current.values());
+      if (pending.length === 0) return;
+      debugLog('pending_flush', { count: pending.length, reason });
+      pending.forEach((item) => {
+        monitoringService.send({
+          Action: 'SubmitAnswer',
+          Order: item.order,
+          QuestionId: item.questionId,
+          Answer: item.answer
+        });
+      });
+    },
+    [debugLog]
+  );
+
   // Lấy token
   const token = localStorage.getItem('token');
 
@@ -105,11 +147,12 @@ export const useExam = ({
 
         // Nhận object message
         if (data.status === 'submitted') {
-          // Chỉ trigger modal nộp bài khi KHÔNG có questionId
-          // (Backend trả submitted cho cả SubmitAnswer và SubmitExam,
-          //  nhưng SubmitAnswer có questionId, SubmitExam thì không)
-          if (!data.questionId && !data.QuestionId) {
-            // Đóng socket ngay khi nộp bài xong (tránh reconnect loop)
+          // Ch? trigger modal n?p b?i khi KH?NG c? questionId
+          // (Backend tr? submitted cho c? SubmitAnswer v? SubmitExam,
+          //  nh?ng SubmitAnswer c? questionId, SubmitExam th? kh?ng)
+          const answerQuestionId = data.questionId ?? data.QuestionId;
+          if (!answerQuestionId) {
+            // ??ng socket ngay khi n?p b?i xong (tr?nh reconnect loop)
             submitRequestedRef.current = false;
             clearSubmitTimeout();
             clearSubmitForceClose();
@@ -117,22 +160,52 @@ export const useExam = ({
             monitoringService.disconnect();
             onSubmittedRef.current?.(data);
           } else {
-            // Đây là response của SubmitAnswer
-            console.log('Answer saved:', data);
-            onAnswerSubmittedRef.current?.(data);
+            // ??y l? response c?a SubmitAnswer
+            const ackAnswer = data.answer ?? data.Answer;
+            const pending = pendingAnswersRef.current.get(answerQuestionId);
+            if (!pending || pending.answer === ackAnswer) {
+              clearPendingAnswer(answerQuestionId);
+              debugLog('answer_ack', {
+                questionId: answerQuestionId,
+                order: data.order ?? data.Order
+              });
+              onAnswerSubmittedRef.current?.(data);
+            } else {
+              debugLog('answer_ack_ignored', {
+                questionId: answerQuestionId,
+                order: data.order ?? data.Order
+              });
+            }
           }
-        } else if (Array.isArray(data)) {
-          console.log('Synced data received:', data);
+          return;
+        }
+        if (Array.isArray(data)) {
+          const syncedIds = data
+            .map((item: any) => item.questionId ?? item.QuestionId ?? item.id ?? item.Id)
+            .filter((id: any): id is number => typeof id === 'number');
+          if (syncedIds.length > 0) {
+            clearPendingAnswers(syncedIds);
+          }
+          debugLog('sync_state', { count: data.length });
           onSyncedRef.current?.(data);
-        } else if (data.status === 'error' || data.type === 'error') {
+          return;
+        }
+        if (data.status === 'error' || data.type === 'error') {
           onErrorRef.current?.(data.message);
         }
       },
       // 2. Callback trạng thái
       (status) => {
-        setConnectionState(status);
+        if (status === 'connected') {
+          hasConnectedRef.current = true;
+          setConnectionState('connected');
+        } else if (status === 'connecting') {
+          setConnectionState(hasConnectedRef.current ? 'reconnecting' : 'connecting');
+        } else {
+          setConnectionState('disconnected');
+        }
         if (status === 'disconnected') {
-           if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+          if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
         }
       },
       // 3. Callback khi Open (để gửi SyncState & Heartbeat)
@@ -148,7 +221,7 @@ export const useExam = ({
         }, 30000); // 30 giây
       }
     );
-  }, [clearSubmitForceClose, clearSubmitTimeout, debugLog, examId, studentId, wsUrl, token]);
+  }, [clearPendingAnswer, clearPendingAnswers, clearSubmitForceClose, clearSubmitTimeout, debugLog, examId, studentId, wsUrl, token]);
 
   // Effect khởi tạo kết nối
   useEffect(() => {
@@ -169,19 +242,50 @@ export const useExam = ({
         submitForceCloseRef.current = null;
       }
     };
-  }, [connect, debugLog]); // connect thay đổi khi wsUrl/token đổi
+  }, [connect, debugLog]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleOffline = () => {
+      debugLog('offline_event');
+      setConnectionState('disconnected');
+      if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+      monitoringService.disconnect();
+    };
+
+    const handleOnline = () => {
+      debugLog('online_event');
+      connect();
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [connect, debugLog]);
+
+  useEffect(() => {
+    if (connectionState !== 'connected') return;
+    flushPendingAnswers('connected');
+  }, [connectionState, flushPendingAnswers]);
 
   // Các hàm tiện ích gửi lên server
   const syncAnswer = useCallback(
     (questionId: number, order: number, answer: any) => {
+      rememberPendingAnswer(questionId, order, answer);
       monitoringService.send({
         Action: 'SubmitAnswer',
         Order: order,
         QuestionId: questionId,
         Answer: answer
       });
+      debugLog('answer_send', { questionId, order });
 
-      // Fallback lưu local
+      // Fallback l??u local
       try {
         localStorage.setItem(
           `exam_${examId}_q_${questionId}`,
@@ -189,8 +293,9 @@ export const useExam = ({
         );
       } catch {}
     },
-    [examId]
+    [debugLog, examId, rememberPendingAnswer]
   );
+
 
   const submitExam = useCallback(() => {
     if (submitRequestedRef.current) return;
