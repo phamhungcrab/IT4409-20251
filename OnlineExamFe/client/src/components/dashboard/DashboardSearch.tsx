@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ClassDto } from '../../services/classService';
-import { formatShortDateTime } from '../../utils/dateUtils';
+import { formatShortDateTime, parseUtcDate } from '../../utils/dateUtils';
 
 interface DashboardSearchProps {
   classes: ClassDto[];
@@ -20,7 +20,7 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({ classes }) => {
         classId: cls.id,
         subjectCode: cls.subject?.subjectCode
       }))
-    ).sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+    ).sort((a, b) => (parseUtcDate(b.startTime)?.getTime() ?? 0) - (parseUtcDate(a.startTime)?.getTime() ?? 0));
   }, [classes]);
 
   // Filter logic

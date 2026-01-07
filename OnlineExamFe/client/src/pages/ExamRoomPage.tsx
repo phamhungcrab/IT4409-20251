@@ -253,15 +253,58 @@ const ExamRoomPage: React.FC = () => {
   /**
    * useTimer(durationMinutes, onTimeUp, storageKey)
    */
-  const { formattedTime, setRemainingTime } = useTimer(
+  // Ref để track việc đã hiện thông báo chưa (tránh spam khi re-render hoặc timer nhảy)
+  const warningRef = React.useRef<{ [key: number]: boolean }>({});
+
+  /**
+   * useTimer(durationMinutes, onTimeUp, storageKey)
+   */
+  const { formattedTime, timeLeft, setRemainingTime } = useTimer(
     internalDuration,
     () => {
-      alert(t('exam.timeUp'));
+      alert(t('exam.timeUp') || 'Hết giờ làm bài!');
       // Gọi qua ref vì lúc này submitExam chưa được khởi tạo
       submitExamRef.current();
     },
     timerStorageKey
   );
+
+  // State thông báo đếm ngược (Toast)
+  const [timeToast, setTimeToast] = useState<{ msg: string; type: 'warning' | 'error' } | null>(null);
+
+  // Effect: Check thời gian để hiện cảnh báo
+  useEffect(() => {
+    // Reset warning flags nếu thời gian > 5 phút (trường hợp hack/test)
+    if (timeLeft > 305) {
+      warningRef.current = {};
+    }
+
+    // Ngưỡng cảnh báo: 5 phút (300s), 3 phút (180s), 1 phút (60s)
+    const thresholds = [
+      { sec: 300, msg: t('exam.warning.5min') || '⚠️ Chú ý: Còn lại 5 phút!' },
+      { sec: 180, msg: t('exam.warning.3min') || '⚠️ Chú ý: Còn lại 3 phút!' },
+      { sec: 60, msg: t('exam.warning.1min') || '🚨 GẤP: Còn 1 phút cuối cùng!', type: 'error' }
+    ];
+
+    thresholds.forEach(th => {
+      // Nếu timeLeft chạm ngưỡng (trong khoảng 1s - 2s do timer interval)
+      // và chưa warning -> hiện toast
+      if (timeLeft <= th.sec && timeLeft > th.sec - 2 && !warningRef.current[th.sec]) {
+        warningRef.current[th.sec] = true;
+        setTimeToast({ msg: th.msg, type: (th.type as any) || 'warning' });
+
+        // Tự tắt sau 5s
+        setTimeout(() => setTimeToast(null), 5000);
+      }
+    });
+  }, [timeLeft, t]);
+
+  // Helper: Màu sắc đồng hồ
+  const getTimerColor = (sec: number) => {
+    if (sec <= 60) return 'text-red-500 font-bold animate-pulse'; // < 1 phút: Đỏ nhấp nháy
+    if (sec <= 300) return 'text-amber-400 font-bold'; // < 5 phút: Vàng cam
+    return 'text-sky-100'; // Bình thường
+  };
 
   // =========================================================
   // 5) HOOK WEBSOCKET: useExam
@@ -755,7 +798,9 @@ const ExamRoomPage: React.FC = () => {
 
           <div className="flex items-center gap-3">
             {/* Đồng hồ đếm ngược */}
-            <div className="text-xl font-mono font-bold text-sky-100">{formattedTime}</div>
+            <div className={`text-xl font-mono transition-colors duration-300 ${getTimerColor(timeLeft)}`}>
+              {formattedTime}
+            </div>
 
             {/* Nút nộp bài */}
             <button onClick={handleSubmit} className="btn btn-primary hover:-translate-y-0.5">
@@ -987,6 +1032,26 @@ const ExamRoomPage: React.FC = () => {
                 {t('exam.integrity.acknowledge')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Cảnh báo thời gian */}
+      {timeToast && (
+        <div className="fixed top-20 right-5 z-50 animate-bounce-in">
+          <div className={`px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md flex items-center gap-3 ${
+            timeToast.type === 'error'
+              ? 'bg-red-500/20 border-red-500/50 text-red-100'
+              : 'bg-amber-500/20 border-amber-500/50 text-amber-100'
+          }`}>
+            <span className="text-2xl">{timeToast.type === 'error' ? '🚨' : '⚠️'}</span>
+            <div className="font-semibold">{timeToast.msg}</div>
+            <button
+              onClick={() => setTimeToast(null)}
+              className="ml-2 opacity-70 hover:opacity-100 hover:bg-white/10 rounded p-1"
+            >
+              ✕
+            </button>
           </div>
         </div>
       )}

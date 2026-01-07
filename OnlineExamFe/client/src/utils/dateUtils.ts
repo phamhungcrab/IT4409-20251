@@ -7,6 +7,18 @@
  */
 
 /**
+ * Parse datetime string thành Date object, auto-append Z nếu thiếu timezone
+ * Dùng cho các logic so sánh/sort cần timestamp chính xác
+ */
+export const parseUtcDate = (dateString: string | null | undefined): Date | null => {
+  if (!dateString) return null;
+  const hasTimezone = /Z$|[+-]\d{2}:\d{2}$/.test(dateString);
+  const normalized = hasTimezone || !dateString.includes('T') ? dateString : dateString + 'Z';
+  const date = new Date(normalized);
+  return isNaN(date.getTime()) ? null : date;
+};
+
+/**
  * Format UTC date string sang local time (Vietnam)
  * @param utcString - ISO date string từ API (UTC)
  * @param options - Intl.DateTimeFormatOptions

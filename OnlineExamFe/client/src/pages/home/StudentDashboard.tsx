@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { examService } from '../../services/examService';
 import { StudentExamDto } from '../../types/exam';
-import { formatLocalDate } from '../../utils/dateUtils';
+import { formatLocalDate, parseUtcDate } from '../../utils/dateUtils';
 
 /**
  * StudentDashboardProps:
@@ -46,10 +46,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user }) => {
           const now = new Date().getTime();
 
           const sortedExams = examsData.sort((a, b) => {
-            const startA = new Date(a.startTime).getTime();
-            const endA = new Date(a.endTime).getTime();
-            const startB = new Date(b.startTime).getTime();
-            const endB = new Date(b.endTime).getTime();
+            const startA = parseUtcDate(a.startTime)?.getTime() ?? 0;
+            const endA = parseUtcDate(a.endTime)?.getTime() ?? 0;
+            const startB = parseUtcDate(b.startTime)?.getTime() ?? 0;
+            const endB = parseUtcDate(b.endTime)?.getTime() ?? 0;
 
             const isLiveA = startA <= now && endA >= now;
             const isUpcomingA = startA > now;

@@ -904,13 +904,13 @@ const TeacherClassDetail: React.FC = () => {
                       <div className="flex items-center gap-2 text-sm">
                         <span className="text-slate-400">Bắt đầu:</span>
                         <span className="text-slate-300 font-medium">
-                          {new Date(ex.startTime).toLocaleString('vi-VN')}
+                          {formatLocalDateTime(ex.startTime)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <span className="text-slate-400">Kết thúc:</span>
                         <span className="text-slate-300 font-medium">
-                          {new Date(ex.endTime).toLocaleString('vi-VN')}
+                          {formatLocalDateTime(ex.endTime)}
                         </span>
                       </div>
                       {ex.blueprintId ? (
@@ -1046,7 +1046,7 @@ const TeacherClassDetail: React.FC = () => {
                         </td>
                         <td className="py-3 px-2 text-slate-400 text-xs">
                           {student.submittedAt
-                            ? new Date(student.submittedAt).toLocaleString('vi-VN')
+                            ? formatLocalDateTime(student.submittedAt)
                             : '-'}
                         </td>
                         <td className="py-3 px-2">
@@ -1138,7 +1138,7 @@ const TeacherClassDetail: React.FC = () => {
                             Blueprint #{bp.id}
                           </h3>
                           <p className="text-xs text-slate-400">
-                            {new Date(bp.createdAt).toLocaleDateString('vi-VN')}
+                            {formatLocalDate(bp.createdAt)}
                           </p>
                         </div>
                       </div>

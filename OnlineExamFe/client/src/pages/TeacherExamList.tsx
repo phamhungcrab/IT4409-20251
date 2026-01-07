@@ -3,7 +3,7 @@ import useAuth from '../hooks/useAuth';
 import { dashboardService } from '../services/dashboardService';
 import { examService, ExamStudentStatus } from '../services/examService';
 import { resultService, ResultSummary } from '../services/resultService';
-import { formatLocalDateTime, formatShortDateTime } from '../utils/dateUtils';
+import { formatLocalDateTime, formatShortDateTime, parseUtcDate } from '../utils/dateUtils';
 
 const TeacherExamList: React.FC = () => {
   const { user } = useAuth();
@@ -46,7 +46,7 @@ const TeacherExamList: React.FC = () => {
                     classId: cls.id,
                     subjectCode: cls.subject?.subjectCode
                 }))
-             ).sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+             ).sort((a, b) => (parseUtcDate(b.startTime)?.getTime() ?? 0) - (parseUtcDate(a.startTime)?.getTime() ?? 0));
 
              setExams(allExams);
            }
@@ -140,8 +140,8 @@ const TeacherExamList: React.FC = () => {
              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                  {filteredExams.map(ex => {
                      const now = new Date();
-                     const start = new Date(ex.startTime);
-                     const end = new Date(ex.endTime);
+                     const start = parseUtcDate(ex.startTime) || new Date();
+                     const end = parseUtcDate(ex.endTime) || new Date();
                      let status = 'Sắp tới';
                      let statusColor = 'bg-sky-500/20 text-sky-400 border-sky-500/30';
 

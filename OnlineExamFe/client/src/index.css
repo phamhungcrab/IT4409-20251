@@ -29,7 +29,7 @@ body {
   font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   letter-spacing: 0.01em;
   -webkit-font-smoothing: antialiased;
-} 
+}
 
 a {
   color: var(--accent);
@@ -163,4 +163,21 @@ input[type="password"]::-webkit-credentials-auto-fill-button:active {
 
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+@layer utilities {
+  .animate-bounce-in {
+    animation: bounce-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
