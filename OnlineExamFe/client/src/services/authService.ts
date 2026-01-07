@@ -127,6 +127,18 @@ export interface CheckOtpDto {
   email: string;
 }
 
+export interface ResetPasswordDto {
+  email: string;
+  resetCode: string; // OTP Code
+  newPassword: string;
+}
+
+export interface ChangePasswordDto {
+  email: string;
+  oldPassword?: string;
+  newPassword: string;
+}
+
 /**
  * LoginResponse:
  * - Cấu trúc phản hồi mới từ Backend khi login thành công.
@@ -258,10 +270,17 @@ export const authService = {
  * - Nếu OTP đúng -> OK
  * - Nếu OTP sai -> server thường trả lỗi 4xx và axios sẽ throw error
    */
-  checkOtp: async (data: CheckOtpDto): Promise<void> => {
-    return (await apiClient.post<void>(
-      '/api/Auth/check-otp',
-      data
-    )) as unknown as Promise<void>;
+  checkOtp: async (data: CheckOtpDto): Promise<string> => {
+    // Backend returns a resetToken in the Data field upon success
+    const response = await apiClient.post<any>('/api/Auth/check-otp', data);
+    return response.data; // This should be the reset token GUID
+  },
+
+  resetPassword: async (data: ResetPasswordDto): Promise<void> => {
+    return await apiClient.post<void>('/api/Auth/reset-password', data);
+  },
+
+  changePassword: async (data: ChangePasswordDto): Promise<void> => {
+    return await apiClient.post<void>('/api/Auth/change-password', data);
   }
 };

@@ -16,5 +16,7 @@ namespace OnlineExam.Application.Dtos.ExamDtos
         public int DurationMinutes { get; set; }
 
         public ExamStatus? Status { get; set; } = null;
+        public DateTime? studentStartTime { get; set; } = null;
+        public DateTime? studentEndTime { get; set;} = null;
     }
 }

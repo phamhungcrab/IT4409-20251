@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useAuth from '../hooks/useAuth';
+import { Helmet } from 'react-helmet-async';
 
 /**
  * Kiểu dữ liệu state khi điều hướng sang /login từ RoleGuard.
@@ -200,8 +201,14 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    // Khung ngoài: chiếm toàn bộ chiều cao màn hình, canh giữa nội dung
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <>
+      <Helmet>
+        <title>Đăng nhập | Hệ thống Thi Trực Tuyến HUST</title>
+        <meta name="description" content="Cổng đăng nhập hệ thống thi trắc nghiệm trực tuyến HUST. Dành cho sinh viên và giảng viên tra cứu lịch thi, làm bài thi và xem kết quả." />
+        <link rel="canonical" href="https://manhhangmobile.store/login" />
+      </Helmet>
+      {/* Khung ngoài: chiếm toàn bộ chiều cao màn hình, canh giữa nội dung */}
+      <div className="min-h-screen flex items-center justify-center px-4">
       {/* Thẻ bao: card login, chia 2 cột (trái: giới thiệu, phải: form).
           Màn hình nhỏ: 1 cột; từ md trở lên: 2 cột. */}
       <div className="grid w-full max-w-4xl grid-cols-1 overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl shadow-slate-900/50 md:grid-cols-2">
@@ -331,6 +338,12 @@ const LoginPage: React.FC = () => {
               </div>
             </div>
 
+            <div className="flex justify-end pt-1">
+              <Link to="/forgot-password" className="text-sm text-sky-400 hover:text-sky-300 font-medium transition-colors">
+                {t('auth.forgotPassword') || 'Quên mật khẩu?'}
+              </Link>
+            </div>
+
             {/* Nút đăng nhập */}
             <button
               type="submit"
@@ -343,6 +356,7 @@ const LoginPage: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

@@ -303,19 +303,23 @@ namespace OnlineExam.Application.Services
             var exams = await _exam2Repo
                 .Query()
                 .Where(e => classIds.Contains(e.ClassId))
-                .Select(e => new GetListExamForStudentDto
+                .Select(e => new
                 {
-                    ExamId = e.Id,
-                    ExamName = e.Name,
-                    StartTime = e.StartTime,
-                    EndTime = e.EndTime,
-                    DurationMinutes = e.DurationMinutes,
+                    Exam = e,
+                    StudentExam = e.ExamStudents
+                        .FirstOrDefault(es => es.StudentId == studentId)
+                })
+                .Select(x => new GetListExamForStudentDto
+                {
+                    ExamId = x.Exam.Id,
+                    ExamName = x.Exam.Name,
+                    StartTime = x.Exam.StartTime,
+                    EndTime = x.Exam.EndTime,
+                    DurationMinutes = x.Exam.DurationMinutes,
+                    Status = x.StudentExam == null ? null : (ExamStatus?)x.StudentExam.Status,
+                    studentStartTime = x.StudentExam == null ? null : x.StudentExam.StartTime,
+                    studentEndTime = x.StudentExam == null ? null : x.StudentExam.EndTime
 
-                    // LEFT JOIN ExamStudent theo StudentId
-                    Status = e.ExamStudents
-                        .Where(es => es.StudentId == studentId)
-                        .Select(es => (ExamStatus?)es.Status)
-                        .FirstOrDefault()
                 })
                 .OrderBy(e => e.StartTime)
                 .ToListAsync();

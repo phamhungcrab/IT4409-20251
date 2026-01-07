@@ -18,7 +18,8 @@
     "logout": "Logout",
     "loggedIn": "Logged in",
     "loginFailed": "Login failed. Please check your credentials.",
-    "welcomeBack": "Welcome back"
+    "welcomeBack": "Welcome back",
+    "forgotPassword": "Forgot password?"
   },
   "nav": {
     "home": "Home",

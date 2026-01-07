@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@source "./index.html";
+@source "./src/**/*.{js,ts,jsx,tsx}";
+
+/* (Optional) Custom style cho toàn bộ trang */
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  background-color: white;
+}

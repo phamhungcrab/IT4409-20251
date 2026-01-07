@@ -33,6 +33,7 @@ export interface ClassDto {
     startTime: string;
     endTime: string;
     durationMinutes: number;
+    blueprintId?: number;
   }>;
 }
 
