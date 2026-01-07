@@ -300,7 +300,16 @@ class MonitoringService {
 
     // Khi socket bị đóng
     this.socket.onclose = (event) => {
-      console.log('❌ [MonitoringService] Disconnected', event.code, event.reason);
+      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+      console.log(`❌ [MonitoringService] Connection lost - Socket closed (Code: ${event.code}). Network: ${isOnline ? 'Online' : 'Offline'}`);
+
+      if (!isOnline) {
+        console.log('📡 [MonitoringService] Reason: Network disconnected (No internet)');
+      } else if (event.code === 1006) {
+        console.log('📡 [MonitoringService] Reason: Abnormal closure (Server unreachable or network issue)');
+      } else if (event.code === 1000) {
+        console.log('📡 [MonitoringService] Reason: Normal closure');
+      }
 
       // Reset connecting flag
       this.isConnecting = false;
