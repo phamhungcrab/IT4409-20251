@@ -119,7 +119,7 @@ builder.Services.AddCors(options =>
             "https://www.manhhangmobile.store",
             "https://manhhangmobile.store",      // Development frontend
             "https://it4409-fe.vercel.app",   // Production frontend
-            "https://adminexam-6c6ff.web.app/"
+            "https://adminexam-6c6ff.web.app"
 
             )
             .AllowAnyHeader()
