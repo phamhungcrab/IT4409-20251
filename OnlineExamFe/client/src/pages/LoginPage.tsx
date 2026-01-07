@@ -127,7 +127,16 @@ const LoginPage: React.FC = () => {
        */
       let ipAddress = 'Unknown IP';
       try {
-        const ipRes = await fetch('https://api.ipify.org?format=json').catch(() => null);
+        // Thêm timeout 2s để tránh treo login nếu mạng lag hoặc API lỗi
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+        const ipRes = await fetch('https://api.ipify.org?format=json', {
+            signal: controller.signal
+        }).catch(() => null);
+
+        clearTimeout(timeoutId);
+
         if (ipRes && ipRes.ok) {
           const ipData = await ipRes.json();
           ipAddress = ipData.ip;
