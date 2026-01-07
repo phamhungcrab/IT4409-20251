@@ -6,6 +6,7 @@ import { classService, ClassDto } from '../../services/classService';
 import { examService, ExamStudentStatus } from '../../services/examService';
 import { resultService, ResultSummary } from '../../services/resultService';
 import { blueprintService, Blueprint, BlueprintChapter } from '../../services/blueprintService';
+import { announcementService, CreateAnnouncementDto } from '../../services/announcementService';
 import { ExamDto } from '../../types/exam';
 
 interface StudentDto {
@@ -109,6 +110,16 @@ const TeacherClassDetail: React.FC = () => {
     blueprintId: number | null;
   }>({ show: false, blueprintId: null });
   const [deletingBlueprint, setDeletingBlueprint] = useState(false);
+
+  // === Announcement Modal State ===
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [announcementForm, setAnnouncementForm] = useState<{
+    title: string;
+    content: string;
+    type: 'info' | 'warning' | 'success' | 'error';
+  }>({ title: '', content: '', type: 'info' });
+  const [creatingAnnouncement, setCreatingAnnouncement] = useState(false);
+  const [announcementError, setAnnouncementError] = useState<string | null>(null);
 
   const mapClassExams = (classIdValue: number, exams: ClassDto['exams'] = []): ExamDto[] =>
     (exams ?? []).map((exam: ClassExam) => ({
@@ -699,6 +710,16 @@ const TeacherClassDetail: React.FC = () => {
               className="btn btn-primary text-sm px-4 py-2 rounded-lg font-semibold shadow-lg shadow-sky-500/20 hover:shadow-sky-500/40"
             >
               Tạo kỳ thi
+            </button>
+            <button
+              onClick={() => {
+                setAnnouncementForm({ title: '', content: '', type: 'info' });
+                setAnnouncementError(null);
+                setShowAnnouncementModal(true);
+              }}
+              className="btn btn-ghost text-sm px-4 py-2 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50 rounded-lg font-medium"
+            >
+              📢 Tạo thông báo
             </button>
           </div>
         </div>
@@ -1772,6 +1793,105 @@ const TeacherClassDetail: React.FC = () => {
                 className="btn btn-ghost text-sm px-4 py-2 border border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 hover:border-rose-500/50 rounded-lg disabled:opacity-50"
               >
                 {deletingBlueprint ? 'Đang xóa...' : 'Xóa Blueprint'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === Modal Tạo Thông báo === */}
+      {showAnnouncementModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/95 p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">📢 Tạo thông báo</h2>
+              <button
+                onClick={() => setShowAnnouncementModal(false)}
+                className="text-slate-400 hover:text-white text-xl"
+              >
+                ×
+              </button>
+            </div>
+
+            {announcementError && (
+              <div className="text-sm text-rose-300 border border-rose-400/40 bg-rose-500/10 rounded-lg p-3">
+                {announcementError}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Tiêu đề *</label>
+                <input
+                  type="text"
+                  value={announcementForm.title}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder-slate-400 focus:border-sky-500 focus:outline-none"
+                  placeholder="Nhập tiêu đề thông báo..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Nội dung *</label>
+                <textarea
+                  value={announcementForm.content}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder-slate-400 focus:border-sky-500 focus:outline-none min-h-[100px]"
+                  placeholder="Nhập nội dung thông báo..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Loại thông báo</label>
+                <select
+                  value={announcementForm.type}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, type: e.target.value as any })}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white focus:border-sky-500 focus:outline-none"
+                >
+                  <option value="info">ℹ️ Thông tin</option>
+                  <option value="warning">⚠️ Cảnh báo</option>
+                  <option value="success">✅ Thành công</option>
+                  <option value="error">❌ Lỗi/Khẩn cấp</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                onClick={() => setShowAnnouncementModal(false)}
+                className="btn btn-ghost text-sm px-4 py-2 border border-white/20 text-slate-300 hover:text-white rounded-lg"
+                disabled={creatingAnnouncement}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={async () => {
+                  if (!announcementForm.title || !announcementForm.content) {
+                    setAnnouncementError('Vui lòng nhập đầy đủ tiêu đề và nội dung.');
+                    return;
+                  }
+                  setCreatingAnnouncement(true);
+                  setAnnouncementError(null);
+                  try {
+                    await announcementService.create({
+                      title: announcementForm.title,
+                      content: announcementForm.content,
+                      type: announcementForm.type,
+                      classId: numericClassId
+                    });
+                    showToast('Gửi thông báo thành công!', 'success');
+                    setShowAnnouncementModal(false);
+                  } catch (err) {
+                    const msg = err instanceof Error ? err.message : 'Gửi thông báo thất bại.';
+                    setAnnouncementError(msg);
+                  } finally {
+                    setCreatingAnnouncement(false);
+                  }
+                }}
+                disabled={creatingAnnouncement}
+                className="btn btn-primary text-sm px-4 py-2 rounded-lg font-semibold disabled:opacity-50"
+              >
+                {creatingAnnouncement ? 'Đang gửi...' : 'Gửi thông báo'}
               </button>
             </div>
           </div>
