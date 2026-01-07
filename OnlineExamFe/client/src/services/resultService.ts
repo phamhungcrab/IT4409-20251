@@ -9,6 +9,7 @@
 
 import apiClient from '../utils/apiClient';
 import { ResultItem } from '../components/ResultTable';
+import { parseUtcDate } from '../utils/dateUtils';
 
 export type { ResultItem };
 
@@ -176,6 +177,13 @@ export const resultService = {
           totalQuestions: summary?.totalQuestions
         });
       }
+
+      // Bước 4: Sắp xếp theo thời gian nộp bài mới nhất -> cũ nhất
+      results.sort((a, b) => {
+        const timeA = parseUtcDate(a.submittedAt)?.getTime() ?? 0;
+        const timeB = parseUtcDate(b.submittedAt)?.getTime() ?? 0;
+        return timeB - timeA;
+      });
 
       return results;
     } catch (e: any) {
