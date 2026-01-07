@@ -18,7 +18,16 @@ export const formatLocalDateTime = (
 ): string => {
   if (!utcString) return '';
 
-  const date = typeof utcString === 'string' ? new Date(utcString) : utcString;
+  // Nếu là string và không có timezone marker (Z hoặc +/-offset), thêm Z để coi như UTC
+  let dateInput = utcString;
+  if (typeof utcString === 'string') {
+    const hasTimezone = /Z$|[+-]\d{2}:\d{2}$/.test(utcString);
+    if (!hasTimezone && utcString.includes('T')) {
+      dateInput = utcString + 'Z'; // Coi như UTC
+    }
+  }
+
+  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
   if (isNaN(date.getTime())) return '';
 
   const defaultOptions: Intl.DateTimeFormatOptions = {
