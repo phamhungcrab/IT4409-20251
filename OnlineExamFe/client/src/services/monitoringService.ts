@@ -42,13 +42,14 @@ class MonitoringService {
   /**
    * onStatusChangeCallback:
    * - Callback để UI cập nhật trạng thái WS.
-   * - Quy ước 3 trạng thái:
+   * - Quy ước 4 trạng thái:
    *   - connecting: đang kết nối
    *   - connected: đã kết nối
+   *   - reconnecting: soft offline (không nhận message) hoặc đang reconnect
    *   - disconnected: mất kết nối
    */
   private onStatusChangeCallback:
-    ((status: 'connecting' | 'connected' | 'disconnected') => void) | null = null;
+    ((status: 'connecting' | 'connected' | 'reconnecting' | 'disconnected') => void) | null = null;
 
   /**
    * onOpenCallback:
@@ -110,6 +111,15 @@ class MonitoringService {
    * - Hàng đợi lưu các message cần gửi khi mất mạng (chỉ lưu các message quan trọng như SubmitAnswer).
    */
   private offlineQueue: any[] = [];
+
+  /**
+   * Watchdog: Phát hiện "soft offline" khi không nhận được message trong X giây
+   */
+  private lastMessageAt: number = Date.now();
+  private watchdogIntervalId: any = null;
+  private readonly WATCHDOG_INTERVAL_MS = 1000; // Check mỗi 1 giây
+  private readonly SOFT_OFFLINE_THRESHOLD_MS = 3000; // 3 giây không nhận message = soft offline
+  private isSoftOffline = false;
 
   constructor() {
     // Load queue cũ nếu có (ví dụ sau khi F5)
@@ -189,7 +199,7 @@ class MonitoringService {
   public connect(
     url: string,
     onMessage: (data: any) => void,
-    onStatusChange?: (status: 'connecting' | 'connected' | 'disconnected') => void,
+    onStatusChange?: (status: 'connecting' | 'connected' | 'reconnecting' | 'disconnected') => void,
     onOpen?: () => void
   ): WebSocket | null {
 
@@ -271,6 +281,11 @@ class MonitoringService {
       // Reset flags
       this.isConnecting = false;
       this.reconnectAttempts = 0;
+      this.lastMessageAt = Date.now();
+      this.isSoftOffline = false;
+
+      // Start watchdog
+      this.startWatchdog();
 
       // Báo UI: connected
       if (this.onStatusChangeCallback) this.onStatusChangeCallback('connected');
@@ -286,6 +301,16 @@ class MonitoringService {
 
     // Nhận message từ server
     this.socket.onmessage = (event) => {
+      // Update watchdog timer
+      this.lastMessageAt = Date.now();
+
+      // Reset soft offline if was offline
+      if (this.isSoftOffline) {
+        this.isSoftOffline = false;
+        console.log('📡 [MonitoringService] Messages resumed - Connection recovered');
+        if (this.onStatusChangeCallback) this.onStatusChangeCallback('connected');
+      }
+
       if (!this.onMessageCallback) return;
 
       try {
@@ -367,6 +392,42 @@ class MonitoringService {
 
   /**
    * =========================
+   * startWatchdog()
+   * =========================
+   * Khởi chạy watchdog timer để phát hiện "soft offline"
+   * khi không nhận được message trong SOFT_OFFLINE_THRESHOLD_MS
+   */
+  private startWatchdog() {
+    this.stopWatchdog(); // Clear existing
+    this.watchdogIntervalId = setInterval(() => {
+      const now = Date.now();
+      const timeSinceLastMessage = now - this.lastMessageAt;
+
+      if (timeSinceLastMessage > this.SOFT_OFFLINE_THRESHOLD_MS && !this.isSoftOffline) {
+        this.isSoftOffline = true;
+        console.log(`⚠️ [MonitoringService] Soft offline detected - No messages for ${Math.round(timeSinceLastMessage / 1000)}s`);
+        if (this.onStatusChangeCallback) {
+          this.onStatusChangeCallback('reconnecting');
+        }
+      }
+    }, this.WATCHDOG_INTERVAL_MS);
+  }
+
+  /**
+   * =========================
+   * stopWatchdog()
+   * =========================
+   * Dừng watchdog timer
+   */
+  private stopWatchdog() {
+    if (this.watchdogIntervalId) {
+      clearInterval(this.watchdogIntervalId);
+      this.watchdogIntervalId = null;
+    }
+  }
+
+  /**
+   * =========================
    * suppressReconnect()
    * =========================
    * Dùng khi client biết sẽ đóng socket (ví dụ: submit bài),
@@ -377,6 +438,7 @@ class MonitoringService {
       console.log(`[MonitoringService] Suppress reconnect: ${reason}`);
     }
     this.isIntentionalClose = true;
+    this.stopWatchdog();
     if (this.reconnectTimeoutId) {
       clearTimeout(this.reconnectTimeoutId);
       this.reconnectTimeoutId = null;
