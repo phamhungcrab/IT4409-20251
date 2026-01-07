@@ -411,11 +411,21 @@ class MonitoringService {
    * - Chỉ gửi khi socket OPEN.
    */
   public send(data: any) {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+    // Check thêm navigator.onLine để bắt trường hợp rút dây mạng nhưng socket chưa kịp đóng
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+    const isSocketOpen = this.socket && this.socket.readyState === WebSocket.OPEN;
+
+    if (isSocketOpen && isOnline) {
       const payload = typeof data === 'string' ? data : JSON.stringify(data);
-      this.socket.send(payload);
+      try {
+        this.socket.send(payload);
+      } catch (err) {
+        console.warn('[MonitoringService] Send failed, queuing...', err);
+        this.queueMessage(data);
+      }
     } else {
-      // Nếu mất kết nối -> Queue lại để gửi sau
+      // Nếu mất kết nối hoặc offline -> Queue lại để gửi sau
+      console.log(`[MonitoringService] Cannot send (Socket: ${this.socket?.readyState}, Online: ${isOnline}). Queueing...`);
       this.queueMessage(data);
     }
   }
