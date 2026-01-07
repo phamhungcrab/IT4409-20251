@@ -746,7 +746,7 @@ const TeacherClassDetail: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-3">
         <button
           type="button"
           onClick={() => handleViewStudents(numericClassId)}
@@ -776,23 +776,10 @@ const TeacherClassDetail: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => setActiveSection('blueprints')}
-          className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all ${
-            activeSection === 'blueprints'
-              ? 'bg-purple-500/20 border-purple-500/50 text-white shadow-lg shadow-purple-500/10'
-              : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'
-          }`}
-          aria-pressed={activeSection === 'blueprints'}
-        >
-          <span className="block">Cấu trúc đề</span>
-          <span className="block text-xs font-normal text-slate-400">Blueprint & Ma trận</span>
-        </button>
-        <button
-          type="button"
           onClick={() => setActiveSection('reports')}
           className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all ${
             activeSection === 'reports'
-              ? 'bg-emerald-500/20 border-emerald-500/50 text-white shadow-lg shadow-emerald-500/10'
+              ? 'bg-amber-500/20 border-amber-500/50 text-white shadow-lg shadow-amber-500/10'
               : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'
           }`}
           aria-pressed={activeSection === 'reports'}
