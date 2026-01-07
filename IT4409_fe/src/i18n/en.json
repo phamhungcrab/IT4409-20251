@@ -1,0 +1,58 @@
+{
+    "common": {
+        "loading": "Loading...",
+        "error": "An error occurred",
+        "success": "Success",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "actions": "Actions",
+        "close": "Close"
+    },
+    "auth": {
+        "loginTitle": "Login to Online Exam",
+        "email": "Email Address",
+        "password": "Password",
+        "loginButton": "Sign In",
+        "logout": "Logout",
+        "loginFailed": "Login failed. Please check your credentials.",
+        "welcomeBack": "Welcome back"
+    },
+    "nav": {
+        "home": "Home",
+        "exams": "My Exams",
+        "results": "Results",
+        "admin": "Admin Dashboard",
+        "dashboard": "Dashboard",
+        "login": "Login"
+    },
+    "exam": {
+        "listTitle": "My Exams",
+        "noExams": "No exams assigned to you at the moment.",
+        "duration": "Duration",
+        "startTime": "Start Time",
+        "endTime": "End Time",
+        "status": "Status",
+        "startExam": "Start Exam",
+        "submitExam": "Submit Exam",
+        "confirmSubmit": "Are you sure you want to submit?",
+        "submitted": "Exam submitted successfully!",
+        "completedMessage": "You already completed this exam.",
+        "score": "Your score",
+        "questions": "Questions",
+        "previous": "Previous",
+        "next": "Next",
+        "connected": "Connected",
+        "disconnected": "Disconnected",
+        "reconnecting": "Reconnecting...",
+        "synced": "Answer synced"
+    },
+    "admin": {
+        "dashboard": "Admin Dashboard",
+        "announcements": "System Announcements",
+        "allExams": "All Exams",
+        "createExam": "Create New Exam",
+        "students": "Students"
+    }
+}

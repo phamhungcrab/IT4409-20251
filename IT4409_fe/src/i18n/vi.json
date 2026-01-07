@@ -1,0 +1,58 @@
+{
+    "common": {
+        "loading": "Đang tải...",
+        "error": "Đã xảy ra lỗi",
+        "success": "Thành công",
+        "save": "Lưu",
+        "cancel": "Hủy",
+        "delete": "Xóa",
+        "edit": "Sửa",
+        "actions": "Hành động",
+        "close": "Đóng"
+    },
+    "auth": {
+        "loginTitle": "Đăng nhập hệ thống thi trực tuyến",
+        "email": "Địa chỉ Email",
+        "password": "Mật khẩu",
+        "loginButton": "Đăng nhập",
+        "logout": "Đăng xuất",
+        "loginFailed": "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
+        "welcomeBack": "Xin chào!"
+    },
+    "nav": {
+        "home": "Trang chủ",
+        "exams": "Kỳ thi của tôi",
+        "results": "Kết quả",
+        "admin": "Trang quản trị",
+        "login": "Đăng nhập",
+        "dashboard": "Dashboard"
+    },
+    "exam": {
+        "listTitle": "Danh sách kỳ thi",
+        "noExams": "Hiện tại bạn chưa có kỳ thi nào.",
+        "duration": "Thời gian",
+        "startTime": "Bắt đầu",
+        "endTime": "Kết thúc",
+        "status": "Trạng thái",
+        "startExam": "Bắt đầu thi",
+        "submitExam": "Nộp bài",
+        "confirmSubmit": "Bạn có chắc chắn muốn nộp bài không?",
+        "submitted": "Nộp bài thành công!",
+        "completedMessage": "Bạn đã hoàn thành bài thi này!",
+        "score": "Điểm của bạn",
+        "questions": "Câu hỏi",
+        "previous": "Trước",
+        "next": "Tiếp",
+        "connected": "Đã kết nối",
+        "disconnected": "Mất kết nối",
+        "reconnecting": "Đang kết nối lại...",
+        "synced": "Đã lưu bài làm"
+    },
+    "admin": {
+        "dashboard": "Bảng điều khiển Admin",
+        "announcements": "Thông báo hệ thống",
+        "allExams": "Tất cả kỳ thi",
+        "createExam": "Tạo kỳ thi mới",
+        "students": "Sinh viên"
+    }
+}
