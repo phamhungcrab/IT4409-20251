@@ -115,16 +115,28 @@ class MonitoringService {
     // Load queue cũ nếu có (ví dụ sau khi F5)
     this.loadOfflineQueue();
 
-    // Lắng nghe sự kiện online để reconnect/flush ngay lập tức
+    // Lắng nghe sự kiện online/offline để xử lý kịp thời
     if (typeof window !== 'undefined') {
+        // Khi mất mạng -> Đóng socket ngay để trigger reconnect logic
+        window.addEventListener('offline', () => {
+            console.log('❌ [MonitoringService] Network offline detected!');
+            // Đóng socket hiện tại (nếu có) để trigger onclose -> scheduleReconnect
+            if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
+                this.isIntentionalClose = false; // Đảm bảo sẽ reconnect
+                this.socket.close();
+            }
+        });
+
+        // Khi có mạng lại -> Flush queue hoặc reconnect
         window.addEventListener('online', () => {
             console.log('✅ [MonitoringService] Network back online!');
             if (this.socket && this.socket.readyState === WebSocket.OPEN) {
                 this.flushOfflineQueue();
             } else {
-                // Nếu chưa connect thì việc reconnect sẽ do logic initSocket/scheduleReconnect lo,
-                // hoặc có thể force connect ở đây nếu muốn agresive.
-                // Ở đây ta cứ để scheduleReconnect lo liệu cho an toàn.
+                // Nếu socket đã đóng, reset flag và thử connect lại
+                this.isIntentionalClose = false;
+                this.reconnectAttempts = 0;
+                this.initSocket();
             }
         });
     }
@@ -418,7 +430,7 @@ class MonitoringService {
     if (isSocketOpen && isOnline) {
       const payload = typeof data === 'string' ? data : JSON.stringify(data);
       try {
-        this.socket.send(payload);
+        this.socket!.send(payload);
       } catch (err) {
         console.warn('[MonitoringService] Send failed, queuing...', err);
         this.queueMessage(data);

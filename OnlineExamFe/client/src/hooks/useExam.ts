@@ -308,23 +308,38 @@ export const useExam = ({
       clearInterval(heartbeatIntervalRef.current);
       heartbeatIntervalRef.current = null;
     }
-    monitoringService.suppressReconnect('submit');
-    monitoringService.send({ Action: 'SubmitExam' });
 
-    submitForceCloseRef.current = setTimeout(() => {
-      if (!submitRequestedRef.current) return;
-      debugLog('submit_force_close');
-      monitoringService.disconnect();
-    }, 1200);
+    // Check nếu đang offline -> Queue sẽ xử lý, không suppress reconnect
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+    const isConnected = connectionState === 'connected';
 
-    submitTimeoutRef.current = setTimeout(() => {
-      if (!submitRequestedRef.current) return;
+    if (isOnline && isConnected) {
+      // Online: Gửi bình thường, suppress reconnect
+      monitoringService.suppressReconnect('submit');
+      monitoringService.send({ Action: 'SubmitExam' });
+
+      submitForceCloseRef.current = setTimeout(() => {
+        if (!submitRequestedRef.current) return;
+        debugLog('submit_force_close');
+        monitoringService.disconnect();
+      }, 1200);
+
+      submitTimeoutRef.current = setTimeout(() => {
+        if (!submitRequestedRef.current) return;
+        submitRequestedRef.current = false;
+        debugLog('submit_fallback_close');
+        monitoringService.disconnect();
+        onSubmittedRef.current?.({ status: 'submitted', fallback: true });
+      }, 4000);
+    } else {
+      // Offline: Queue SubmitExam, KHÔNG suppress reconnect
+      debugLog('submit_offline_queued');
+      monitoringService.send({ Action: 'SubmitExam' });
+      // Thông báo user: Bài thi sẽ được nộp khi có mạng lại
       submitRequestedRef.current = false;
-      debugLog('submit_fallback_close');
-      monitoringService.disconnect();
-      onSubmittedRef.current?.({ status: 'submitted', fallback: true });
-    }, 4000);
-  }, [clearSubmitForceClose, clearSubmitTimeout, debugLog]);
+      onSubmittedRef.current?.({ status: 'submitted', offline: true });
+    }
+  }, [clearSubmitForceClose, clearSubmitTimeout, connectionState, debugLog]);
 
   return {
     connectionState,
