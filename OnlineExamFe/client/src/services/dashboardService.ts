@@ -259,7 +259,7 @@ const processDashboardData = (classes: any[]): TeacherDashboardData => {
     actionItems: actionItems.slice(0, 5), // Chỉ lấy 5 item quan trọng nhất
     examMonitor: {
       upcoming: upcomingExams.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()).slice(0, 5),
-      live: liveExams
+      live: liveExams.sort((a, b) => new Date(a.endTime).getTime() - new Date(b.endTime).getTime())
     },
     classSpotlight: topClasses,
     classes: classes // Return full classes list specifically for search & directory

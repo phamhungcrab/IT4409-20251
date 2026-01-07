@@ -93,27 +93,27 @@ const StudentSubjectList: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {subjects.map((sub) => (
-            <div key={sub.id} className="group relative bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden hover:shadow-lg hover:border-emerald-500/30 transition-all duration-300">
+            <div key={sub.id} className="group flex flex-col bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl hover:shadow-xl hover:border-blue-500/30 hover:-translate-y-1 transition-all duration-300 overflow-hidden relative">
                {/* Decorative Gradient Top */}
-               <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-500 group-hover:h-2 transition-all duration-300"></div>
+               <div className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
 
-               <div className="p-6">
+               <div className="p-6 flex-1 flex flex-col">
                   <div className="flex justify-between items-start mb-4">
                      <span className="px-3 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold uppercase tracking-wider rounded-full">
                         {sub.subjectCode}
                      </span>
-                     <div className="text-slate-400 dark:text-slate-500 group-hover:text-blue-500 transition-colors">
+                     <div className="text-slate-400 dark:text-slate-500 group-hover:text-blue-500 transition-colors group-hover:rotate-12 duration-300">
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                         </svg>
                      </div>
                   </div>
 
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 line-clamp-2 min-h-[3.5rem]">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 line-clamp-2 min-h-[3.5rem] group-hover:text-blue-500 transition-colors">
                      {sub.name}
                   </h3>
 
-                  <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mt-4 pt-4 border-t border-gray-100 dark:border-white/5">
+                  <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mt-auto pt-4 border-t border-gray-100 dark:border-white/5">
                      <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                      </svg>
