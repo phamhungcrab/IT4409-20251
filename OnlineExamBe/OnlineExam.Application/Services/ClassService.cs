@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
 using OnlineExam.Application.Dtos.ClassDtos;
@@ -245,7 +246,17 @@ namespace OnlineExam.Application.Services
                         ClassId = classId
                         
                     };
-                    await _studentClassRepo.AddAsync(studentClass);
+                    try
+                    {
+
+                        await _studentClassRepo.AddAsync(studentClass);
+                        await _studentClassRepo.SaveChangesAsync();
+                    }
+                    catch (DbUpdateException ex) when (ex.InnerException is SqlException sqlEx && sqlEx.Number == 2601)
+                    {
+
+                    }
+
                 }
 
             }
@@ -295,8 +306,16 @@ namespace OnlineExam.Application.Services
                         ClassId = classId
 
                     };
+                try
+                {
                     await _studentClassRepo.AddAsync(studentClass);
+                    await _studentClassRepo.SaveChangesAsync();
                 }
+                catch (DbUpdateException ex) when (ex.InnerException is SqlException sqlEx && sqlEx.Number == 2601)
+                {
+
+                }
+            }
 
 
             return new ResultApiModel
