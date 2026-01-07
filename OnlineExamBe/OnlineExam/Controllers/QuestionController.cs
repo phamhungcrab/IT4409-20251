@@ -50,6 +50,7 @@ namespace OnlineExam.Controllers
             var options = new JsonSerializerOptions
             {
                 Converters = { new JsonStringEnumConverter() }
+
             };
 
             options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
