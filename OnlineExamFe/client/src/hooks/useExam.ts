@@ -8,6 +8,7 @@ interface UseExamProps {
   onTimeSync?: (remainingSeconds: number) => void;
   onSynced?: (data: any) => void;
   onSubmitted?: (result?: any) => void;
+  onAnswerSubmitted?: (data: any) => void;
   onError?: (msg: string) => void;
 }
 
@@ -17,6 +18,7 @@ export const useExam = ({
   examId,
   onSynced,
   onSubmitted,
+  onAnswerSubmitted,
   onError,
   onTimeSync,
 }: UseExamProps) => {
@@ -39,6 +41,7 @@ export const useExam = ({
   const onTimeSyncRef = useRef(onTimeSync);
   const onSyncedRef = useRef(onSynced);
   const onSubmittedRef = useRef(onSubmitted);
+  const onAnswerSubmittedRef = useRef(onAnswerSubmitted);
   const onErrorRef = useRef(onError);
 
   // Heartbeat interval
@@ -52,8 +55,9 @@ export const useExam = ({
     onTimeSyncRef.current = onTimeSync;
     onSyncedRef.current = onSynced;
     onSubmittedRef.current = onSubmitted;
+    onAnswerSubmittedRef.current = onAnswerSubmitted;
     onErrorRef.current = onError;
-  }, [onTimeSync, onSynced, onSubmitted, onError]);
+  }, [onTimeSync, onSynced, onSubmitted, onAnswerSubmitted, onError]);
 
   const clearSubmitTimeout = useCallback(() => {
     if (submitTimeoutRef.current) {
@@ -113,8 +117,9 @@ export const useExam = ({
             monitoringService.disconnect();
             onSubmittedRef.current?.(data);
           } else {
-            // Đây là response của SubmitAnswer, không làm gì
+            // Đây là response của SubmitAnswer
             console.log('Answer saved:', data);
+            onAnswerSubmittedRef.current?.(data);
           }
         } else if (Array.isArray(data)) {
           console.log('Synced data received:', data);

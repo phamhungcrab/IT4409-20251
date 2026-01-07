@@ -106,6 +106,51 @@ class MonitoringService {
   private isIntentionalClose = false;
 
   /**
+   * offlineQueue:
+   * - Hàng đợi lưu các message cần gửi khi mất mạng (chỉ lưu các message quan trọng như SubmitAnswer).
+   */
+  private offlineQueue: any[] = [];
+
+  constructor() {
+    // Load queue cũ nếu có (ví dụ sau khi F5)
+    this.loadOfflineQueue();
+
+    // Lắng nghe sự kiện online để reconnect/flush ngay lập tức
+    if (typeof window !== 'undefined') {
+        window.addEventListener('online', () => {
+            console.log('✅ [MonitoringService] Network back online!');
+            if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                this.flushOfflineQueue();
+            } else {
+                // Nếu chưa connect thì việc reconnect sẽ do logic initSocket/scheduleReconnect lo,
+                // hoặc có thể force connect ở đây nếu muốn agresive.
+                // Ở đây ta cứ để scheduleReconnect lo liệu cho an toàn.
+            }
+        });
+    }
+  }
+
+  private loadOfflineQueue() {
+      try {
+          const saved = localStorage.getItem('ws_offline_queue');
+          if (saved) {
+              this.offlineQueue = JSON.parse(saved);
+              if (this.offlineQueue.length > 0) {
+                console.log(`📦 [MonitoringService] Loaded ${this.offlineQueue.length} offline messages from storage.`);
+              }
+          }
+      } catch (e) {
+          console.error('Failed to load offline queue:', e);
+      }
+  }
+
+  private saveOfflineQueue() {
+      try {
+          localStorage.setItem('ws_offline_queue', JSON.stringify(this.offlineQueue));
+      } catch (e) { console.error('Failed to save offline queue', e); }
+  }
+
+  /**
    * =========================
    * connect()
    * =========================
@@ -220,6 +265,11 @@ class MonitoringService {
 
       // Hook nghiệp vụ sau connect (SyncState, join room...)
       if (this.onOpenCallback) this.onOpenCallback();
+
+      // Flush hàng đợi offline sau khi đã ổn định kết nối (delay 1s)
+      setTimeout(() => {
+        this.flushOfflineQueue();
+      }, 1000);
     };
 
     // Nhận message từ server
@@ -365,7 +415,64 @@ class MonitoringService {
       const payload = typeof data === 'string' ? data : JSON.stringify(data);
       this.socket.send(payload);
     } else {
-      console.warn('⚠️ [MonitoringService] Cannot send: Socket not open');
+      // Nếu mất kết nối -> Queue lại để gửi sau
+      this.queueMessage(data);
+    }
+  }
+
+  /**
+   * queueMessage(data):
+   * - Chỉ queue những action quan trọng (SubmitAnswer, SubmitExam).
+   * - Ignored: Heartbeat, SyncState (vì khi connect lại sẽ tự gửi mới).
+   */
+  private queueMessage(data: any) {
+    let action = '';
+    const payload = typeof data === 'string' ? JSON.parse(data) : data;
+
+    if (payload && payload.Action) {
+        action = payload.Action;
+    }
+
+    if (action === 'SubmitAnswer' || action === 'SubmitExam') {
+        console.log(`[MonitoringService] 🔴 Offline: Queued ${action}`, payload);
+        this.offlineQueue.push(data);
+        this.saveOfflineQueue(); // Lưu ngay vào storage
+    }
+  }
+
+  /**
+   * flushOfflineQueue():
+   * - Gửi tất cả message đang chờ trong hàng đợi.
+   */
+  private flushOfflineQueue() {
+    if (this.offlineQueue.length === 0) return;
+
+    console.log(`🚀 [MonitoringService] Flushing ${this.offlineQueue.length} offline messages...`);
+    let sentCount = 0;
+
+    // Clone queue để loop an toàn
+    const queueToFlush = [...this.offlineQueue];
+
+    // Gửi tuần tự
+    // Lưu ý: nếu gửi quá nhanh có thể socket buffer full,
+    // nhưng với lượng data text nhỏ của exam thì thường không sao.
+    for (const msg of queueToFlush) {
+        if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+            const payload = typeof msg === 'string' ? msg : JSON.stringify(msg);
+            this.socket.send(payload);
+            sentCount++;
+
+            // Xoá khỏi queue chính thức
+            this.offlineQueue.shift();
+        } else {
+            console.warn('⚠️ [MonitoringService] Socket closed during flush. Stopping.');
+            break;
+        }
+    }
+
+    if (sentCount > 0) {
+        console.log(`✅ [MonitoringService] Flushed ${sentCount} messages.`);
+        this.saveOfflineQueue(); // Cập nhật lại storage (đã vơi bớt)
     }
   }
 }

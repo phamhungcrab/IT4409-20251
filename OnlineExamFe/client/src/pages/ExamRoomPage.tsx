@@ -143,6 +143,15 @@ const ExamRoomPage: React.FC = () => {
    * Dùng Record<number, any> vì câu tự luận có thể là string,
    * còn trắc nghiệm thường là string nối bằng '|'.
    */
+  /*
+   * answerStatus:
+   * - Lưu trạng thái đồng bộ của từng câu hỏi:
+   *   'synced': Đã được BE xác nhận (Tô xanh).
+   *   'pending': Đã gửi/đang chờ/offline (Tô vàng).
+   *   undefined: Chưa làm hoặc chưa rõ.
+   */
+  const [answerStatus, setAnswerStatus] = useState<Record<number, 'synced' | 'pending'>>({});
+
   const [answers, setAnswers] = useState<Record<number, any>>({});
 
   /**
@@ -241,14 +250,24 @@ const ExamRoomPage: React.FC = () => {
     // NEW: Đồng bộ timer từ BE (BE gửi số giây còn lại mỗi giây)
     onTimeSync: setRemainingTime, // Giờ đã có setRemainingTime để dùng
 
+    // NEW: Khi 1 câu trả lời được BE xác nhận (SubmitAnswer ACK)
+    onAnswerSubmitted: (data: any) => {
+      const qId = data.questionId ?? data.QuestionId;
+      if (qId) {
+        setAnswerStatus((prev) => ({ ...prev, [qId]: 'synced' }));
+      }
+    },
+
     onSynced: (syncedData) => {
       if (Array.isArray(syncedData)) {
         const incoming: Record<number, any> = {};
+        const syncedIds: number[] = [];
 
         syncedData.forEach((item: any) => {
           const qId = item.questionId ?? item.QuestionId ?? item.id ?? item.Id;
 
           if (qId !== undefined && qId !== null) {
+            syncedIds.push(qId);
             const raw = item.answer ?? item.Answer;
 
             // Nếu server trả dạng mảng thì nối thành chuỗi "a|b|c"
@@ -264,6 +283,15 @@ const ExamRoomPage: React.FC = () => {
         if (Object.keys(incoming).length > 0) {
           setAnswers((prev) => ({ ...prev, ...incoming }));
         }
+
+        // Cập nhật trạng thái synced cho các câu đã có trên server
+        if (syncedIds.length > 0) {
+          setAnswerStatus((prev) => {
+            const next = { ...prev };
+            syncedIds.forEach((id) => (next[id] = 'synced'));
+            return next;
+          });
+        }
       }
 
       console.log(t('exam.synced'));
@@ -277,7 +305,18 @@ const ExamRoomPage: React.FC = () => {
       setSubmitResult({ success: true });
     },
 
-    onError: (msg) => alert(`${t('common.error')}: ${msg}`)
+    onError: (msg) => {
+      // Bỏ alert lỗi "không được để trống" theo yêu cầu (kệ họ)
+      if (
+        typeof msg === 'string' &&
+        (msg.toLowerCase().includes('trống') ||
+          msg.toLowerCase().includes('empty') ||
+          msg.toLowerCase().includes('null'))
+      ) {
+        return;
+      }
+      alert(`${t('common.error')}: ${msg}`);
+    }
   });
 
   // Cập nhật ref mỗi khi submitExam thay đổi
@@ -551,8 +590,9 @@ const ExamRoomPage: React.FC = () => {
       answerText = selectedOpts.join('|');
     }
 
-    // (1) cập nhật UI
+    // (1) cập nhật UI & đánh dấu pending (Vàng)
     setAnswers((prev) => ({ ...prev, [questionId]: answerText }));
+    setAnswerStatus((prev) => ({ ...prev, [questionId]: 'pending' }));
 
     // (2) đồng bộ realtime lên server
     syncAnswer(questionId, order, answerText);
@@ -697,6 +737,13 @@ const ExamRoomPage: React.FC = () => {
         </div>
       </header>
 
+      {/* Cảnh báo offline */}
+      {(connectionState === 'disconnected' || connectionState === 'reconnecting') && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-3 text-center text-sm font-medium text-amber-300 animate-pulse">
+            ⚠️ Đang mất kết nối máy chủ. Đừng lo, đáp án của bạn đang được lưu offline và sẽ tự động gửi khi có mạng lại. Vui lòng KHÔNG đóng tab này.
+        </div>
+      )}
+
       <main className="flex-1">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-6 lg:flex-row">
           {/* Cột trái: câu hỏi hiện tại + prev/next */}
@@ -746,19 +793,43 @@ const ExamRoomPage: React.FC = () => {
                 - Nếu đang ở câu hiện tại -> nền xanh.
               */}
               <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-4">
-                {questions.map((q, idx) => (
+                {questions.map((q, idx) => {
+                  const status = answerStatus[q.id];
+                  const hasAnswer = !!answers[q.id];
+
+                  // Logic màu sắc:
+                  // - Synced (Xanh): Đã được server xác nhận
+                  // - Pending (Vàng): Có đáp án nhưng chưa synced (hoặc local)
+                  // - Default: Chưa làm
+                  let borderClass = 'border-white/10';
+                  let bgClass = ''; // default bg is handle below logic
+
+                  if (status === 'synced') {
+                    borderClass = 'border-emerald-400 bg-emerald-500/20 text-emerald-100';
+                  } else if (status === 'pending') {
+                    borderClass = 'border-amber-400 bg-amber-500/20 text-amber-100';
+                  } else if (hasAnswer) {
+                    // Có đáp án nhưng không rõ status (thường là mới load trang chưa sync xong)
+                    // -> Mặc định coi là pending (Vàng) hoặc để trắng tuỳ ý.
+                    // User yêu cầu: "chưa tick thi không tô màu".
+                    // Nếu đã tick (hasAnswer) mà chưa sync -> tốt nhất nên là Vàng.
+                    borderClass = 'border-amber-400/50 bg-amber-500/10 text-amber-100/70';
+                  }
+
+                  return (
                   <button
                     key={q.id}
                     onClick={() => setCurrentQuestionIndex(idx)}
-                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition
-                      ${currentQuestionIndex === idx ? 'bg-sky-500 text-white' : 'bg-white/5 text-slate-100'}
-                      ${answers[q.id] ? 'border border-emerald-300/50' : 'border border-white/10'}
+                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition border
+                      ${currentQuestionIndex === idx ? 'bg-sky-600 text-white ring-2 ring-sky-300' : 'bg-white/5'}
+                      ${borderClass}
                     `}
                     aria-label={`${t('exam.questions')} ${idx + 1}`}
                   >
                     {idx + 1}
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
