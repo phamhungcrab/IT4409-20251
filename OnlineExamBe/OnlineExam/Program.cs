@@ -116,6 +116,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
+            "https://localhost:7239",
             "https://www.manhhangmobile.store",
             "https://manhhangmobile.store",      // Development frontend
             "https://it4409-fe.vercel.app",   // Production frontend
