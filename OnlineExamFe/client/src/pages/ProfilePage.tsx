@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authService } from '../services/authService';
 import useAuth from '../hooks/useAuth';
+import { formatLocalDate } from '../utils/dateUtils';
 
 const ProfilePage: React.FC = () => {
     const { t } = useTranslation();
@@ -104,7 +105,7 @@ const ProfilePage: React.FC = () => {
                             <div>
                                 <label className="text-xs text-slate-500 uppercase font-semibold">Ngày sinh</label>
                                 <p className="text-slate-300 font-medium">
-                                    {userInfo.dateOfBirth ? new Date(userInfo.dateOfBirth).toLocaleDateString('vi-VN') : 'N/A'}
+                                    {userInfo.dateOfBirth ? formatLocalDate(userInfo.dateOfBirth) : 'N/A'}
                                 </p>
                             </div>
                         </div>

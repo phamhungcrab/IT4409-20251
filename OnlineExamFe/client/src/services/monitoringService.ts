@@ -79,7 +79,7 @@ class MonitoringService {
    * - Giới hạn số lần reconnect.
    * - Tránh loop vô hạn nếu server chết hẳn hoặc URL sai.
    */
-  private maxReconnectAttempts = 5;
+  private maxReconnectAttempts = 10;
 
   /**
    * isConnecting:
@@ -138,7 +138,7 @@ class MonitoringService {
 
     // Nếu URL đổi hoặc socket đã chết hẳn -> Connect mới
     if (this.url !== url || !this.socket || this.socket.readyState === WebSocket.CLOSED) {
-      console.log(`[MonitoringService] Connecting new socket. Old URL: ${this.url}, New URL: ${url}`);
+      console.log('[MonitoringService] Connecting new socket (URL changed or socket closed)');
       this.disconnect();
       this.url = url;
       this.onMessageCallback = onMessage;
@@ -193,7 +193,7 @@ class MonitoringService {
     // Clear timeout cũ (tránh chạy reconnect “kép”)
     if (this.reconnectTimeoutId) clearTimeout(this.reconnectTimeoutId);
 
-    console.log(`🔌 [MonitoringService] Connecting to ${this.url}`);
+    console.log('🔌 [MonitoringService] Connecting...');
 
     // Báo UI: connecting
     if (this.onStatusChangeCallback) this.onStatusChangeCallback('connecting');

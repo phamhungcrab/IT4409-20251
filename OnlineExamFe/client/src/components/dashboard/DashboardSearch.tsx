@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ClassDto } from '../../services/classService';
+import { formatShortDateTime } from '../../utils/dateUtils';
 
 interface DashboardSearchProps {
   classes: ClassDto[];
@@ -131,7 +132,7 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({ classes }) => {
                       </div>
                       <h4 className="text-white font-semibold truncate group-hover:text-purple-400 transition-colors">{item.name}</h4>
                       <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-                        <span>🕒 {new Date(item.startTime).toLocaleDateString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</span>
+                        <span>🕒 {formatShortDateTime(item.startTime)}</span>
                         <span>⏱️ {item.durationMinutes} phút</span>
                       </p>
                     </div>

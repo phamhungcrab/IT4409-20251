@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { examService, ExamStudentStatus } from '../../services/examService';
-
+import { formatLocalDate } from '../../utils/dateUtils';
 interface TeacherClassReportsProps {
   classId: number;
   className: string;
@@ -257,7 +257,7 @@ const TeacherClassReports: React.FC<TeacherClassReportsProps> = ({ classId, clas
 
       {/* Print Footer */}
       <div className="hidden print:block text-center text-sm text-gray-500 mt-8">
-         Báo cáo được xuất từ hệ thống Online Exam vào ngày {new Date().toLocaleDateString('vi-VN')}
+         Báo cáo được xuất từ hệ thống Online Exam vào ngày {formatLocalDate(new Date())}
       </div>
     </div>
   );

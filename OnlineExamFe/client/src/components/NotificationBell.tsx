@@ -8,6 +8,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AnnouncementDto } from '../services/announcementService';
+import { formatRelativeTime } from '../utils/dateUtils';
 
 export interface NotificationBellProps {
   announcements: AnnouncementDto[];
@@ -128,7 +129,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
                       </p>
                       <p className="text-[10px] text-slate-500 mt-1">
                         {ann.className && `${ann.className} • `}
-                        {new Date(ann.createdAt).toLocaleDateString('vi-VN')}
+                        {formatRelativeTime(ann.createdAt)}
                       </p>
                     </div>
 

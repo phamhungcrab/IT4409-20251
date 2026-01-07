@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ClassSpotlightItem } from '../../services/dashboardService';
+import { formatShortDateTime } from '../../utils/dateUtils';
 
 interface ClassSpotlightCardProps {
   classes: ClassSpotlightItem[];
@@ -48,7 +49,7 @@ const ClassSpotlightCard: React.FC<ClassSpotlightCardProps> = ({ classes, isLoad
                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                              </svg>
-                             Kỳ thi tiếp: {new Date(cls.nextExam).toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}
+                             Kỳ thi tiếp: {formatShortDateTime(cls.nextExam)}
                           </div>
                       )}
                    </div>

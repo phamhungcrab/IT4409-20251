@@ -3,6 +3,7 @@ import useAuth from '../hooks/useAuth';
 import { dashboardService } from '../services/dashboardService';
 import { examService, ExamStudentStatus } from '../services/examService';
 import { resultService, ResultSummary } from '../services/resultService';
+import { formatLocalDateTime, formatShortDateTime } from '../utils/dateUtils';
 
 const TeacherExamList: React.FC = () => {
   const { user } = useAuth();
@@ -166,7 +167,7 @@ const TeacherExamList: React.FC = () => {
 
                              <div className="space-y-2 text-sm text-slate-400 mb-4 flex-1">
                                  <div className="flex items-center gap-2">
-                                     <span>🕒 {start.toLocaleDateString('vi-VN')} {start.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</span>
+                                     <span>🕒 {formatShortDateTime(ex.startTime)}</span>
                                  </div>
                                  <div className="flex items-center gap-2">
                                      <span>⏱️ {ex.durationMinutes} phút</span>
@@ -239,7 +240,7 @@ const TeacherExamList: React.FC = () => {
                                                 ) : <span className="text-slate-600">-</span>}
                                             </td>
                                             <td className="py-3 px-4 text-slate-400">
-                                                {student.submittedAt ? new Date(student.submittedAt).toLocaleString('vi-VN') : '-'}
+                                                {student.submittedAt ? formatLocalDateTime(student.submittedAt) : '-'}
                                             </td>
                                             <td className="py-3 px-4 text-right">
                                                 {student.status === 'COMPLETED' && (

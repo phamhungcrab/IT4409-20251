@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { examService } from '../../services/examService';
 import { StudentExamDto } from '../../types/exam';
+import { formatLocalDate } from '../../utils/dateUtils';
 
 /**
  * StudentDashboardProps:
@@ -97,7 +98,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user }) => {
                         <div className="text-sm text-slate-400 flex gap-3 mt-1">
                            <span>⏱ {exam.durationMinutes} phút</span>
                            <span className="text-slate-600">|</span>
-                           <span>📅 {new Date(exam.startTime).toLocaleDateString('vi-VN')}</span>
+                           <span>📅 {formatLocalDate(exam.startTime)}</span>
                         </div>
                      </div>
                   </div>
