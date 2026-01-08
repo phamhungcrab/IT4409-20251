@@ -45,7 +45,7 @@ namespace OnlineExam.Middleware
                 return;
             }
 
-            using WebSocket socket = await context.WebSockets.AcceptWebSocketAsync(); 
+            using WebSocket socket = await context.WebSockets.AcceptWebSocketAsync();
             await ListenLoop(socket, examId, studentId);
         }
 
@@ -79,9 +79,25 @@ namespace OnlineExam.Middleware
                             var remainingTime = exam.DurationMinutes * 60 - (int)(DateTime.Now - examStudent.StartTime).TotalSeconds;
                             if (remainingTime <= 0 || exam.EndTime <= DateTime.Now)
                             {
+                                // Hết giờ -> Tự động nộp
                                 await HandleSubmitExam(socket, examId, studentId);
                                 break;
                             }
+
+                            // Check nếu bài thi đã bị nộp (Force Submit bởi Teacher)
+                            if (examStudent.Status == ExamStatus.COMPLETED)
+                            {
+                                var msgBytes = Encoding.UTF8.GetBytes(
+                                    JsonSerializer.Serialize(new {
+                                        status = "force_submitted",
+                                        reason = "Bài thi đã được thu bởi giáo viên"
+                                    })
+                                );
+                                await socket.SendAsync(msgBytes, WebSocketMessageType.Text, true, CancellationToken.None);
+                                await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Force submitted", CancellationToken.None);
+                                break;
+                            }
+
                             var bytes = Encoding.UTF8.GetBytes(remainingTime.ToString());
                             try
                             {
@@ -103,7 +119,7 @@ namespace OnlineExam.Middleware
                         }
                     }
                 }
-                catch(Exception ex) 
+                catch(Exception ex)
                 {
                     Console.WriteLine(ex.ToString());
                 }
@@ -120,7 +136,7 @@ namespace OnlineExam.Middleware
                     }
                 }
             });
-            
+
 
             // nhan ycau tu fe de xu ly
 
@@ -220,11 +236,28 @@ namespace OnlineExam.Middleware
                     x.ExamId == examId &&
                     x.StudentId == studentId);
 
-            if (state == null || state.Status != ExamStatus.IN_PROGRESS)
+            if (state == null)
             {
-                await SendWsError(socket,
-                    "EXAM_CLOSED",
-                    "Bài thi không tồn tại hoặc đã kết thúc");
+                await SendWsError(socket, "EXAM_NOT_FOUND", "Bài thi không tồn tại");
+                return;
+            }
+
+            if (state.Status == ExamStatus.COMPLETED)
+            {
+                // Nếu đã completed (có thể do force submit), gửi lại message force_submitted
+                var msgBytes = Encoding.UTF8.GetBytes(
+                    JsonSerializer.Serialize(new {
+                        status = "force_submitted",
+                        reason = "Bài thi đã được thu bởi giáo viên"
+                    })
+                );
+                await socket.SendAsync(msgBytes, WebSocketMessageType.Text, true, CancellationToken.None);
+                return;
+            }
+
+            if (state.Status != ExamStatus.IN_PROGRESS)
+            {
+                await SendWsError(socket, "EXAM_CLOSED", "Bài thi đã kết thúc");
                 return;
             }
 

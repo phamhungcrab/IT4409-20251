@@ -10,6 +10,7 @@ interface UseExamProps {
   onSubmitted?: (result?: any) => void;
   onAnswerSubmitted?: (data: any) => void;
   onError?: (msg: string) => void;
+  onForceSubmit?: (reason?: string) => void; // Called when teacher force submits
 }
 
 type PendingAnswer = {
@@ -27,6 +28,7 @@ export const useExam = ({
   onAnswerSubmitted,
   onError,
   onTimeSync,
+  onForceSubmit,
 }: UseExamProps) => {
   const debugEnabled =
     typeof window !== 'undefined' &&
@@ -78,6 +80,7 @@ export const useExam = ({
   const onSubmittedRef = useRef(onSubmitted);
   const onAnswerSubmittedRef = useRef(onAnswerSubmitted);
   const onErrorRef = useRef(onError);
+  const onForceSubmitRef = useRef(onForceSubmit);
 
   // Heartbeat interval
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -92,7 +95,8 @@ export const useExam = ({
     onSubmittedRef.current = onSubmitted;
     onAnswerSubmittedRef.current = onAnswerSubmitted;
     onErrorRef.current = onError;
-  }, [onTimeSync, onSynced, onSubmitted, onAnswerSubmitted, onError]);
+    onForceSubmitRef.current = onForceSubmit;
+  }, [onTimeSync, onSynced, onSubmitted, onAnswerSubmitted, onError, onForceSubmit]);
 
   const clearSubmitTimeout = useCallback(() => {
     if (submitTimeoutRef.current) {
@@ -219,6 +223,13 @@ export const useExam = ({
         }
         if (data.status === 'error' || data.type === 'error') {
           onErrorRef.current?.(data.message);
+        }
+        // Handle force submit from teacher
+        if (data.status === 'force_submitted' || data.action === 'ForceSubmit') {
+          debugLog('force_submitted', { reason: data.reason });
+          clearPendingFromStorage();
+          monitoringService.disconnect();
+          onForceSubmitRef.current?.(data.reason || 'Bài thi đã được nộp bởi giáo viên');
         }
       },
       // 2. Callback trạng thái
