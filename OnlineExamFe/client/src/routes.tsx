@@ -60,6 +60,8 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ForbiddenPage = lazy(() => import('./pages/ForbiddenPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
 
 /**
  * appRoutes: toàn bộ cấu hình route của ứng dụng.
@@ -97,6 +99,14 @@ export const appRoutes: RouteObject[] = [
          */
         index: true,
         element: <HomePage />,
+      },
+      {
+        path: 'about',
+        element: <AboutPage />,
+      },
+      {
+        path: 'contact',
+        element: <ContactPage />,
       },
       {
         path: 'teacher/classes/:classId',
@@ -166,22 +176,6 @@ export const appRoutes: RouteObject[] = [
       },
       {
         /**
-         * Phòng thi:
-         * - URL: '/exam/:examId'
-         * - ':examId' là tham số động trên URL
-         *   Ví dụ: /exam/10 => examId = '10'
-         *
-         * Chỉ Student mới được vào phòng thi => bọc RoleGuard.
-         */
-        path: 'exam/:examId',
-        element: (
-          <RoleGuard allowedRoles={['Student']}>
-            <ExamRoomPage />
-          </RoleGuard>
-        ),
-      },
-      {
-        /**
          * Trang danh sách kết quả:
          * - URL: '/results'
          * - Cho phép nhiều role xem (Student/Teacher/Admin) tùy nghiệp vụ
@@ -230,6 +224,20 @@ export const appRoutes: RouteObject[] = [
         element: <NotFoundPage />,
       },
     ],
+  },
+
+  /**
+   * Phòng thi - Route độc lập (KHÔNG có Layout):
+   * - Ẩn Sidebar và Header để học sinh không thể rời phòng thi
+   * - Ngăn lỗi WebSocket bị duplicate khi bấm điều hướng
+   */
+  {
+    path: '/exam/:examId',
+    element: (
+      <RoleGuard allowedRoles={['Student']}>
+        <ExamRoomPage />
+      </RoleGuard>
+    ),
   },
 ];
 

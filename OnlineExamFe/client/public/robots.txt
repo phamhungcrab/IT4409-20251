@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /admin/
-Sitemap: https://manhhangmobile.store/sitemap.xml
+Sitemap: https://www.manhhangmobile.store/sitemap.xml

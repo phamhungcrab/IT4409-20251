@@ -42,13 +42,14 @@ class MonitoringService {
   /**
    * onStatusChangeCallback:
    * - Callback để UI cập nhật trạng thái WS.
-   * - Quy ước 3 trạng thái:
+   * - Quy ước 4 trạng thái:
    *   - connecting: đang kết nối
    *   - connected: đã kết nối
+   *   - reconnecting: soft offline (không nhận message) hoặc đang reconnect
    *   - disconnected: mất kết nối
    */
   private onStatusChangeCallback:
-    ((status: 'connecting' | 'connected' | 'disconnected') => void) | null = null;
+    ((status: 'connecting' | 'connected' | 'reconnecting' | 'disconnected') => void) | null = null;
 
   /**
    * onOpenCallback:
@@ -79,7 +80,14 @@ class MonitoringService {
    * - Giới hạn số lần reconnect.
    * - Tránh loop vô hạn nếu server chết hẳn hoặc URL sai.
    */
-  private maxReconnectAttempts = 50;
+  private maxReconnectAttempts = 10;
+
+  /**
+   * isConnecting:
+   * - Cờ đánh dấu đang trong quá trình tạo kết nối.
+   * - Ngăn việc gọi initSocket() trùng lặp.
+   */
+  private isConnecting = false;
 
   /**
    * reconnectTimeoutId:
@@ -97,6 +105,72 @@ class MonitoringService {
    * - Nếu false => coi là disconnect ngoài ý muốn => auto reconnect.
    */
   private isIntentionalClose = false;
+
+  /**
+   * offlineQueue:
+   * - Hàng đợi lưu các message cần gửi khi mất mạng (chỉ lưu các message quan trọng như SubmitAnswer).
+   */
+  private offlineQueue: any[] = [];
+
+  /**
+   * Watchdog: Phát hiện "soft offline" khi không nhận được message trong X giây
+   */
+  private lastMessageAt: number = Date.now();
+  private watchdogIntervalId: any = null;
+  private readonly WATCHDOG_INTERVAL_MS = 1000; // Check mỗi 1 giây
+  private readonly SOFT_OFFLINE_THRESHOLD_MS = 3000; // 3 giây không nhận message = soft offline
+  private isSoftOffline = false;
+
+  constructor() {
+    // Load queue cũ nếu có (ví dụ sau khi F5)
+    this.loadOfflineQueue();
+
+    // Lắng nghe sự kiện online/offline để xử lý kịp thời
+    if (typeof window !== 'undefined') {
+        // Khi mất mạng -> Đóng socket ngay để trigger reconnect logic
+        window.addEventListener('offline', () => {
+            console.log('❌ [MonitoringService] Network offline detected!');
+            // Đóng socket hiện tại (nếu có) để trigger onclose -> scheduleReconnect
+            if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
+                this.isIntentionalClose = false; // Đảm bảo sẽ reconnect
+                this.socket.close();
+            }
+        });
+
+        // Khi có mạng lại -> Flush queue hoặc reconnect
+        window.addEventListener('online', () => {
+            console.log('✅ [MonitoringService] Network back online!');
+            if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                this.flushOfflineQueue();
+            } else {
+                // Nếu socket đã đóng, reset flag và thử connect lại
+                this.isIntentionalClose = false;
+                this.reconnectAttempts = 0;
+                this.initSocket();
+            }
+        });
+    }
+  }
+
+  private loadOfflineQueue() {
+      try {
+          const saved = localStorage.getItem('ws_offline_queue');
+          if (saved) {
+              this.offlineQueue = JSON.parse(saved);
+              if (this.offlineQueue.length > 0) {
+                console.log(`📦 [MonitoringService] Loaded ${this.offlineQueue.length} offline messages from storage.`);
+              }
+          }
+      } catch (e) {
+          console.error('Failed to load offline queue:', e);
+      }
+  }
+
+  private saveOfflineQueue() {
+      try {
+          localStorage.setItem('ws_offline_queue', JSON.stringify(this.offlineQueue));
+      } catch (e) { console.error('Failed to save offline queue', e); }
+  }
 
   /**
    * =========================
@@ -125,11 +199,13 @@ class MonitoringService {
   public connect(
     url: string,
     onMessage: (data: any) => void,
-    onStatusChange?: (status: 'connecting' | 'connected' | 'disconnected') => void,
+    onStatusChange?: (status: 'connecting' | 'connected' | 'reconnecting' | 'disconnected') => void,
     onOpen?: () => void
   ): WebSocket | null {
+
     // Nếu URL đổi hoặc socket đã chết hẳn -> Connect mới
     if (this.url !== url || !this.socket || this.socket.readyState === WebSocket.CLOSED) {
+      console.log('[MonitoringService] Connecting new socket (URL changed or socket closed)');
       this.disconnect();
       this.url = url;
       this.onMessageCallback = onMessage;
@@ -174,10 +250,17 @@ class MonitoringService {
     // Không có URL => không thể connect
     if (!this.url) return;
 
+    // Chống tạo trùng: nếu đang connecting thì không tạo thêm
+    if (this.isConnecting) {
+      console.log('[MonitoringService] Already connecting, skip duplicate initSocket');
+      return;
+    }
+    this.isConnecting = true;
+
     // Clear timeout cũ (tránh chạy reconnect “kép”)
     if (this.reconnectTimeoutId) clearTimeout(this.reconnectTimeoutId);
 
-    console.log(`🔌 [MonitoringService] Connecting to ${this.url}`);
+    console.log('🔌 [MonitoringService] Connecting...');
 
     // Báo UI: connecting
     if (this.onStatusChangeCallback) this.onStatusChangeCallback('connecting');
@@ -195,18 +278,39 @@ class MonitoringService {
     this.socket.onopen = () => {
       console.log('✅ [MonitoringService] Connected');
 
-      // Reset count vì đã connect lại OK
+      // Reset flags
+      this.isConnecting = false;
       this.reconnectAttempts = 0;
+      this.lastMessageAt = Date.now();
+      this.isSoftOffline = false;
+
+      // Start watchdog
+      this.startWatchdog();
 
       // Báo UI: connected
       if (this.onStatusChangeCallback) this.onStatusChangeCallback('connected');
 
       // Hook nghiệp vụ sau connect (SyncState, join room...)
       if (this.onOpenCallback) this.onOpenCallback();
+
+      // Flush hàng đợi offline sau khi đã ổn định kết nối (delay 1s)
+      setTimeout(() => {
+        this.flushOfflineQueue();
+      }, 1000);
     };
 
     // Nhận message từ server
     this.socket.onmessage = (event) => {
+      // Update watchdog timer
+      this.lastMessageAt = Date.now();
+
+      // Reset soft offline if was offline
+      if (this.isSoftOffline) {
+        this.isSoftOffline = false;
+        console.log('📡 [MonitoringService] Messages resumed - Connection recovered');
+        if (this.onStatusChangeCallback) this.onStatusChangeCallback('connected');
+      }
+
       if (!this.onMessageCallback) return;
 
       try {
@@ -221,7 +325,19 @@ class MonitoringService {
 
     // Khi socket bị đóng
     this.socket.onclose = (event) => {
-      console.log('❌ [MonitoringService] Disconnected', event.code, event.reason);
+      const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+      console.log(`❌ [MonitoringService] Connection lost - Socket closed (Code: ${event.code}). Network: ${isOnline ? 'Online' : 'Offline'}`);
+
+      if (!isOnline) {
+        console.log('📡 [MonitoringService] Reason: Network disconnected (No internet)');
+      } else if (event.code === 1006) {
+        console.log('📡 [MonitoringService] Reason: Abnormal closure (Server unreachable or network issue)');
+      } else if (event.code === 1000) {
+        console.log('📡 [MonitoringService] Reason: Normal closure');
+      }
+
+      // Reset connecting flag
+      this.isConnecting = false;
 
       // Báo UI: disconnected
       if (this.onStatusChangeCallback) this.onStatusChangeCallback('disconnected');
@@ -276,6 +392,61 @@ class MonitoringService {
 
   /**
    * =========================
+   * startWatchdog()
+   * =========================
+   * Khởi chạy watchdog timer để phát hiện "soft offline"
+   * khi không nhận được message trong SOFT_OFFLINE_THRESHOLD_MS
+   */
+  private startWatchdog() {
+    this.stopWatchdog(); // Clear existing
+    this.watchdogIntervalId = setInterval(() => {
+      const now = Date.now();
+      const timeSinceLastMessage = now - this.lastMessageAt;
+
+      if (timeSinceLastMessage > this.SOFT_OFFLINE_THRESHOLD_MS && !this.isSoftOffline) {
+        this.isSoftOffline = true;
+        console.log(`⚠️ [MonitoringService] Soft offline detected - No messages for ${Math.round(timeSinceLastMessage / 1000)}s`);
+        if (this.onStatusChangeCallback) {
+          this.onStatusChangeCallback('reconnecting');
+        }
+      }
+    }, this.WATCHDOG_INTERVAL_MS);
+  }
+
+  /**
+   * =========================
+   * stopWatchdog()
+   * =========================
+   * Dừng watchdog timer
+   */
+  private stopWatchdog() {
+    if (this.watchdogIntervalId) {
+      clearInterval(this.watchdogIntervalId);
+      this.watchdogIntervalId = null;
+    }
+  }
+
+  /**
+   * =========================
+   * suppressReconnect()
+   * =========================
+   * Dùng khi client biết sẽ đóng socket (ví dụ: submit bài),
+   * để tránh auto-reconnect sau khi server chủ động đóng.
+   */
+  public suppressReconnect(reason?: string) {
+    if (reason) {
+      console.log(`[MonitoringService] Suppress reconnect: ${reason}`);
+    }
+    this.isIntentionalClose = true;
+    this.stopWatchdog();
+    if (this.reconnectTimeoutId) {
+      clearTimeout(this.reconnectTimeoutId);
+      this.reconnectTimeoutId = null;
+    }
+  }
+
+  /**
+   * =========================
    * disconnect()
    * =========================
    * Ngắt kết nối chủ động từ client.
@@ -288,7 +459,9 @@ class MonitoringService {
    * - Set socket=null để trạng thái “đã hủy”.
    */
   public disconnect() {
+    console.log('[MonitoringService] Disconnect called');
     this.isIntentionalClose = true;
+    this.isConnecting = false; // Reset để cho phép connect lại
     if (this.reconnectTimeoutId) clearTimeout(this.reconnectTimeoutId);
 
     if (this.socket) {
@@ -321,11 +494,82 @@ class MonitoringService {
    * - Chỉ gửi khi socket OPEN.
    */
   public send(data: any) {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+    // Check thêm navigator.onLine để bắt trường hợp rút dây mạng nhưng socket chưa kịp đóng
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+    const isSocketOpen = this.socket && this.socket.readyState === WebSocket.OPEN;
+
+    if (isSocketOpen && isOnline) {
       const payload = typeof data === 'string' ? data : JSON.stringify(data);
-      this.socket.send(payload);
+      try {
+        this.socket!.send(payload);
+      } catch (err) {
+        console.warn('[MonitoringService] Send failed, queuing...', err);
+        this.queueMessage(data);
+      }
     } else {
-      console.warn('⚠️ [MonitoringService] Cannot send: Socket not open');
+      // Nếu mất kết nối hoặc offline -> Queue lại để gửi sau
+      console.log(`[MonitoringService] Cannot send (Socket: ${this.socket?.readyState}, Online: ${isOnline}). Queueing...`);
+      this.queueMessage(data);
+    }
+  }
+
+  /**
+   * queueMessage(data):
+   * - Chỉ queue SubmitExam (nộp bài).
+   * - SubmitAnswer được xử lý bởi pendingAnswersRef trong useExam (có localStorage persist).
+   */
+  private queueMessage(data: any) {
+    let action = '';
+    const payload = typeof data === 'string' ? JSON.parse(data) : data;
+
+    if (payload && payload.Action) {
+        action = payload.Action;
+    }
+
+    // Chỉ queue SubmitExam, SubmitAnswer để Pending trong useExam xử lý
+    if (action === 'SubmitExam') {
+        console.log(`[MonitoringService] 🔴 Offline: Queued ${action}`, payload);
+        this.offlineQueue.push(data);
+        this.saveOfflineQueue();
+    } else if (action === 'SubmitAnswer') {
+        // Log nhưng KHÔNG queue - useExam Pending sẽ lo
+        console.log(`[MonitoringService] 📝 SubmitAnswer offline - handled by Pending`);
+    }
+  }
+
+  /**
+   * flushOfflineQueue():
+   * - Gửi tất cả message đang chờ trong hàng đợi.
+   */
+  private flushOfflineQueue() {
+    if (this.offlineQueue.length === 0) return;
+
+    console.log(`🚀 [MonitoringService] Flushing ${this.offlineQueue.length} offline messages...`);
+    let sentCount = 0;
+
+    // Clone queue để loop an toàn
+    const queueToFlush = [...this.offlineQueue];
+
+    // Gửi tuần tự
+    // Lưu ý: nếu gửi quá nhanh có thể socket buffer full,
+    // nhưng với lượng data text nhỏ của exam thì thường không sao.
+    for (const msg of queueToFlush) {
+        if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+            const payload = typeof msg === 'string' ? msg : JSON.stringify(msg);
+            this.socket.send(payload);
+            sentCount++;
+
+            // Xoá khỏi queue chính thức
+            this.offlineQueue.shift();
+        } else {
+            console.warn('⚠️ [MonitoringService] Socket closed during flush. Stopping.');
+            break;
+        }
+    }
+
+    if (sentCount > 0) {
+        console.log(`✅ [MonitoringService] Flushed ${sentCount} messages.`);
+        this.saveOfflineQueue(); // Cập nhật lại storage (đã vơi bớt)
     }
   }
 }

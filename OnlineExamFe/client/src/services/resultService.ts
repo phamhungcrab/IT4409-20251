@@ -9,6 +9,7 @@
 
 import apiClient from '../utils/apiClient';
 import { ResultItem } from '../components/ResultTable';
+import { parseUtcDate } from '../utils/dateUtils';
 
 export type { ResultItem };
 
@@ -22,6 +23,8 @@ export interface StudentExam {
   endTime: string;
   durationMinutes: number;
   status: string | null; // null = chưa làm, "in_progress", "COMPLETED"
+  studentStartTime?: string;
+  studentEndTime?: string;
 }
 
 /**
@@ -168,12 +171,19 @@ export const resultService = {
           examTitle: exam.examName || `Bài thi #${exam.examId}`,
           score: summary?.finalScore ?? 0,
           status: 'completed',
-          submittedAt: exam.endTime || '',
+          submittedAt: exam.studentEndTime || exam.endTime || '',
           // Thêm thông tin bổ sung
           correctCount: summary?.correctCount,
           totalQuestions: summary?.totalQuestions
         });
       }
+
+      // Bước 4: Sắp xếp theo thời gian nộp bài mới nhất -> cũ nhất
+      results.sort((a, b) => {
+        const timeA = parseUtcDate(a.submittedAt)?.getTime() ?? 0;
+        const timeB = parseUtcDate(b.submittedAt)?.getTime() ?? 0;
+        return timeB - timeA;
+      });
 
       return results;
     } catch (e: any) {

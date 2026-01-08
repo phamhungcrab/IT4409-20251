@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ClassDto } from '../../services/classService';
+import { formatShortDateTime, parseUtcDate } from '../../utils/dateUtils';
 
 interface DashboardSearchProps {
   classes: ClassDto[];
@@ -19,7 +20,7 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({ classes }) => {
         classId: cls.id,
         subjectCode: cls.subject?.subjectCode
       }))
-    ).sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+    ).sort((a, b) => (parseUtcDate(b.startTime)?.getTime() ?? 0) - (parseUtcDate(a.startTime)?.getTime() ?? 0));
   }, [classes]);
 
   // Filter logic
@@ -131,7 +132,7 @@ const DashboardSearch: React.FC<DashboardSearchProps> = ({ classes }) => {
                       </div>
                       <h4 className="text-white font-semibold truncate group-hover:text-purple-400 transition-colors">{item.name}</h4>
                       <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-                        <span>🕒 {new Date(item.startTime).toLocaleDateString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</span>
+                        <span>🕒 {formatShortDateTime(item.startTime)}</span>
                         <span>⏱️ {item.durationMinutes} phút</span>
                       </p>
                     </div>

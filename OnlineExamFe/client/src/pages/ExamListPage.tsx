@@ -5,6 +5,7 @@ import { examService } from '../services/examService';
 import { ExamDto, ExamGenerateResultDto, StudentExamDto } from '../types/exam';
 import useAuth from '../hooks/useAuth';
 import TeacherExamList from './TeacherExamList';
+import { formatLocalDateTime } from '../utils/dateUtils';
 
 /**
  * ExamListPage (Trang danh sách bài thi):
@@ -443,7 +444,7 @@ const ExamListPage: React.FC = () => {
                     {t('exam.duration')}: {exam.durationMinutes} phút
                   </p>
                   <p>
-                    {t('exam.startTime')}: {new Date(exam.startTime).toLocaleString()}
+                    {t('exam.startTime')}: {formatLocalDateTime(exam.startTime)}
                   </p>
                 </div>
               </div>

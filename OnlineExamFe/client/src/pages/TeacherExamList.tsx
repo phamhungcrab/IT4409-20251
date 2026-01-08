@@ -3,6 +3,7 @@ import useAuth from '../hooks/useAuth';
 import { dashboardService } from '../services/dashboardService';
 import { examService, ExamStudentStatus } from '../services/examService';
 import { resultService, ResultSummary } from '../services/resultService';
+import { formatLocalDateTime, formatShortDateTime, parseUtcDate } from '../utils/dateUtils';
 
 const TeacherExamList: React.FC = () => {
   const { user } = useAuth();
@@ -45,7 +46,7 @@ const TeacherExamList: React.FC = () => {
                     classId: cls.id,
                     subjectCode: cls.subject?.subjectCode
                 }))
-             ).sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+             ).sort((a, b) => (parseUtcDate(b.startTime)?.getTime() ?? 0) - (parseUtcDate(a.startTime)?.getTime() ?? 0));
 
              setExams(allExams);
            }
@@ -139,8 +140,8 @@ const TeacherExamList: React.FC = () => {
              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                  {filteredExams.map(ex => {
                      const now = new Date();
-                     const start = new Date(ex.startTime);
-                     const end = new Date(ex.endTime);
+                     const start = parseUtcDate(ex.startTime) || new Date();
+                     const end = parseUtcDate(ex.endTime) || new Date();
                      let status = 'Sắp tới';
                      let statusColor = 'bg-sky-500/20 text-sky-400 border-sky-500/30';
 
@@ -166,7 +167,7 @@ const TeacherExamList: React.FC = () => {
 
                              <div className="space-y-2 text-sm text-slate-400 mb-4 flex-1">
                                  <div className="flex items-center gap-2">
-                                     <span>🕒 {start.toLocaleDateString('vi-VN')} {start.toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'})}</span>
+                                     <span>🕒 {formatShortDateTime(ex.startTime)}</span>
                                  </div>
                                  <div className="flex items-center gap-2">
                                      <span>⏱️ {ex.durationMinutes} phút</span>
@@ -239,7 +240,7 @@ const TeacherExamList: React.FC = () => {
                                                 ) : <span className="text-slate-600">-</span>}
                                             </td>
                                             <td className="py-3 px-4 text-slate-400">
-                                                {student.submittedAt ? new Date(student.submittedAt).toLocaleString('vi-VN') : '-'}
+                                                {student.submittedAt ? formatLocalDateTime(student.submittedAt) : '-'}
                                             </td>
                                             <td className="py-3 px-4 text-right">
                                                 {student.status === 'COMPLETED' && (

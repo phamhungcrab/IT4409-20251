@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { examService } from '../../services/examService';
 import { StudentExamDto } from '../../types/exam';
+import { formatLocalDate, parseUtcDate } from '../../utils/dateUtils';
 
 /**
  * StudentDashboardProps:
@@ -37,7 +38,50 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user }) => {
       if (user && user.id) {
         try {
           const examsData = await examService.getStudentExams(user.id);
-          setUpcomingExams(examsData);
+
+          // Sorting logic:
+          // 1. Live (Đang diễn ra) - Ưu tiên sắp hết giờ trước (endTime asc)
+          // 2. Upcoming (Sắp tới) - Ưu tiên sắp bắt đầu trước (startTime asc)
+          // 3. Past (Đã qua) - Ưu tiên mới kết thúc trước (endTime desc)
+          const now = new Date().getTime();
+
+          const sortedExams = examsData.sort((a, b) => {
+            const startA = parseUtcDate(a.startTime)?.getTime() ?? 0;
+            const endA = parseUtcDate(a.endTime)?.getTime() ?? 0;
+            const startB = parseUtcDate(b.startTime)?.getTime() ?? 0;
+            const endB = parseUtcDate(b.endTime)?.getTime() ?? 0;
+
+            const isLiveA = startA <= now && endA >= now;
+            const isUpcomingA = startA > now;
+            const isPastA = endA < now;
+
+            const isLiveB = startB <= now && endB >= now;
+            const isUpcomingB = startB > now;
+            const isPastB = endB < now;
+
+            // Priority: Live > Upcoming > Past
+            if (isLiveA && !isLiveB) return -1;
+            if (!isLiveA && isLiveB) return 1;
+
+            if (isUpcomingA && !isUpcomingB) {
+                // Nếu A sắp tới, B đã qua -> A xếp trước
+                return isLiveB ? 1 : -1; // (đã check live ở trên rồi, nhưng logic an toàn)
+                // Thực tế: A upcoming, B past -> A trước (-1)
+            }
+            if (!isUpcomingA && isUpcomingB) {
+                 // A past, B upcoming -> B trước (1)
+                 return 1;
+            }
+
+            // Cùng nhóm
+            if (isLiveA && isLiveB) return endA - endB; // Sắp hết giờ xếp trước
+            if (isUpcomingA && isUpcomingB) return startA - startB; // Sắp bắt đầu xếp trước
+            if (isPastA && isPastB) return endB - endA; // Mới kết thúc xếp trước
+
+            return 0;
+          });
+
+          setUpcomingExams(sortedExams);
         } catch (err) {
           console.error('Không thể tải dữ liệu dashboard của sinh viên', err);
         }
@@ -97,7 +141,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ user }) => {
                         <div className="text-sm text-slate-400 flex gap-3 mt-1">
                            <span>⏱ {exam.durationMinutes} phút</span>
                            <span className="text-slate-600">|</span>
-                           <span>📅 {new Date(exam.startTime).toLocaleDateString('vi-VN')}</span>
+                           <span>📅 {formatLocalDate(exam.startTime)}</span>
                         </div>
                      </div>
                   </div>

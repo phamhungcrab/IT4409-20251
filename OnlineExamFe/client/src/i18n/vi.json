@@ -89,5 +89,10 @@
         "allExams": "Tất cả kỳ thi",
         "createExam": "Tạo kỳ thi mới",
         "students": "Sinh viên"
+    },
+    "notifications": {
+        "title": "Thông báo",
+        "empty": "Không có thông báo",
+        "unread": "chưa đọc"
     }
 }

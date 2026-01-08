@@ -6,7 +6,9 @@ import { classService, ClassDto } from '../../services/classService';
 import { examService, ExamStudentStatus } from '../../services/examService';
 import { resultService, ResultSummary } from '../../services/resultService';
 import { blueprintService, Blueprint, BlueprintChapter } from '../../services/blueprintService';
+import { announcementService, CreateAnnouncementDto } from '../../services/announcementService';
 import { ExamDto } from '../../types/exam';
+import { formatLocalDateTime, formatLocalDate } from '../../utils/dateUtils';
 
 interface StudentDto {
   id: number;
@@ -109,6 +111,16 @@ const TeacherClassDetail: React.FC = () => {
     blueprintId: number | null;
   }>({ show: false, blueprintId: null });
   const [deletingBlueprint, setDeletingBlueprint] = useState(false);
+
+  // === Announcement Modal State ===
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [announcementForm, setAnnouncementForm] = useState<{
+    title: string;
+    content: string;
+    type: 'info' | 'warning' | 'success' | 'error';
+  }>({ title: '', content: '', type: 'info' });
+  const [creatingAnnouncement, setCreatingAnnouncement] = useState(false);
+  const [announcementError, setAnnouncementError] = useState<string | null>(null);
 
   const mapClassExams = (classIdValue: number, exams: ClassDto['exams'] = []): ExamDto[] =>
     (exams ?? []).map((exam: ClassExam) => ({
@@ -337,9 +349,9 @@ const TeacherClassDetail: React.FC = () => {
     }
 
     setCreatingClassId(classIdValue);
-    setEditingExamId(null); // Reset edit mode
+    setEditingExamId(null);
+    setEditingBlueprintId(null); // Reset blueprint ID for new creation
     setCreateError(null);
-    setSelectedBlueprintDetail(null);
     setAvailableBlueprints([]);
 
     setCreateForm({
@@ -350,14 +362,11 @@ const TeacherClassDetail: React.FC = () => {
       endTime: ''
     });
 
-    if (classDetail.subjectId) {
-      try {
-        const blueprints = await loadBlueprintsWithDetails(classDetail.subjectId);
-        setAvailableBlueprints(blueprints);
-      } catch (error) {
-        console.error('Không thể load Blueprint:', error);
-      }
-    }
+    // Reset Blueprint Form to default
+    setBlueprintForm({
+      subjectId: classDetail.subjectId || 0,
+      chapters: [{ chapter: 1, easyCount: 0, mediumCount: 0, hardCount: 0, veryHardCount: 0 }]
+    });
 
     setShowCreateModal(true);
   };
@@ -455,9 +464,9 @@ const TeacherClassDetail: React.FC = () => {
     }
 
     setEditingExamId(exam.id);
+    setEditingBlueprintId(exam.blueprintId || null); // Set blueprint ID to update
     setCreatingClassId(exam.classId || 0);
     setCreateError(null);
-    setAvailableBlueprints([]);
 
     // Helper format DateTime local
     const formatDate = (dateStr: string) => {
@@ -476,14 +485,29 @@ const TeacherClassDetail: React.FC = () => {
       endTime: formatDate(exam.endTime)
     });
 
-    // Load available blueprints
-    try {
-        const blueprints = await loadBlueprintsWithDetails(classDetail.subjectId);
-        setAvailableBlueprints(blueprints);
-        if (exam.blueprintId) {
-             handleSelectBlueprint(exam.blueprintId);
-        }
-    } catch(e) { console.error(e); }
+    // Load Blueprint Detail into Form
+    if (exam.blueprintId) {
+         try {
+             const bpDetail = await blueprintService.getById(exam.blueprintId);
+             setBlueprintForm({
+                 subjectId: bpDetail.subjectId,
+                 chapters: bpDetail.chapters || []
+             });
+         } catch(e) {
+             console.error("Failed to load blueprint detail", e);
+             // Fallback default if failed
+             setBlueprintForm({
+                subjectId: classDetail.subjectId,
+                chapters: [{ chapter: 1, easyCount: 0, mediumCount: 0, hardCount: 0, veryHardCount: 0 }]
+             });
+         }
+    } else {
+        // Reset if no blueprint
+        setBlueprintForm({
+           subjectId: classDetail.subjectId,
+           chapters: [{ chapter: 1, easyCount: 0, mediumCount: 0, hardCount: 0, veryHardCount: 0 }]
+        });
+    }
 
     setShowCreateModal(true);
   };
@@ -491,10 +515,17 @@ const TeacherClassDetail: React.FC = () => {
   const handleCreateExam = async () => {
     if (!creatingClassId) return;
 
-    const { name, durationMinutes, blueprintId, startTime, endTime } = createForm;
+    const { name, durationMinutes, startTime, endTime } = createForm;
 
-    if (!name || !durationMinutes || !blueprintId || !startTime || !endTime) {
-      setCreateError('Vui lòng nhập đầy đủ thông tin.');
+    // 1. Validate Exam Info
+    if (!name || !durationMinutes || !startTime || !endTime) {
+      setCreateError('Vui lòng nhập đầy đủ thông tin đề thi (Tên, thời gian).');
+      return;
+    }
+
+    // 2. Validate Blueprint Info
+    if (!blueprintForm.chapters || blueprintForm.chapters.length === 0) {
+      setCreateError('Vui lòng thêm ít nhất 1 chương vào cấu trúc đề.');
       return;
     }
 
@@ -502,20 +533,40 @@ const TeacherClassDetail: React.FC = () => {
     setCreateError(null);
 
     try {
-      const payload = {
+      // --- Step 1: Handle Blueprint (Create or Update) ---
+      let finalBlueprintId = editingBlueprintId || 0;
+      const subjectId = classDetail?.subjectId || 0;
+
+      const bpPayload = {
+          subjectId,
+          chapters: blueprintForm.chapters
+      };
+
+      if (finalBlueprintId) {
+           await blueprintService.updateBlueprint(finalBlueprintId, bpPayload);
+      } else {
+           const newBp = await blueprintService.create(bpPayload);
+           finalBlueprintId = newBp.id;
+      }
+
+      // --- Step 2: Handle Exam ---
+      // Fix Timezone: Convert Local Input to UTC ISO String before sending
+      const toUtcISO = (localTime: string) => new Date(localTime).toISOString();
+
+      const examPayload = {
         name,
         classId: creatingClassId,
-        blueprintId: Number(blueprintId),
+        blueprintId: Number(finalBlueprintId),
         durationMinutes: Number(durationMinutes),
-        startTime,
-        endTime
+        startTime: toUtcISO(startTime),
+        endTime: toUtcISO(endTime)
       };
 
       if (editingExamId) {
-          await examService.updateExam(editingExamId, payload);
-          showToast('Cập nhật kỳ thi thành công!', 'success');
+          await examService.updateExam(editingExamId, examPayload);
+          showToast('Cập nhật kỳ thi & cấu trúc đề thành công!', 'success');
       } else {
-          await examService.createExam(payload);
+          await examService.createExam(examPayload);
           showToast('Tạo kỳ thi thành công!', 'success');
       }
 
@@ -647,17 +698,29 @@ const TeacherClassDetail: React.FC = () => {
             >
               Kỳ thi
             </button>
+{/*
             <button
               onClick={() => openBlueprintModal(numericClassId)}
               className="btn btn-ghost text-sm px-4 py-2 border border-purple-500/30 text-purple-300 hover:bg-purple-500/10 hover:border-purple-500/50 rounded-lg font-medium"
             >
               Tạo cấu trúc đề
             </button>
+            */}
             <button
               onClick={() => openCreateModal(numericClassId)}
               className="btn btn-primary text-sm px-4 py-2 rounded-lg font-semibold shadow-lg shadow-sky-500/20 hover:shadow-sky-500/40"
             >
               Tạo kỳ thi
+            </button>
+            <button
+              onClick={() => {
+                setAnnouncementForm({ title: '', content: '', type: 'info' });
+                setAnnouncementError(null);
+                setShowAnnouncementModal(true);
+              }}
+              className="btn btn-ghost text-sm px-4 py-2 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50 rounded-lg font-medium"
+            >
+              📢 Tạo thông báo
             </button>
           </div>
         </div>
@@ -683,7 +746,7 @@ const TeacherClassDetail: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-3">
         <button
           type="button"
           onClick={() => handleViewStudents(numericClassId)}
@@ -713,23 +776,10 @@ const TeacherClassDetail: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => setActiveSection('blueprints')}
-          className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all ${
-            activeSection === 'blueprints'
-              ? 'bg-purple-500/20 border-purple-500/50 text-white shadow-lg shadow-purple-500/10'
-              : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'
-          }`}
-          aria-pressed={activeSection === 'blueprints'}
-        >
-          <span className="block">Cấu trúc đề</span>
-          <span className="block text-xs font-normal text-slate-400">Blueprint & Ma trận</span>
-        </button>
-        <button
-          type="button"
           onClick={() => setActiveSection('reports')}
           className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all ${
             activeSection === 'reports'
-              ? 'bg-emerald-500/20 border-emerald-500/50 text-white shadow-lg shadow-emerald-500/10'
+              ? 'bg-amber-500/20 border-amber-500/50 text-white shadow-lg shadow-amber-500/10'
               : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'
           }`}
           aria-pressed={activeSection === 'reports'}
@@ -854,13 +904,13 @@ const TeacherClassDetail: React.FC = () => {
                       <div className="flex items-center gap-2 text-sm">
                         <span className="text-slate-400">Bắt đầu:</span>
                         <span className="text-slate-300 font-medium">
-                          {new Date(ex.startTime).toLocaleString('vi-VN')}
+                          {formatLocalDateTime(ex.startTime)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <span className="text-slate-400">Kết thúc:</span>
                         <span className="text-slate-300 font-medium">
-                          {new Date(ex.endTime).toLocaleString('vi-VN')}
+                          {formatLocalDateTime(ex.endTime)}
                         </span>
                       </div>
                       {ex.blueprintId ? (
@@ -996,7 +1046,7 @@ const TeacherClassDetail: React.FC = () => {
                         </td>
                         <td className="py-3 px-2 text-slate-400 text-xs">
                           {student.submittedAt
-                            ? new Date(student.submittedAt).toLocaleString('vi-VN')
+                            ? formatLocalDateTime(student.submittedAt)
                             : '-'}
                         </td>
                         <td className="py-3 px-2">
@@ -1088,7 +1138,7 @@ const TeacherClassDetail: React.FC = () => {
                             Blueprint #{bp.id}
                           </h3>
                           <p className="text-xs text-slate-400">
-                            {new Date(bp.createdAt).toLocaleDateString('vi-VN')}
+                            {formatLocalDate(bp.createdAt)}
                           </p>
                         </div>
                       </div>
@@ -1501,54 +1551,109 @@ const TeacherClassDetail: React.FC = () => {
                     }
                   />
                 </div>
-
-                <div>
-                  <label className="block text-sm text-slate-300 mb-1">Cấu trúc đề</label>
-                  <select
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white"
-                    value={createForm.blueprintId}
-                    onChange={(e) => {
-                      const bpId = Number(e.target.value);
-                      setCreateForm((f) => ({ ...f, blueprintId: bpId }));
-                      handleSelectBlueprint(bpId);
-                    }}
-                  >
-                    <option value={0}>-- Chọn Blueprint --</option>
-                    {availableBlueprints.map((bp) => (
-                      <option key={bp.id} value={bp.id}>
-                        Blueprint #{bp.id} ({bp.totalQuestions || '?'} câu) -{' '}
-                        {new Date(bp.createdAt).toLocaleDateString('vi-VN')}
-                      </option>
-                    ))}
-                  </select>
-                </div>
               </div>
 
-              {selectedBlueprintDetail && (
-                <div className="bg-sky-500/10 border border-sky-500/30 rounded-lg p-4 space-y-2">
-                  <h4 className="text-sm font-semibold text-sky-300">
-                    Chi tiết Blueprint #{selectedBlueprintDetail.id}
-                  </h4>
-                  {selectedBlueprintDetail.chapters && selectedBlueprintDetail.chapters.length > 0 ? (
-                    <div className="space-y-1">
-                      {selectedBlueprintDetail.chapters.map((ch, idx) => (
-                        <p key={idx} className="text-xs text-slate-300">
-                          • Chương {ch.chapter}:
-                          {ch.easyCount > 0 && ` ${ch.easyCount} Dễ`}
-                          {ch.mediumCount > 0 && ` ${ch.mediumCount} TB`}
-                          {ch.hardCount > 0 && ` ${ch.hardCount} Khó`}
-                          {ch.veryHardCount > 0 && ` ${ch.veryHardCount} RKhó`}
-                        </p>
-                      ))}
-                      <p className="text-sm text-sky-400 font-semibold pt-2">
-                        Tổng: {selectedBlueprintDetail.totalQuestions} câu
-                      </p>
+              {/* Blueprint Table Section */}
+              <div className="border border-white/10 rounded-lg p-4 bg-white/5 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <label className="block text-sm font-semibold text-sky-400">Cấu trúc đề (Blueprint)</label>
+                    <div className="text-xs text-slate-400">
+                        Tổng: {blueprintForm.chapters.reduce((sum, ch) => sum + (ch.easyCount||0) + (ch.mediumCount||0) + (ch.hardCount||0) + (ch.veryHardCount||0), 0)} câu
                     </div>
-                  ) : (
-                    <p className="text-xs text-slate-400">Đang tải chi tiết...</p>
-                  )}
-                </div>
-              )}
+                  </div>
+
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                      <div className="grid grid-cols-12 gap-2 text-xs text-slate-500 uppercase font-semibold text-center mb-1">
+                          <div className="col-span-2 text-left">Chương</div>
+                          <div className="col-span-2">Dễ</div>
+                          <div className="col-span-2">TBình</div>
+                          <div className="col-span-2">Khó</div>
+                          <div className="col-span-2">R.Khó</div>
+                          <div className="col-span-2"></div>
+                      </div>
+
+                      {blueprintForm.chapters.map((chapter, idx) => (
+                        <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                            <div className="col-span-2 flex items-center gap-1">
+                                <span className="text-slate-400 text-sm">#</span>
+                                <input
+                                    type="number" min="1"
+                                    className="w-full bg-transparent border-b border-white/20 text-white text-sm focus:border-sky-500 outline-none p-1"
+                                    value={chapter.chapter}
+                                    onChange={(e) => {
+                                        const newChapters = [...blueprintForm.chapters];
+                                        newChapters[idx].chapter = Number(e.target.value);
+                                        setBlueprintForm(prev => ({...prev, chapters: newChapters}));
+                                    }}
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <input type="number" min="0" className="w-full bg-slate-800 border border-white/10 rounded text-center text-white text-sm py-1"
+                                    value={chapter.easyCount}
+                                    onChange={(e) => {
+                                        const newChapters = [...blueprintForm.chapters];
+                                        newChapters[idx].easyCount = Number(e.target.value);
+                                        setBlueprintForm(prev => ({...prev, chapters: newChapters}));
+                                    }}
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <input type="number" min="0" className="w-full bg-slate-800 border border-white/10 rounded text-center text-white text-sm py-1"
+                                    value={chapter.mediumCount}
+                                     onChange={(e) => {
+                                        const newChapters = [...blueprintForm.chapters];
+                                        newChapters[idx].mediumCount = Number(e.target.value);
+                                        setBlueprintForm(prev => ({...prev, chapters: newChapters}));
+                                    }}
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <input type="number" min="0" className="w-full bg-slate-800 border border-white/10 rounded text-center text-white text-sm py-1"
+                                    value={chapter.hardCount}
+                                     onChange={(e) => {
+                                        const newChapters = [...blueprintForm.chapters];
+                                        newChapters[idx].hardCount = Number(e.target.value);
+                                        setBlueprintForm(prev => ({...prev, chapters: newChapters}));
+                                    }}
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <input type="number" min="0" className="w-full bg-slate-800 border border-white/10 rounded text-center text-white text-sm py-1"
+                                    value={chapter.veryHardCount}
+                                     onChange={(e) => {
+                                        const newChapters = [...blueprintForm.chapters];
+                                        newChapters[idx].veryHardCount = Number(e.target.value);
+                                        setBlueprintForm(prev => ({...prev, chapters: newChapters}));
+                                    }}
+                                />
+                            </div>
+                            <div className="col-span-2 text-right">
+                                {blueprintForm.chapters.length > 1 && (
+                                    <button onClick={() => {
+                                        const newChapters = blueprintForm.chapters.filter((_, i) => i !== idx);
+                                        setBlueprintForm(prev => ({...prev, chapters: newChapters}));
+                                    }} className="text-rose-400 hover:bg-rose-500/10 p-1 rounded">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                      ))}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                        const maxChapter = Math.max(0, ...blueprintForm.chapters.map(c => c.chapter));
+                        setBlueprintForm(prev => ({
+                            ...prev,
+                            chapters: [...prev.chapters, { chapter: maxChapter + 1, easyCount: 0, mediumCount: 0, hardCount: 0, veryHardCount: 0 }]
+                        }));
+                    }}
+                    className="w-full py-2 border border-dashed border-white/20 text-slate-400 text-sm rounded hover:bg-white/5 hover:text-white transition-colors"
+                  >
+                    + Thêm chương
+                  </button>
+              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -1676,6 +1781,105 @@ const TeacherClassDetail: React.FC = () => {
                 className="btn btn-ghost text-sm px-4 py-2 border border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 hover:border-rose-500/50 rounded-lg disabled:opacity-50"
               >
                 {deletingBlueprint ? 'Đang xóa...' : 'Xóa Blueprint'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === Modal Tạo Thông báo === */}
+      {showAnnouncementModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/95 p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">📢 Tạo thông báo</h2>
+              <button
+                onClick={() => setShowAnnouncementModal(false)}
+                className="text-slate-400 hover:text-white text-xl"
+              >
+                ×
+              </button>
+            </div>
+
+            {announcementError && (
+              <div className="text-sm text-rose-300 border border-rose-400/40 bg-rose-500/10 rounded-lg p-3">
+                {announcementError}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Tiêu đề *</label>
+                <input
+                  type="text"
+                  value={announcementForm.title}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder-slate-400 focus:border-sky-500 focus:outline-none"
+                  placeholder="Nhập tiêu đề thông báo..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Nội dung *</label>
+                <textarea
+                  value={announcementForm.content}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder-slate-400 focus:border-sky-500 focus:outline-none min-h-[100px]"
+                  placeholder="Nhập nội dung thông báo..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Loại thông báo</label>
+                <select
+                  value={announcementForm.type}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, type: e.target.value as any })}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white focus:border-sky-500 focus:outline-none"
+                >
+                  <option value="info">ℹ️ Thông tin</option>
+                  <option value="warning">⚠️ Cảnh báo</option>
+                  <option value="success">✅ Thành công</option>
+                  <option value="error">❌ Lỗi/Khẩn cấp</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                onClick={() => setShowAnnouncementModal(false)}
+                className="btn btn-ghost text-sm px-4 py-2 border border-white/20 text-slate-300 hover:text-white rounded-lg"
+                disabled={creatingAnnouncement}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={async () => {
+                  if (!announcementForm.title || !announcementForm.content) {
+                    setAnnouncementError('Vui lòng nhập đầy đủ tiêu đề và nội dung.');
+                    return;
+                  }
+                  setCreatingAnnouncement(true);
+                  setAnnouncementError(null);
+                  try {
+                    await announcementService.create({
+                      title: announcementForm.title,
+                      content: announcementForm.content,
+                      type: announcementForm.type,
+                      classId: numericClassId
+                    });
+                    showToast('Gửi thông báo thành công!', 'success');
+                    setShowAnnouncementModal(false);
+                  } catch (err) {
+                    const msg = err instanceof Error ? err.message : 'Gửi thông báo thất bại.';
+                    setAnnouncementError(msg);
+                  } finally {
+                    setCreatingAnnouncement(false);
+                  }
+                }}
+                disabled={creatingAnnouncement}
+                className="btn btn-primary text-sm px-4 py-2 rounded-lg font-semibold disabled:opacity-50"
+              >
+                {creatingAnnouncement ? 'Đang gửi...' : 'Gửi thông báo'}
               </button>
             </div>
           </div>

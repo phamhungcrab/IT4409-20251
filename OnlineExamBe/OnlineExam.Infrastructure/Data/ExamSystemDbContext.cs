@@ -26,6 +26,8 @@ namespace OnlineExam.Infrastructure.Data
         public DbSet<Role> Roles { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<UserPermission> UserPermissions { get; set; }
+        public DbSet<Announcement> Announcements { get; set; }
+        public DbSet<StudentAnnouncement> StudentAnnouncements { get; set; }
 
 
         public DbSet<ExamBlueprintChapter> ExamBlueprintChapters { get; set; }
@@ -170,7 +172,7 @@ namespace OnlineExam.Infrastructure.Data
                       .WithMany(u => u.Session)
                       .HasForeignKey(e => e.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
-                 
+
             });
 
             //ExamBlueprint
@@ -185,7 +187,7 @@ namespace OnlineExam.Infrastructure.Data
 
             modelBuilder.Entity<ExamBlueprintChapter>(entity =>
             {
-                entity.ToTable("ExamBlueprintChapters"); 
+                entity.ToTable("ExamBlueprintChapters");
                 entity.HasKey(e => e.Id);
             });
 
@@ -238,7 +240,41 @@ namespace OnlineExam.Infrastructure.Data
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
+            // Announcement
+            modelBuilder.Entity<Announcement>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).IsRequired();
+                entity.Property(e => e.Content).IsRequired();
+                entity.Property(e => e.Type).HasDefaultValue("info");
+
+                entity.HasOne(e => e.Class)
+                      .WithMany()
+                      .HasForeignKey(e => e.ClassId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Creator)
+                      .WithMany()
+                      .HasForeignKey(e => e.CreatedBy)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // StudentAnnouncement
+            modelBuilder.Entity<StudentAnnouncement>(entity =>
+            {
+                entity.HasKey(e => new { e.StudentId, e.AnnouncementId });
+
+                entity.HasOne(e => e.Student)
+                      .WithMany()
+                      .HasForeignKey(e => e.StudentId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Announcement)
+                      .WithMany(a => a.StudentAnnouncements)
+                      .HasForeignKey(e => e.AnnouncementId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
 
         }
-    } 
+    }
 }

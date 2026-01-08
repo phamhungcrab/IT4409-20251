@@ -43,6 +43,15 @@ export const blueprintService = {
   },
 
   /**
+   * getBySubjectId(subjectId):
+   * - Lấy danh sách Blueprint theo subjectId (filter từ getAll)
+   */
+  getBySubjectId: async (subjectId: number): Promise<Blueprint[]> => {
+    const all = await apiClient.get<Blueprint[]>('/api/ExamBlueprint/get-all');
+    return all.filter(b => b.subjectId === subjectId);
+  },
+
+  /**
    * getById(id):
    * - Lấy chi tiết 1 Blueprint
    */

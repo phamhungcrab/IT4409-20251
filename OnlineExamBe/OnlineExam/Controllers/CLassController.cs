@@ -11,6 +11,7 @@ using OnlineExam.Attributes;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Infrastructure.Policy.Requirements;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace OnlineExam.Controllers
 {
@@ -114,12 +115,19 @@ namespace OnlineExam.Controllers
         {
             if (file == null || file.Length == 0)
                 return BadRequest("File is empty");
+            var options = new JsonSerializerOptions
+            {
+                Converters = { new JsonStringEnumConverter() },
+                PropertyNameCaseInsensitive = true
+            };
+
+            options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
 
             using var stream = file.OpenReadStream();
             using var reader = new StreamReader(stream);
             string json = await reader.ReadToEndAsync();
 
-            var listUser = JsonSerializer.Deserialize<AddStudentDto[]>(json);
+            var listUser = JsonSerializer.Deserialize<AddStudentDto[]>(json,options);
 
             if (listUser == null)
                 return BadRequest("Invalid JSON file");

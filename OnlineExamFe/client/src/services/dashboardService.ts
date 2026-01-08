@@ -1,6 +1,7 @@
 import { classService, ClassDto } from './classService';
 import { examService, ExamStudentStatus } from './examService';
 import { blueprintService } from './blueprintService';
+import { parseUtcDate } from '../utils/dateUtils';
 
 /**
  * Các interface cho Dashboard Data
@@ -77,8 +78,8 @@ export const dashboardService = {
       // Dùng Promise.allSettled để tránh fail toàn bộ nếu 1 request lỗi
       const classDetailsPromises = classes.map(async (c) => {
         try {
-            // Lấy chi tiết lớp để có blueprints
-            const blueprints = await blueprintService.getAll(c.id).catch(() => []);
+            // Lấy chi tiết lớp để có blueprints (theo subjectId của lớp)
+            const blueprints = await blueprintService.getBySubjectId(c.subjectId).catch(() => []);
 
             // Lấy danh sách SV để đếm (nếu API getByTeacher chưa trả về studentCount)
             // Lưu ý: Có thể tối ưu bằng cách chỉ gọi số lượng nếu backend hỗ trợ,
@@ -170,10 +171,10 @@ const processDashboardData = (classes: any[]): TeacherDashboardData => {
     // 3. Analyze Exams
     if (c.exams && c.exams.length > 0) {
       c.exams.forEach((ex: any) => {
-        const start = new Date(ex.startTime);
-        const end = new Date(ex.endTime);
-        const isUpcoming = start > now;
-        const isLive = start <= now && end >= now;
+        const start = parseUtcDate(ex.startTime);
+        const end = parseUtcDate(ex.endTime);
+        const isUpcoming = start && start > now;
+        const isLive = start && end && start <= now && end >= now;
 
         // Exam Monitor
         if (isUpcoming || isLive) {
@@ -258,8 +259,8 @@ const processDashboardData = (classes: any[]): TeacherDashboardData => {
     },
     actionItems: actionItems.slice(0, 5), // Chỉ lấy 5 item quan trọng nhất
     examMonitor: {
-      upcoming: upcomingExams.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()).slice(0, 5),
-      live: liveExams
+      upcoming: upcomingExams.sort((a, b) => (parseUtcDate(a.startTime)?.getTime() ?? 0) - (parseUtcDate(b.startTime)?.getTime() ?? 0)).slice(0, 5),
+      live: liveExams.sort((a, b) => (parseUtcDate(a.endTime)?.getTime() ?? 0) - (parseUtcDate(b.endTime)?.getTime() ?? 0))
     },
     classSpotlight: topClasses,
     classes: classes // Return full classes list specifically for search & directory

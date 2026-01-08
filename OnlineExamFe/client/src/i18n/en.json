@@ -89,5 +89,10 @@
     "allExams": "All Exams",
     "createExam": "Create New Exam",
     "students": "Students"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications",
+    "unread": "unread"
   }
 }

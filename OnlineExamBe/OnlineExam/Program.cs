@@ -109,6 +109,7 @@ builder.Services.AddScoped<IExamService, ExamService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IExamGradingService, ExamGradingService>();
 builder.Services.AddSingleton<IExamAnswerCache, ExamAnswerCache>();
+builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
 
 // CORS configuration
 builder.Services.AddCors(options =>
@@ -116,9 +117,12 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
+            "https://localhost:7239",
             "https://www.manhhangmobile.store",
             "https://manhhangmobile.store",      // Development frontend
-            "https://it4409-fe.vercel.app"     // Production frontend
+            "https://it4409-fe.vercel.app",   // Production frontend
+            "https://adminexam-6c6ff.web.app"
+
             )
             .AllowAnyHeader()
             .AllowAnyMethod()

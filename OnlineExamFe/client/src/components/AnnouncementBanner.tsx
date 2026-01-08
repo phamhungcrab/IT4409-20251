@@ -23,6 +23,7 @@ export interface Announcement {
  */
 export interface AnnouncementBannerProps {
   announcements: Announcement[];
+  onDismiss?: (id: number) => void; // Callback khi banner biến mất
 }
 
 /**
@@ -127,7 +128,7 @@ const ToastItem: React.FC<{
  * - Quản lý danh sách chung.
  * - Render từng ToastItem theo cơ chế Queue (chỉ item đầu tiên active).
  */
-const AnnouncementBanner: React.FC<AnnouncementBannerProps> = ({ announcements }) => {
+const AnnouncementBanner: React.FC<AnnouncementBannerProps> = ({ announcements, onDismiss }) => {
   const [visible, setVisible] = useState<Announcement[]>([]);
 
   useEffect(() => {
@@ -136,6 +137,7 @@ const AnnouncementBanner: React.FC<AnnouncementBannerProps> = ({ announcements }
 
   const handleClose = (id: number) => {
     setVisible((prev) => prev.filter((a) => a.id !== id));
+    onDismiss?.(id); // Gọi callback dismiss nếu có
   };
 
   if (visible.length === 0) return null;
