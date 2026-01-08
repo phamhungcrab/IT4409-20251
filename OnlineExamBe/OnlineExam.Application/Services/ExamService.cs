@@ -272,7 +272,7 @@ namespace OnlineExam.Application.Services
             float finalScore = (float)(Math.Round(rawScore * 2, MidpointRounding.AwayFromZero) / 2);
 
             examStudent.Status = ExamStatus.COMPLETED;
-            examStudent.EndTime = DateTime.Now;
+            examStudent.EndTime = DateTime.Now; 
             examStudent.Points = finalScore;
 
             await _examStudentRepo.SaveChangesAsync();
