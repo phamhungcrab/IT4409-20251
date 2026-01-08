@@ -177,8 +177,25 @@ namespace OnlineExam.Application.Services
                 .Where(x => x.ExamId == examId && x.StudentId == studentId)
                 .ToListAsync();
 
+            // Count violations (always available, even for IN_PROGRESS)
+            var violationCount = await _violationRepo.Query()
+                .CountAsync(v => v.ExamId == examId && v.StudentId == studentId);
+
+            // If no questions answered yet (early IN_PROGRESS), return partial data
             if (!studentQuestions.Any())
-                throw new Exception("Không tìm thấy dữ liệu làm bài của sinh viên");
+            {
+                return new ExamResultSummaryDto
+                {
+                    ExamId = examId,
+                    StudentId = studentId,
+                    TotalQuestions = 0,
+                    CorrectCount = 0,
+                    TotalQuestionPoint = 0,
+                    StudentEarnedPoint = 0,
+                    FinalScore = 0,
+                    ViolationCount = violationCount
+                };
+            }
 
             int totalQuestions = studentQuestions.Count;
 
@@ -191,10 +208,6 @@ namespace OnlineExam.Application.Services
             double rawScore = totalExamPoint == 0 ? 0 : (studentEarnedPoint / totalExamPoint) * 10;
 
             float finalScore = (float)(Math.Round(rawScore * 2, MidpointRounding.AwayFromZero) / 2);
-
-            // Count violations
-            var violationCount = await _violationRepo.Query()
-                .CountAsync(v => v.ExamId == examId && v.StudentId == studentId);
 
             return new ExamResultSummaryDto
             {
@@ -231,6 +244,39 @@ namespace OnlineExam.Application.Services
 
             await _violationRepo.AddAsync(violation);
             await _violationRepo.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Force submit a student's exam by teacher.
+        /// Sets status to COMPLETED and records end time.
+        /// </summary>
+        public async Task<bool> ForceSubmitAsync(int examId, int studentId)
+        {
+            var examStudent = await _examStudentRepo.Query()
+                .FirstOrDefaultAsync(es => es.ExamId == examId && es.StudentId == studentId);
+
+            if (examStudent == null)
+                throw new Exception("Không tìm thấy bài thi của sinh viên");
+
+            if (examStudent.Status == ExamStatus.COMPLETED)
+                throw new Exception("Bài thi đã được nộp trước đó");
+
+            // Calculate score before marking as complete
+            var studentQuestions = await _studentQuesRepo.Query()
+                .Where(sq => sq.ExamId == examId && sq.StudentId == studentId)
+                .ToListAsync();
+
+            float totalExamPoint = studentQuestions.Sum(x => x.QuestionPoint);
+            float studentEarnedPoint = studentQuestions.Sum(x => x.Result ?? 0);
+            double rawScore = totalExamPoint == 0 ? 0 : (studentEarnedPoint / totalExamPoint) * 10;
+            float finalScore = (float)(Math.Round(rawScore * 2, MidpointRounding.AwayFromZero) / 2);
+
+            examStudent.Status = ExamStatus.COMPLETED;
+            examStudent.EndTime = DateTime.Now;
+            examStudent.Points = finalScore;
+
+            await _examStudentRepo.SaveChangesAsync();
+            return true;
         }
 
         public async Task<ExamResultPreviewDto> GetDetailResultExam(int examId, int studentId)

@@ -279,6 +279,18 @@ export const examService = {
         }
       }
     }
+  },
+
+  /**
+   * forceSubmit(examId, studentId):
+   * - Teacher forces a student's exam to be submitted.
+   * - Marks exam as COMPLETED and calculates final score.
+   */
+  forceSubmit: async (examId: number, studentId: number): Promise<{ success: boolean; message: string }> => {
+    return await apiClient.post<{ success: boolean; message: string }>('/api/Exam/force-submit', {
+      examId,
+      studentId
+    });
   }
 };
 

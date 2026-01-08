@@ -216,7 +216,7 @@ namespace OnlineExam.Controllers
             {
                 return BadRequest(ex);
             }
-            
+
 
         }
 
@@ -338,5 +338,32 @@ namespace OnlineExam.Controllers
                 return StatusCode(500, new { message = "Failed to record violation", error = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Force submit a student's exam by teacher.
+        /// Marks the exam as COMPLETED and calculates the final score.
+        /// </summary>
+        [HttpPost("force-submit")]
+        public async Task<IActionResult> ForceSubmit([FromBody] ForceSubmitRequest dto)
+        {
+            try
+            {
+                await _examService.ForceSubmitAsync(dto.ExamId, dto.StudentId);
+                return Ok(new { success = true, message = "Đã nộp bài thành công" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
+}
+
+/// <summary>
+/// Request DTO for force submit
+/// </summary>
+public class ForceSubmitRequest
+{
+    public int ExamId { get; set; }
+    public int StudentId { get; set; }
 }

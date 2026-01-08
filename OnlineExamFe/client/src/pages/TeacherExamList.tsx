@@ -24,6 +24,9 @@ const TeacherExamList: React.FC = () => {
     mssv: string;
     data: ResultSummary | null;
     loading: boolean;
+    examId?: number;
+    studentId?: number;
+    studentStatus?: string | null;
   }>({
     show: false,
     studentName: '',
@@ -31,6 +34,9 @@ const TeacherExamList: React.FC = () => {
     data: null,
     loading: false
   });
+  const [forceSubmitting, setForceSubmitting] = useState(false);
+  const [forceSubmitState, setForceSubmitState] = useState<'idle' | 'confirm' | 'success' | 'error'>('idle');
+  const [forceSubmitError, setForceSubmitError] = useState('');
 
   useEffect(() => {
     const fetchExams = async () => {
@@ -83,13 +89,16 @@ const TeacherExamList: React.FC = () => {
       }
   };
 
-  const handleViewStudentDetail = async (examId: number, studentId: number, studentName: string, mssv: string) => {
+  const handleViewStudentDetail = async (examId: number, studentId: number, studentName: string, mssv: string, status?: string | null) => {
     setStudentDetailModal({
         show: true,
         studentName,
         mssv,
         data: null,
-        loading: true
+        loading: true,
+        examId,
+        studentId,
+        studentStatus: status
     });
     try {
         const result = await resultService.getResultSummary(examId, studentId);
@@ -98,6 +107,46 @@ const TeacherExamList: React.FC = () => {
         console.error(error);
         setStudentDetailModal(prev => ({ ...prev, loading: false }));
     }
+  };
+
+  const handleForceSubmit = async () => {
+    if (!studentDetailModal.examId || !studentDetailModal.studentId) return;
+
+    // If not confirmed yet, show confirmation
+    if (forceSubmitState !== 'confirm') {
+      setForceSubmitState('confirm');
+      return;
+    }
+
+    setForceSubmitting(true);
+    try {
+      await examService.forceSubmit(studentDetailModal.examId, studentDetailModal.studentId);
+      setForceSubmitState('success');
+      // Auto close after 1.5s
+      setTimeout(() => {
+        setStudentDetailModal(prev => ({ ...prev, show: false }));
+        setForceSubmitState('idle');
+        if (viewingExamId) {
+          handleViewStatus(viewingExamId, viewingExamName);
+        }
+      }, 1500);
+    } catch (error: any) {
+      setForceSubmitError(error?.message || 'Có lỗi xảy ra khi nộp bài');
+      setForceSubmitState('error');
+    } finally {
+      setForceSubmitting(false);
+    }
+  };
+
+  const handleCancelForceSubmit = () => {
+    setForceSubmitState('idle');
+    setForceSubmitError('');
+  };
+
+  const handleCloseModal = () => {
+    setStudentDetailModal(prev => ({ ...prev, show: false }));
+    setForceSubmitState('idle');
+    setForceSubmitError('');
   };
 
   if (loading) {
@@ -243,12 +292,12 @@ const TeacherExamList: React.FC = () => {
                                                 {student.submittedAt ? formatLocalDateTime(student.submittedAt) : '-'}
                                             </td>
                                             <td className="py-3 px-4 text-right">
-                                                {student.status === 'COMPLETED' && (
+                                                {(student.status === 'COMPLETED' || student.status === 'IN_PROGRESS') && (
                                                     <button
-                                                        onClick={() => handleViewStudentDetail(viewingExamId!, student.studentId, student.studentName, student.mssv)}
+                                                        onClick={() => handleViewStudentDetail(viewingExamId!, student.studentId, student.studentName, student.mssv, student.status)}
                                                         className="text-sky-400 hover:text-sky-300 hover:underline text-xs"
                                                     >
-                                                        Chi tiết
+                                                        {student.status === 'IN_PROGRESS' ? 'Xem / Nộp hộ' : 'Chi tiết'}
                                                     </button>
                                                 )}
                                             </td>
@@ -267,7 +316,7 @@ const TeacherExamList: React.FC = () => {
             <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-in zoom-in-95 duration-200">
                 <div className="bg-slate-900 border border-white/10 rounded-xl max-w-md w-full p-6 shadow-2xl relative">
                     <button
-                        onClick={() => setStudentDetailModal(prev => ({...prev, show: false}))}
+                        onClick={handleCloseModal}
                         className="absolute top-4 right-4 text-slate-400 hover:text-white"
                     >✕</button>
 
@@ -317,6 +366,84 @@ const TeacherExamList: React.FC = () => {
                                      <span className="text-emerald-400 font-semibold">{studentDetailModal.data.studentEarnedPoint}</span>
                                  </div>
                              </div>
+
+                             {/* Force Submit Section - Only show for IN_PROGRESS */}
+                             {studentDetailModal.studentStatus === 'IN_PROGRESS' && (
+                               <div className="mt-4 pt-4 border-t border-white/10">
+                                 {/* Success State */}
+                                 {forceSubmitState === 'success' && (
+                                   <div className="text-center py-4">
+                                     <div className="text-4xl mb-2">✅</div>
+                                     <p className="text-emerald-400 font-semibold">Đã nộp bài thành công!</p>
+                                     <p className="text-xs text-slate-500 mt-1">Đang đóng...</p>
+                                   </div>
+                                 )}
+
+                                 {/* Error State */}
+                                 {forceSubmitState === 'error' && (
+                                   <div className="text-center py-4">
+                                     <div className="text-4xl mb-2">❌</div>
+                                     <p className="text-red-400 font-semibold">{forceSubmitError}</p>
+                                     <button
+                                       onClick={handleCancelForceSubmit}
+                                       className="mt-3 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm"
+                                     >
+                                       Thử lại
+                                     </button>
+                                   </div>
+                                 )}
+
+                                 {/* Confirm State */}
+                                 {forceSubmitState === 'confirm' && (
+                                   <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+                                     <p className="text-amber-300 font-semibold text-center mb-3">
+                                       Bạn chắc chắn muốn nộp bài cho {studentDetailModal.studentName}?
+                                     </p>
+                                     <p className="text-xs text-amber-300/70 text-center mb-4">
+                                       Hành động này không thể hoàn tác.
+                                     </p>
+                                     <div className="flex gap-3">
+                                       <button
+                                         onClick={handleCancelForceSubmit}
+                                         className="flex-1 py-2 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+                                       >
+                                         Hủy
+                                       </button>
+                                       <button
+                                         onClick={handleForceSubmit}
+                                         disabled={forceSubmitting}
+                                         className="flex-1 py-2 px-4 bg-red-600 hover:bg-red-500 disabled:bg-red-800 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2"
+                                       >
+                                         {forceSubmitting ? (
+                                           <>
+                                             <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full" />
+                                             Đang nộp...
+                                           </>
+                                         ) : (
+                                           'Xác nhận nộp'
+                                         )}
+                                       </button>
+                                     </div>
+                                   </div>
+                                 )}
+
+                                 {/* Idle State - Initial Button */}
+                                 {forceSubmitState === 'idle' && (
+                                   <>
+                                     <button
+                                       onClick={handleForceSubmit}
+                                       className="w-full py-3 px-4 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2"
+                                     >
+                                       <span>⚠️</span>
+                                       Nộp bài hộ sinh viên
+                                     </button>
+                                     <p className="text-xs text-slate-500 text-center mt-2">
+                                       Hành động này sẽ kết thúc bài thi và tính điểm cho sinh viên
+                                     </p>
+                                   </>
+                                 )}
+                               </div>
+                             )}
                         </div>
                     ) : (
                         <p className="text-red-400 text-center">Không tải được dữ liệu.</p>
