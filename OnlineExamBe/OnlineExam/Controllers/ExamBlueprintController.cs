@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.ExamBlueprint;
 using OnlineExam.Application.Interfaces;
+using OnlineExam.Application.Services;
 using OnlineExam.Attributes;
 using OnlineExam.Domain.Enums;
 
@@ -88,6 +89,24 @@ namespace OnlineExam.Controllers
                 return BadRequest(ex.Message);
             }
             
+        }
+
+        [HttpGet("by-class/{classId}")]
+        public async Task<IActionResult> GetByClass(int classId)
+        {
+            try
+            {
+                var result = await _examBlueprintService.GetExamsWithBlueprintByClassAsync(classId);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
         }
     }
 }
