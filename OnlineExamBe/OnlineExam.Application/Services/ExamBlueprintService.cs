@@ -32,6 +32,29 @@ namespace OnlineExam.Application.Services
             _questionRepo = questionRepo;
         }
 
+        public async Task<List<ExamWithBlueprintSimpleDto>> GetExamsWithBlueprintByClassAsync(int classId)
+        {
+            var exams = await _examRepo
+                .Query()
+                .AsNoTracking()
+                .Where(e => e.ClassId == classId)
+                .Include(e => e.Blueprint)
+                .OrderByDescending(e => e.Blueprint!.CreatedAt)
+                .ToListAsync();
+
+            return exams.Select(e => new ExamWithBlueprintSimpleDto
+            {
+                ExamId = e.Id,
+                ExamName = e.Name,
+                StartTime = e.StartTime,
+                EndTime = e.EndTime,
+
+                BlueprintId = e.BlueprintId!.Value,
+                BlueprintCreatedAt = e.Blueprint!.CreatedAt
+            }).ToList();
+        }
+
+
         public async Task<ExamBlueprintDto> CreateBlueprintAsync(CreateExamBlueprintDto dto)
         {
             //Kiem tra xem db có ít nhất 1 câu hỏi cho câu hỏi với độ khó chương đó không
@@ -94,7 +117,7 @@ namespace OnlineExam.Application.Services
             int blueprintId,
             CreateExamBlueprintDto dto)
         {
-            //Kiem tra xem db có ít nhất 1 câu hỏi cho câu hỏi với độ khó chương đó không
+            //Kiem tra xem db có đủ câu hỏi không
             await ValidateBlueprintAsync(dto);
 
             var blueprint = await _repository
@@ -193,16 +216,17 @@ namespace OnlineExam.Application.Services
         {
             if (requiredCount <= 0) return;
 
-            var exists = await _questionRepo
-                .Query()
-                .AnyAsync(q =>
+            var availableCount = await _questionRepo.Query()
+                .Where(q =>
                     q.SubjectId == subjectId &&
                     q.Chapter == chapter &&
-                    q.Difficulty == difficulty);
+                    q.Difficulty == difficulty)
+                .CountAsync();
 
-            if (!exists)
+            if (availableCount < requiredCount)
                 throw new Exception(
-                    $"Không có câu hỏi cho Subject={subjectId}, Chapter={chapter}, Difficulty={difficulty}"
+                    $"Không đủ câu hỏi (Subject={subjectId}, Chapter={chapter}, Difficulty={difficulty}). " +
+                    $"Yêu cầu: {requiredCount}, hiện có: {availableCount}"
                 );
         }
     }

@@ -453,29 +453,15 @@ namespace OnlineExam.Application.Services
             )
         {
             var questions = await _questionRepo
-                .Query()
-                .Where(q =>
-                    q.SubjectId == subjectId &&
-                    q.Chapter == chapter &&
-                    q.Difficulty == (QuestionDifficulty)difficulty
-                )
-                .ToListAsync();
+                .FindAsync(q =>
+                q.SubjectId == subjectId &&
+                q.Chapter == chapter &&
+                (int)q.Difficulty == difficulty);
 
-            var listQuestions = new List<Question>();
-
-            while (listQuestions.Count < count)
-            {
-                var remain = count - listQuestions.Count;
-
-                var picked = questions
-                    .OrderBy(_ => Guid.NewGuid())
-                    .Take(remain)
-                    .ToList();
-
-                listQuestions.AddRange(picked);
-            }
-
-            return listQuestions;
+            return questions
+                .OrderBy(_ => Guid.NewGuid())
+                .Take(count)
+                .ToList();
         }
 
         private void BuildQuestionExam(List<QuestionExam> list, Exam? exam, List<Question> questions, int StudentId)
