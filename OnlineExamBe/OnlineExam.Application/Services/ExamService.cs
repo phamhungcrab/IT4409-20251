@@ -265,14 +265,14 @@ namespace OnlineExam.Application.Services
             var studentQuestions = await _studentQuesRepo.Query()
                 .Where(sq => sq.ExamId == examId && sq.StudentId == studentId)
                 .ToListAsync();
-
+ 
             float totalExamPoint = studentQuestions.Sum(x => x.QuestionPoint);
             float studentEarnedPoint = studentQuestions.Sum(x => x.Result ?? 0);
             double rawScore = totalExamPoint == 0 ? 0 : (studentEarnedPoint / totalExamPoint) * 10;
             float finalScore = (float)(Math.Round(rawScore * 2, MidpointRounding.AwayFromZero) / 2);
 
             examStudent.Status = ExamStatus.COMPLETED;
-            examStudent.EndTime = DateTime.Now; 
+            examStudent.EndTime = DateTime.Now;
             examStudent.Points = finalScore;
 
             await _examStudentRepo.SaveChangesAsync();
