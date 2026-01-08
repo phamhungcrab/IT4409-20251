@@ -213,8 +213,9 @@ const ExamRoomPage: React.FC = () => {
     markLeftPage,
   } = useExamIntegrity({
     examId,
+    studentId: user?.id,
     enabled: Boolean(user && examId && !submitResult),
-    focusLossThresholdMs: 5000,
+    focusLossThresholdMs: 7000, // 7s threshold as per requirement
     requireFullscreen: true,
     debug: import.meta.env.DEV,
   });
@@ -270,6 +271,85 @@ const ExamRoomPage: React.FC = () => {
 
     return () => {
         webRTCService.closeAll();
+    };
+  }, []);
+
+  // =========================
+  // 6) ANTI-CHEAT UI PROTECTIONS
+  // =========================
+  useEffect(() => {
+    // Block keyboard shortcuts
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Block Ctrl+P (Print)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        return;
+      }
+      // Block Ctrl+S (Save)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        return;
+      }
+      // Block Ctrl+U (View Source)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') {
+        e.preventDefault();
+        return;
+      }
+      // Block F12 (DevTools)
+      if (e.key === 'F12') {
+        e.preventDefault();
+        return;
+      }
+      // Block Ctrl+Shift+I (DevTools alternate)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'i') {
+        e.preventDefault();
+        return;
+      }
+    };
+
+    // Block right-click context menu
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    // Block copy/paste
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+    };
+
+    // Add print CSS dynamically
+    const printStyle = document.createElement('style');
+    printStyle.id = 'exam-anti-print-style';
+    printStyle.textContent = `
+      @media print {
+        body * {
+          display: none !important;
+        }
+        body::before {
+          content: "Nội dung bài thi được bảo mật - Không được phép in!";
+          display: block !important;
+          font-size: 24px;
+          color: red;
+          text-align: center;
+          padding: 100px;
+        }
+      }
+    `;
+    document.head.appendChild(printStyle);
+
+    // Add event listeners
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('copy', handleCopy);
+    document.addEventListener('paste', handleCopy);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('copy', handleCopy);
+      document.removeEventListener('paste', handleCopy);
+      const style = document.getElementById('exam-anti-print-style');
+      if (style) style.remove();
     };
   }, []);
 

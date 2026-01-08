@@ -18,6 +18,11 @@ namespace OnlineExam.Application.Dtos.ExamDtos
         public double StudentEarnedPoint { get; set; }   // Tổng điểm làm được
 
         public float FinalScore { get; set; }            // Điểm thang 10 (làm tròn 0.5)
+
+        /// <summary>
+        /// Number of violation events recorded during the exam (for Teacher view).
+        /// </summary>
+        public int ViolationCount { get; set; }
     }
 
 }

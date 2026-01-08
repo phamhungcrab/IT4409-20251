@@ -15,6 +15,8 @@
 import React, { Suspense } from 'react';
 import { useRoutes } from 'react-router-dom';
 import { appRoutes } from './routes';
+// KaTeX CSS for LaTeX rendering
+import 'katex/dist/katex.min.css';
 
 const App: React.FC = () => {
   /**

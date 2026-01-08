@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { examService } from '../services/examService';
 
 type IntegrityAlertKind = 'focus-loss' | 'left-page';
 type FullscreenGateReason = 'required' | 'exit';
@@ -24,6 +25,7 @@ interface IntegrityStats {
 
 interface UseExamIntegrityOptions {
   examId?: string | number;
+  studentId?: number;
   enabled?: boolean;
   focusLossThresholdMs?: number;
   warnCooldownMs?: number;
@@ -66,8 +68,9 @@ const readStats = (storageKey: string): IntegrityStats => {
 
 export const useExamIntegrity = ({
   examId,
+  studentId,
   enabled = true,
-  focusLossThresholdMs = 5000,
+  focusLossThresholdMs = 7000, // Updated to 7s as per requirements
   warnCooldownMs = 2000,
   requireFullscreen = true,
   debug = false,
@@ -187,13 +190,24 @@ export const useExamIntegrity = ({
       { durationMs, source }
     );
 
+    // Send to backend API (with offline queue support)
+    if (examId && studentId) {
+      examService.recordViolation({
+        examId: typeof examId === 'string' ? parseInt(examId, 10) : examId,
+        studentId,
+        violationType: 'FOCUS_LOSS',
+        occurredAt: new Date().toISOString(),
+        durationMs,
+      }).catch((err) => debugLog('api_error', { error: err }));
+    }
+
     triggerAlert({
       kind: 'focus-loss',
       occurredAt: Date.now(),
       durationMs,
       source,
     });
-  }, [recordViolation, triggerAlert]);
+  }, [recordViolation, triggerAlert, examId, studentId, debugLog]);
 
   const beginFocusLoss = useCallback((source: FocusLossSource) => {
     if (!guardActiveRef.current) return;
@@ -306,6 +320,16 @@ export const useExamIntegrity = ({
             'fullscreen_exit',
             { hadFullscreen: wasFullscreen }
           );
+
+          // Send to backend API (with offline queue support)
+          if (examId && studentId) {
+            examService.recordViolation({
+              examId: typeof examId === 'string' ? parseInt(examId, 10) : examId,
+              studentId,
+              violationType: 'FULLSCREEN_EXIT',
+              occurredAt: new Date().toISOString(),
+            }).catch(() => {/* handled by offline queue */});
+          }
         }
       } else {
         setFullscreenGate(null);

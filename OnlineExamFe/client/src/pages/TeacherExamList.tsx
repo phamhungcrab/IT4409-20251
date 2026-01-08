@@ -288,6 +288,25 @@ const TeacherExamList: React.FC = () => {
                                     <p className="text-3xl font-bold text-emerald-400">{studentDetailModal.data.correctCount}/{studentDetailModal.data.totalQuestions}</p>
                                 </div>
                              </div>
+
+                             {/* Violation Count - For Teacher Eyes Only */}
+                             {(studentDetailModal.data.violationCount ?? 0) > 0 && (
+                               <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-lg">
+                                   <div className="flex items-center justify-between">
+                                       <div className="flex items-center gap-2">
+                                           <span className="text-xl">⚠️</span>
+                                           <p className="text-sm font-semibold text-amber-400">Cảnh báo vi phạm</p>
+                                       </div>
+                                       <span className="text-2xl font-bold text-amber-400">
+                                           {studentDetailModal.data.violationCount} lỗi
+                                       </span>
+                                   </div>
+                                   <p className="text-xs text-amber-300/70 mt-2">
+                                       Sinh viên đã rời khỏi màn hình thi hoặc thoát toàn màn hình quá 7 giây.
+                                   </p>
+                               </div>
+                             )}
+
                              <div className="space-y-2 text-sm bg-white/5 p-4 rounded-lg border border-white/5">
                                  <div className="flex justify-between">
                                      <span className="text-slate-400">Tổng điểm câu hỏi</span>

@@ -247,7 +247,7 @@ namespace OnlineExam.Controllers
             {
                 return BadRequest($"{ex.Message}");
             }
-            
+
         }
 
         [HttpGet("detail")]
@@ -290,7 +290,7 @@ namespace OnlineExam.Controllers
             {
                 return BadRequest($"{ex.Message}");
             }
-            
+
         }
 
         [HttpGet("{examId}/students-status")]
@@ -306,6 +306,28 @@ namespace OnlineExam.Controllers
                 {
                     message = ex.Message
                 });
+            }
+        }
+
+        /// <summary>
+        /// Records an exam integrity violation (tab switch, fullscreen exit, etc.).
+        /// Called by the student's browser when a violation is detected.
+        /// </summary>
+        [HttpPost("violation")]
+        public async Task<IActionResult> RecordViolation([FromBody] RecordViolationDto dto)
+        {
+            try
+            {
+                await _examService.RecordViolationAsync(dto);
+                return Ok(new { success = true });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to record violation", error = ex.Message });
             }
         }
     }
