@@ -16,6 +16,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { formatLocalDateTime } from '../utils/dateUtils';
 
 /**
  * ResultItem mô tả 1 "dòng" dữ liệu kết quả.
@@ -182,7 +183,7 @@ const ResultTable: React.FC<ResultTableProps> = ({ results }) => {
                   {/* Cột 4: Thời gian nộp */}
                   <td className="px-4 py-3 sm:px-6 sm:py-4 whitespace-nowrap text-slate-300">
                     {result.submittedAt
-                      ? new Date(result.submittedAt).toLocaleString('vi-VN')
+                      ? formatLocalDateTime(result.submittedAt)
                       : '--'}
                   </td>
 

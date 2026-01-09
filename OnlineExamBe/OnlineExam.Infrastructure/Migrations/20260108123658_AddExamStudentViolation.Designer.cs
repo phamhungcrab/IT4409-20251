@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OnlineExam.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using OnlineExam.Infrastructure.Data;
 namespace OnlineExam.Infrastructure.Migrations
 {
     [DbContext(typeof(ExamSystemDbContext))]
-    partial class ExamSystemDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260108123658_AddExamStudentViolation")]
+    partial class AddExamStudentViolation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

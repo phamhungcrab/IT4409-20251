@@ -109,6 +109,7 @@ builder.Services.AddScoped<IExamService, ExamService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IExamGradingService, ExamGradingService>();
 builder.Services.AddSingleton<IExamAnswerCache, ExamAnswerCache>();
+builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
 
 // CORS configuration
 builder.Services.AddCors(options =>

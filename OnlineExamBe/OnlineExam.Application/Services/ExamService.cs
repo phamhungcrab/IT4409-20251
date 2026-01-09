@@ -29,6 +29,7 @@ namespace OnlineExam.Application.Services
         private readonly IRepository<StudentQuestion> _studentQuesRepo;
         private readonly IRepository<StudentClass> _studentClassRepo;
         private readonly IRepository<Exam> _exam2Repo;
+        private readonly IRepository<ExamStudentViolation> _violationRepo;
 
         public ExamService(
             IRepository<Exam> examRepo,
@@ -38,7 +39,8 @@ namespace OnlineExam.Application.Services
             IRepository<StudentQuestion> studentQuesRepo,
             IRepository<ExamStudent> examStudentRepo,
             IRepository<StudentClass> studentClassRepo,
-            IRepository<Exam> exam2Repo
+            IRepository<Exam> exam2Repo,
+            IRepository<ExamStudentViolation> violationRepo
 
             ) : base(examRepo)
         {
@@ -49,6 +51,7 @@ namespace OnlineExam.Application.Services
             _studentQuesRepo = studentQuesRepo;
             _studentClassRepo = studentClassRepo;
             _exam2Repo = exam2Repo;
+            _violationRepo = violationRepo;
         }
 
         public async Task<ResultApiModel> SearchForAdminAsync(SearchExamDto searchModel)
@@ -148,23 +151,23 @@ namespace OnlineExam.Application.Services
 
             var students = studentsInClass
                 .Where(sc => sc.Student != null)
-                .Select(sc => { 
-                    var student = sc.Student!; 
-                    examStudentMap.TryGetValue(student.Id, out var es); 
+                .Select(sc => {
+                    var student = sc.Student!;
+                    examStudentMap.TryGetValue(student.Id, out var es);
                     return new ExamStudentStatusDto {
-                        StudentId = student.Id, 
-                        StudentName = student.FullName, 
-                        MSSV = student.MSSV, 
-                        Status = es?.Status, 
-                        Score = es?.Points, 
-                        SubmittedAt = es?.EndTime 
-                    }; 
+                        StudentId = student.Id,
+                        StudentName = student.FullName,
+                        MSSV = student.MSSV,
+                        Status = es?.Status,
+                        Score = es?.Points,
+                        SubmittedAt = es?.EndTime
+                    };
                 }).ToList();
 
             return new ExamStudentsStatusResponse {
-                ExamId = exam.Id, 
-                ExamName = exam.Name, 
-                Students = students 
+                ExamId = exam.Id,
+                ExamName = exam.Name,
+                Students = students
             };
         }
 
@@ -174,8 +177,25 @@ namespace OnlineExam.Application.Services
                 .Where(x => x.ExamId == examId && x.StudentId == studentId)
                 .ToListAsync();
 
+            // Count violations (always available, even for IN_PROGRESS)
+            var violationCount = await _violationRepo.Query()
+                .CountAsync(v => v.ExamId == examId && v.StudentId == studentId);
+
+            // If no questions answered yet (early IN_PROGRESS), return partial data
             if (!studentQuestions.Any())
-                throw new Exception("Không tìm thấy dữ liệu làm bài của sinh viên");
+            {
+                return new ExamResultSummaryDto
+                {
+                    ExamId = examId,
+                    StudentId = studentId,
+                    TotalQuestions = 0,
+                    CorrectCount = 0,
+                    TotalQuestionPoint = 0,
+                    StudentEarnedPoint = 0,
+                    FinalScore = 0,
+                    ViolationCount = violationCount
+                };
+            }
 
             int totalQuestions = studentQuestions.Count;
 
@@ -200,8 +220,63 @@ namespace OnlineExam.Application.Services
                 TotalQuestionPoint = totalExamPoint,
                 StudentEarnedPoint = studentEarnedPoint,
 
-                FinalScore = finalScore
+                FinalScore = finalScore,
+                ViolationCount = violationCount
             };
+        }
+
+        public async Task RecordViolationAsync(RecordViolationDto dto)
+        {
+            // Parse violation type
+            if (!Enum.TryParse<ViolationType>(dto.ViolationType, ignoreCase: true, out var violationType))
+            {
+                throw new ArgumentException($"Invalid violation type: {dto.ViolationType}");
+            }
+
+            var violation = new ExamStudentViolation
+            {
+                ExamId = dto.ExamId,
+                StudentId = dto.StudentId,
+                ViolationType = violationType,
+                OccurredAt = dto.OccurredAt,
+                DurationMs = dto.DurationMs
+            };
+
+            await _violationRepo.AddAsync(violation);
+            await _violationRepo.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Force submit a student's exam by teacher.
+        /// Sets status to COMPLETED and records end time.
+        /// </summary>
+        public async Task<bool> ForceSubmitAsync(int examId, int studentId)
+        {
+            var examStudent = await _examStudentRepo.Query()
+                .FirstOrDefaultAsync(es => es.ExamId == examId && es.StudentId == studentId);
+
+            if (examStudent == null)
+                throw new Exception("Không tìm thấy bài thi của sinh viên");
+
+            if (examStudent.Status == ExamStatus.COMPLETED)
+                throw new Exception("Bài thi đã được nộp trước đó");
+
+            // Calculate score before marking as complete
+            var studentQuestions = await _studentQuesRepo.Query()
+                .Where(sq => sq.ExamId == examId && sq.StudentId == studentId)
+                .ToListAsync();
+ 
+            float totalExamPoint = studentQuestions.Sum(x => x.QuestionPoint);
+            float studentEarnedPoint = studentQuestions.Sum(x => x.Result ?? 0);
+            double rawScore = totalExamPoint == 0 ? 0 : (studentEarnedPoint / totalExamPoint) * 10;
+            float finalScore = (float)(Math.Round(rawScore * 2, MidpointRounding.AwayFromZero) / 2);
+
+            examStudent.Status = ExamStatus.COMPLETED;
+            examStudent.EndTime = DateTime.Now;
+            examStudent.Points = finalScore;
+
+            await _examStudentRepo.SaveChangesAsync();
+            return true;
         }
 
         public async Task<ExamResultPreviewDto> GetDetailResultExam(int examId, int studentId)
@@ -410,7 +485,7 @@ namespace OnlineExam.Application.Services
             allQuestions = allQuestions.OrderBy(x => Guid.NewGuid()).ToList();
 
             BuildQuestionExam(questionExams, exam, allQuestions, dto.StudentId);
-            
+
 
             await _questionExamRepo.AddRangeAsync(questionExams);
             await _questionExamRepo.SaveChangesAsync();
@@ -453,29 +528,15 @@ namespace OnlineExam.Application.Services
             )
         {
             var questions = await _questionRepo
-                .Query()
-                .Where(q =>
-                    q.SubjectId == subjectId &&
-                    q.Chapter == chapter &&
-                    q.Difficulty == (QuestionDifficulty)difficulty
-                )
-                .ToListAsync();
+                .FindAsync(q =>
+                q.SubjectId == subjectId &&
+                q.Chapter == chapter &&
+                (int)q.Difficulty == difficulty);
 
-            var listQuestions = new List<Question>();
-
-            while (listQuestions.Count < count)
-            {
-                var remain = count - listQuestions.Count;
-
-                var picked = questions
-                    .OrderBy(_ => Guid.NewGuid())
-                    .Take(remain)
-                    .ToList();
-
-                listQuestions.AddRange(picked);
-            }
-
-            return listQuestions;
+            return questions
+                .OrderBy(_ => Guid.NewGuid())
+                .Take(count)
+                .ToList();
         }
 
         private void BuildQuestionExam(List<QuestionExam> list, Exam? exam, List<Question> questions, int StudentId)
@@ -515,7 +576,7 @@ namespace OnlineExam.Application.Services
 
             return string.Join("|", correctAnswers);
         }
-           
+
         private List<string> CleanAnswer(string raw)
         {
             if (string.IsNullOrWhiteSpace(raw))

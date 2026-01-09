@@ -132,26 +132,25 @@ const StudentClassList: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
            {filteredClasses.map(cls => (
-              <div key={cls.id} className="group flex flex-col bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl hover:shadow-lg hover:border-emerald-500/30 transition duration-300 overflow-hidden">
+              <div key={cls.id} className="group flex flex-col bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl hover:shadow-xl hover:border-emerald-500/30 hover:-translate-y-1 transition-all duration-300 overflow-hidden relative">
                  {/* Decorative Header */}
-                 <div className="h-2 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
+                 <div className="h-1.5 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
 
                  <div className="p-6 flex-1 flex flex-col">
                     <div className="flex justify-between items-start mb-4">
-                       <div>
-                          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-1">
-                             {cls.subject?.subjectCode || 'Mã n/a'}
-                          </p>
-                          <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 transition-colors">
-                             {cls.name}
-                          </h3>
-                       </div>
-                       <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400">
-                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                          </svg>
-                       </div>
+                        <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider rounded-full">
+                            {cls.subject?.subjectCode || 'Mã n/a'}
+                        </span>
+                        <div className="text-slate-400 dark:text-slate-500 group-hover:text-emerald-500 transition-colors">
+                           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                           </svg>
+                        </div>
                     </div>
+
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 line-clamp-2 min-h-[3.5rem] group-hover:text-emerald-500 transition-colors">
+                        {cls.name}
+                    </h3>
 
                     <div className="space-y-3 mt-auto pt-4 border-t border-gray-100 dark:border-white/5">
                         <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
@@ -164,7 +163,6 @@ const StudentClassList: React.FC = () => {
                            <svg className="w-4 h-4 mr-2 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                            </svg>
-                           {/* Dùng teacherId làm fallback nếu không có object teacher */}
                            <span>GV: <span className="font-medium text-slate-900 dark:text-slate-200">{cls.teacher?.fullName || `ID: ${cls.teacherId}`}</span></span>
                         </div>
                     </div>

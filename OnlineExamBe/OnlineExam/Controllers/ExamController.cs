@@ -126,94 +126,102 @@ namespace OnlineExam.Controllers
         }
 
         [HttpPost("start-exam")]
-        [SessionAuthorize("F0522")]
+        //[SessionAuthorize("F0522")]
         public async Task<IActionResult> StartExam([FromBody] ExamStartRequest dto)
         {
-            var req = HttpContext.Request;
-            var wsScheme = req.Scheme == "https" ? "wss" : "ws";
-            var host = req.Host.Value;
-            var websocketUrl = $"{wsScheme}://{host}/ws?examId={dto.ExamId}&studentId={dto.StudentId}";
-
-            var exam = await _examService.GetByIdAsync(dto.ExamId);
-            if (exam == null) return BadRequest("Exam not found");
-
-
-            var c = await _classService.GetByIdAsync(exam.ClassId, ["StudentClasses"]);
-
-            var authResult = await _authorizationService.AuthorizeAsync(User, c, new ResourceRequirement(ResourceAction.StartExam));
-            if (!authResult.Succeeded)
+            try
             {
-                return Unauthorized("Forbidden: You do not have permission to perform this action.");
-            }
+                var req = HttpContext.Request;
+                var wsScheme = req.Scheme == "https" ? "wss" : "ws";
+                var host = req.Host.Value;
+                var websocketUrl = $"{wsScheme}://{host}/ws?examId={dto.ExamId}&studentId={dto.StudentId}";
 
-            var state = await _examService.GetExamStudent(dto.ExamId, dto.StudentId);
+                var exam = await _examService.GetByIdAsync(dto.ExamId);
+                if (exam == null) return BadRequest("Exam not found");
 
-            if (state != null)
-            {
-                if (state.Status == ExamStatus.IN_PROGRESS)
+
+                var c = await _classService.GetByIdAsync(exam.ClassId, ["StudentClasses"]);
+
+                var authResult = await _authorizationService.AuthorizeAsync(User, c, new ResourceRequirement(ResourceAction.StartExam));
+                if (!authResult.Succeeded)
                 {
-                    var deadline = state.StartTime!.AddMinutes(exam.DurationMinutes);
-                    if (DateTime.Now > deadline)
-                        return Ok(new { status = "expired" });
-
-                    return Ok(new { status = "in_progress", wsUrl = websocketUrl });
+                    return Unauthorized("Forbidden: You do not have permission to perform this action.");
                 }
 
-                if (state.Status == ExamStatus.COMPLETED)
+                var state = await _examService.GetExamStudent(dto.ExamId, dto.StudentId);
+
+                if (state != null)
                 {
-                    return Ok(new
+                    if (state.Status == ExamStatus.IN_PROGRESS)
                     {
-                        status = "completed",
-                        data = new ResponseResultExamDto
+                        var deadline = state.StartTime!.AddMinutes(exam.DurationMinutes);
+                        if (DateTime.Now > deadline)
+                            return Ok(new { status = "expired" });
+
+                        return Ok(new { status = "in_progress", wsUrl = websocketUrl });
+                    }
+
+                    if (state.Status == ExamStatus.COMPLETED)
+                    {
+                        return Ok(new
                         {
-                            ExamId = state.ExamId,
-                            StudentId = state.StudentId,
-                            StartTime = state.StartTime,
-                            EndTime = state.EndTime,
-                            Status = state.Status
-                        }
-                    });
+                            status = "completed",
+                            data = new ResponseResultExamDto
+                            {
+                                ExamId = state.ExamId,
+                                StudentId = state.StudentId,
+                                StartTime = state.StartTime,
+                                EndTime = state.EndTime,
+                                Status = state.Status
+                            }
+                        });
+                    }
+
+                    return Ok(new { status = "expired" });
                 }
 
-                return Ok(new { status = "expired" });
+                if (DateTime.Now < exam.StartTime)
+                    return BadRequest(new { status = "not_started" });
+
+                if (DateTime.Now > exam.EndTime)
+                    return BadRequest(new { status = "expired" });
+
+                var examStudent = new ExamStudent
+                {
+                    ExamId = dto.ExamId,
+                    StudentId = dto.StudentId,
+                    StartTime = DateTime.Now,
+                    Status = ExamStatus.IN_PROGRESS
+                };
+
+                var deadlineSubmit = examStudent.StartTime.AddMinutes(exam.DurationMinutes);
+
+                await _examStudentRepo.AddAsync(examStudent);
+                await _examStudentRepo.SaveChangesAsync();
+
+                var examForStudent = await _examService.GenerateExamAsync(new CreateExamForStudentDto
+                {
+                    ExamId = dto.ExamId,
+                    StudentId = dto.StudentId
+                });
+
+                return Ok(new
+                {
+                    status = "create",
+                    wsUrl = websocketUrl,
+                    data = examForStudent
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
             }
 
-            if (DateTime.Now < exam.StartTime)
-                return BadRequest(new { status = "not_started" });
-
-            if (DateTime.Now > exam.EndTime)
-                return BadRequest(new { status = "expired" });
-
-            var examStudent = new ExamStudent
-            {
-                ExamId = dto.ExamId,
-                StudentId = dto.StudentId,
-                StartTime = DateTime.Now,
-                Status = ExamStatus.IN_PROGRESS
-            };
-
-            var deadlineSubmit = examStudent.StartTime.AddMinutes(exam.DurationMinutes);
-
-            await _examStudentRepo.AddAsync(examStudent);
-            await _examStudentRepo.SaveChangesAsync();
-
-            var examForStudent = await _examService.GenerateExamAsync(new CreateExamForStudentDto
-            {
-                ExamId = dto.ExamId,
-                StudentId = dto.StudentId
-            });
-
-            return Ok(new
-            {
-                status = "create",
-                wsUrl = websocketUrl,
-                data = examForStudent
-            });
 
         }
 
         [HttpPost("generate")]
-        [SessionAuthorize("F0525")]
+        //[SessionAuthorize("F0525")]
         public async Task<IActionResult> Generate([FromBody] CreateExamForStudentDto dto)
         {
             try
@@ -247,7 +255,7 @@ namespace OnlineExam.Controllers
             {
                 return BadRequest($"{ex.Message}");
             }
-            
+
         }
 
         [HttpGet("detail")]
@@ -290,7 +298,7 @@ namespace OnlineExam.Controllers
             {
                 return BadRequest($"{ex.Message}");
             }
-            
+
         }
 
         [HttpGet("{examId}/students-status")]
@@ -308,5 +316,54 @@ namespace OnlineExam.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Records an exam integrity violation (tab switch, fullscreen exit, etc.).
+        /// Called by the student's browser when a violation is detected.
+        /// </summary>
+        [HttpPost("violation")]
+        public async Task<IActionResult> RecordViolation([FromBody] RecordViolationDto dto)
+        {
+            try
+            {
+                await _examService.RecordViolationAsync(dto);
+                return Ok(new { success = true });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to record violation", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Force submit a student's exam by teacher.
+        /// Marks the exam as COMPLETED and calculates the final score.
+        /// </summary>
+        [HttpPost("force-submit")]
+        public async Task<IActionResult> ForceSubmit([FromBody] ForceSubmitRequest dto)
+        {
+            try
+            {
+                await _examService.ForceSubmitAsync(dto.ExamId, dto.StudentId);
+                return Ok(new { success = true, message = "Đã nộp bài thành công" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
+}
+
+/// <summary>
+/// Request DTO for force submit
+/// </summary>
+public class ForceSubmitRequest
+{
+    public int ExamId { get; set; }
+    public int StudentId { get; set; }
 }

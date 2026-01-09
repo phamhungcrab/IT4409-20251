@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OnlineExam.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using OnlineExam.Infrastructure.Data;
 namespace OnlineExam.Infrastructure.Migrations
 {
     [DbContext(typeof(ExamSystemDbContext))]
-    partial class ExamSystemDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260107050136_AddAnnouncementFeature")]
+    partial class AddAnnouncementFeature
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -205,40 +208,6 @@ namespace OnlineExam.Infrastructure.Migrations
                     b.HasIndex("StudentId");
 
                     b.ToTable("ExamStudents");
-                });
-
-            modelBuilder.Entity("OnlineExam.Domain.Entities.ExamStudentViolation", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("DurationMs")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ExamId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("OccurredAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("StudentId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ViolationType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StudentId");
-
-                    b.HasIndex("ExamId", "StudentId")
-                        .HasDatabaseName("IX_ExamStudentViolation_Exam_Student");
-
-                    b.ToTable("ExamStudentViolations");
                 });
 
             modelBuilder.Entity("OnlineExam.Domain.Entities.GroupPermission", b =>
@@ -695,25 +664,6 @@ namespace OnlineExam.Infrastructure.Migrations
                 {
                     b.HasOne("OnlineExam.Domain.Entities.Exam", "Exam")
                         .WithMany("ExamStudents")
-                        .HasForeignKey("ExamId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("OnlineExam.Domain.Entities.User", "Student")
-                        .WithMany()
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Exam");
-
-                    b.Navigation("Student");
-                });
-
-            modelBuilder.Entity("OnlineExam.Domain.Entities.ExamStudentViolation", b =>
-                {
-                    b.HasOne("OnlineExam.Domain.Entities.Exam", "Exam")
-                        .WithMany()
                         .HasForeignKey("ExamId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

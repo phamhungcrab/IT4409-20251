@@ -6,7 +6,9 @@ import { classService, ClassDto } from '../../services/classService';
 import { examService, ExamStudentStatus } from '../../services/examService';
 import { resultService, ResultSummary } from '../../services/resultService';
 import { blueprintService, Blueprint, BlueprintChapter } from '../../services/blueprintService';
+import { announcementService, CreateAnnouncementDto } from '../../services/announcementService';
 import { ExamDto } from '../../types/exam';
+import { formatLocalDateTime, formatLocalDate } from '../../utils/dateUtils';
 
 interface StudentDto {
   id: number;
@@ -52,6 +54,9 @@ const TeacherClassDetail: React.FC = () => {
     show: boolean;
     studentName: string;
     mssv: string;
+    studentStatus?: string; // Add status support
+    examId?: number;        // Add examId support
+    studentId?: number;     // Add studentId support
     data: ResultSummary | null;
     loading: boolean;
   }>({
@@ -61,6 +66,11 @@ const TeacherClassDetail: React.FC = () => {
     data: null,
     loading: false
   });
+
+  // Force Submit States
+  const [forceSubmitState, setForceSubmitState] = useState<'idle' | 'confirm' | 'success' | 'error'>('idle');
+  const [forceSubmitting, setForceSubmitting] = useState(false);
+  const [forceSubmitError, setForceSubmitError] = useState('');
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creatingClassId, setCreatingClassId] = useState<number | null>(null);
@@ -109,6 +119,16 @@ const TeacherClassDetail: React.FC = () => {
     blueprintId: number | null;
   }>({ show: false, blueprintId: null });
   const [deletingBlueprint, setDeletingBlueprint] = useState(false);
+
+  // === Announcement Modal State ===
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [announcementForm, setAnnouncementForm] = useState<{
+    title: string;
+    content: string;
+    type: 'info' | 'warning' | 'success' | 'error';
+  }>({ title: '', content: '', type: 'info' });
+  const [creatingAnnouncement, setCreatingAnnouncement] = useState(false);
+  const [announcementError, setAnnouncementError] = useState<string | null>(null);
 
   const mapClassExams = (classIdValue: number, exams: ClassDto['exams'] = []): ExamDto[] =>
     (exams ?? []).map((exam: ClassExam) => ({
@@ -280,34 +300,63 @@ const TeacherClassDetail: React.FC = () => {
     }
   };
 
-  const handleViewStudentDetail = async (
-    examId: number,
-    studentId: number,
-    studentName: string,
-    mssv: string
-  ) => {
+  const handleViewStudentDetail = async (examId: number, studentId: number, studentName: string, mssv: string, status?: string) => {
     setStudentDetailModal({
       show: true,
       studentName,
       mssv,
+      studentStatus: status, // Pass status
+      examId,
+      studentId,
       data: null,
       loading: true
     });
+    // Reset force submit state when opening modal
+    setForceSubmitState('idle');
+    setForceSubmitError('');
 
     try {
-      const result = await resultService.getResultSummary(examId, studentId);
-      setStudentDetailModal((prev) => ({
-        ...prev,
-        data: result,
-        loading: false
-      }));
-    } catch (error) {
-      console.error('Không thể tải chi tiết điểm', error);
-      setStudentDetailModal((prev) => ({
-        ...prev,
-        loading: false
-      }));
+      const data = await resultService.getResultSummary(examId, studentId);
+      setStudentDetailModal((prev) => ({ ...prev, data, loading: false }));
+    } catch {
+      setStudentDetailModal((prev) => ({ ...prev, loading: false }));
     }
+  };
+
+  // Force Submit Handler
+  const handleForceSubmit = async () => {
+    if (!studentDetailModal.examId || !studentDetailModal.studentId) return;
+
+    if (forceSubmitState !== 'confirm') {
+      setForceSubmitState('confirm');
+      return;
+    }
+
+    setForceSubmitting(true);
+    try {
+      await examService.forceSubmit(studentDetailModal.examId, studentDetailModal.studentId);
+      setForceSubmitState('success');
+
+      // Auto close and refresh after 1.5s
+      setTimeout(() => {
+        setStudentDetailModal(prev => ({ ...prev, show: false }));
+        setForceSubmitState('idle');
+        // Refresh status list if viewing specific exam
+        if (viewingStatusExamId) {
+            handleViewExamStudentsStatus(viewingStatusExamId, viewingStatusExamName);
+        }
+      }, 1500);
+    } catch (error: any) {
+      setForceSubmitError(error?.message || 'Có lỗi xảy ra khi nộp bài');
+      setForceSubmitState('error');
+    } finally {
+      setForceSubmitting(false);
+    }
+  };
+
+  const handleCancelForceSubmit = () => {
+    setForceSubmitState('idle');
+    setForceSubmitError('');
   };
 
   const loadBlueprintsWithDetails = async (subjectId: number) => {
@@ -700,6 +749,16 @@ const TeacherClassDetail: React.FC = () => {
             >
               Tạo kỳ thi
             </button>
+            <button
+              onClick={() => {
+                setAnnouncementForm({ title: '', content: '', type: 'info' });
+                setAnnouncementError(null);
+                setShowAnnouncementModal(true);
+              }}
+              className="btn btn-ghost text-sm px-4 py-2 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50 rounded-lg font-medium"
+            >
+              📢 Tạo thông báo
+            </button>
           </div>
         </div>
 
@@ -724,7 +783,7 @@ const TeacherClassDetail: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-3">
         <button
           type="button"
           onClick={() => handleViewStudents(numericClassId)}
@@ -754,23 +813,10 @@ const TeacherClassDetail: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => setActiveSection('blueprints')}
-          className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all ${
-            activeSection === 'blueprints'
-              ? 'bg-purple-500/20 border-purple-500/50 text-white shadow-lg shadow-purple-500/10'
-              : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'
-          }`}
-          aria-pressed={activeSection === 'blueprints'}
-        >
-          <span className="block">Cấu trúc đề</span>
-          <span className="block text-xs font-normal text-slate-400">Blueprint & Ma trận</span>
-        </button>
-        <button
-          type="button"
           onClick={() => setActiveSection('reports')}
           className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all ${
             activeSection === 'reports'
-              ? 'bg-emerald-500/20 border-emerald-500/50 text-white shadow-lg shadow-emerald-500/10'
+              ? 'bg-amber-500/20 border-amber-500/50 text-white shadow-lg shadow-amber-500/10'
               : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'
           }`}
           aria-pressed={activeSection === 'reports'}
@@ -895,13 +941,13 @@ const TeacherClassDetail: React.FC = () => {
                       <div className="flex items-center gap-2 text-sm">
                         <span className="text-slate-400">Bắt đầu:</span>
                         <span className="text-slate-300 font-medium">
-                          {new Date(ex.startTime).toLocaleString('vi-VN')}
+                          {formatLocalDateTime(ex.startTime)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <span className="text-slate-400">Kết thúc:</span>
                         <span className="text-slate-300 font-medium">
-                          {new Date(ex.endTime).toLocaleString('vi-VN')}
+                          {formatLocalDateTime(ex.endTime)}
                         </span>
                       </div>
                       {ex.blueprintId ? (
@@ -1037,23 +1083,24 @@ const TeacherClassDetail: React.FC = () => {
                         </td>
                         <td className="py-3 px-2 text-slate-400 text-xs">
                           {student.submittedAt
-                            ? new Date(student.submittedAt).toLocaleString('vi-VN')
+                            ? formatLocalDateTime(student.submittedAt)
                             : '-'}
                         </td>
                         <td className="py-3 px-2">
-                          {student.status === 'COMPLETED' && (
+                          {(student.status === 'COMPLETED' || student.status === 'IN_PROGRESS') && (
                             <button
                               onClick={() =>
                                 handleViewStudentDetail(
                                   viewingStatusExamId!,
                                   student.studentId,
                                   student.studentName,
-                                  student.mssv
+                                  student.mssv,
+                                  student.status || undefined // Handle null status
                                 )
                               }
                               className="text-xs text-sky-400 hover:text-sky-300 hover:underline"
                             >
-                              Chi tiết
+                              {student.status === 'IN_PROGRESS' ? 'Xem / Nộp hộ' : 'Chi tiết'}
                             </button>
                           )}
                         </td>
@@ -1129,7 +1176,7 @@ const TeacherClassDetail: React.FC = () => {
                             Blueprint #{bp.id}
                           </h3>
                           <p className="text-xs text-slate-400">
-                            {new Date(bp.createdAt).toLocaleDateString('vi-VN')}
+                            {formatLocalDate(bp.createdAt)}
                           </p>
                         </div>
                       </div>
@@ -1300,6 +1347,24 @@ const TeacherClassDetail: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Violation Count Section */}
+                {(studentDetailModal.data.violationCount ?? 0) > 0 && (
+                  <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-lg">
+                      <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                              <span className="text-xl">⚠️</span>
+                              <p className="text-sm font-semibold text-amber-400">Cảnh báo vi phạm</p>
+                          </div>
+                          <span className="text-2xl font-bold text-amber-400">
+                              {studentDetailModal.data.violationCount} lỗi
+                          </span>
+                      </div>
+                      <p className="text-xs text-amber-300/70 mt-2">
+                          Sinh viên đã rời khỏi màn hình thi hoặc thoát toàn màn hình quá 7 giây.
+                      </p>
+                  </div>
+                )}
+
                 <div className="bg-white/5 rounded-lg p-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Tổng điểm câu hỏi:</span>
@@ -1313,12 +1378,83 @@ const TeacherClassDetail: React.FC = () => {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setStudentDetailModal((prev) => ({ ...prev, show: false }))}
-                  className="w-full btn btn-primary py-2 rounded-lg"
-                >
-                  Đóng
-                </button>
+                {/* Force Submit Section */}
+                {studentDetailModal.studentStatus === 'IN_PROGRESS' && (
+                  <div className="mt-4 pt-4 border-t border-white/10">
+                    {forceSubmitState === 'success' && (
+                      <div className="text-center py-4">
+                        <div className="text-4xl mb-2">✅</div>
+                        <p className="text-emerald-400 font-semibold">Đã nộp bài thành công!</p>
+                        <p className="text-xs text-slate-500 mt-1">Đang đóng...</p>
+                      </div>
+                    )}
+
+                    {forceSubmitState === 'error' && (
+                      <div className="text-center py-4">
+                        <div className="text-4xl mb-2">❌</div>
+                        <p className="text-red-400 font-semibold">{forceSubmitError}</p>
+                        <button
+                          onClick={handleCancelForceSubmit}
+                          className="mt-3 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm"
+                        >
+                          Thử lại
+                        </button>
+                      </div>
+                    )}
+
+                    {forceSubmitState === 'confirm' && (
+                      <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+                        <p className="text-amber-300 font-semibold text-center mb-3">
+                          Bạn chắc chắn muốn nộp bài cho {studentDetailModal.studentName}?
+                        </p>
+                        <p className="text-xs text-amber-300/70 text-center mb-4">
+                          Hành động này không thể hoàn tác.
+                        </p>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={handleCancelForceSubmit}
+                            className="flex-1 py-2 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+                          >
+                            Hủy
+                          </button>
+                          <button
+                            onClick={handleForceSubmit}
+                            disabled={forceSubmitting}
+                            className="flex-1 py-2 px-4 bg-red-600 hover:bg-red-500 disabled:bg-red-800 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2"
+                          >
+                            {forceSubmitting ? (
+                              <>
+                                <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full" />
+                                Đang nộp...
+                              </>
+                            ) : (
+                              'Xác nhận nộp'
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {forceSubmitState === 'idle' && (
+                      <button
+                        onClick={handleForceSubmit}
+                        className="w-full py-3 px-4 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2"
+                      >
+                        <span>⚠️</span>
+                        Nộp bài hộ sinh viên
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {forceSubmitState === 'idle' && (
+                    <button
+                    onClick={() => setStudentDetailModal((prev) => ({ ...prev, show: false }))}
+                    className="w-full btn btn-primary py-2 rounded-lg"
+                    >
+                    Đóng
+                    </button>
+                )}
               </div>
             ) : (
               <div className="py-8 text-center text-rose-400">Không thể tải dữ liệu</div>
@@ -1772,6 +1908,105 @@ const TeacherClassDetail: React.FC = () => {
                 className="btn btn-ghost text-sm px-4 py-2 border border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 hover:border-rose-500/50 rounded-lg disabled:opacity-50"
               >
                 {deletingBlueprint ? 'Đang xóa...' : 'Xóa Blueprint'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === Modal Tạo Thông báo === */}
+      {showAnnouncementModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/95 p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">📢 Tạo thông báo</h2>
+              <button
+                onClick={() => setShowAnnouncementModal(false)}
+                className="text-slate-400 hover:text-white text-xl"
+              >
+                ×
+              </button>
+            </div>
+
+            {announcementError && (
+              <div className="text-sm text-rose-300 border border-rose-400/40 bg-rose-500/10 rounded-lg p-3">
+                {announcementError}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Tiêu đề *</label>
+                <input
+                  type="text"
+                  value={announcementForm.title}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder-slate-400 focus:border-sky-500 focus:outline-none"
+                  placeholder="Nhập tiêu đề thông báo..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Nội dung *</label>
+                <textarea
+                  value={announcementForm.content}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder-slate-400 focus:border-sky-500 focus:outline-none min-h-[100px]"
+                  placeholder="Nhập nội dung thông báo..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Loại thông báo</label>
+                <select
+                  value={announcementForm.type}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, type: e.target.value as any })}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white focus:border-sky-500 focus:outline-none"
+                >
+                  <option value="info">ℹ️ Thông tin</option>
+                  <option value="warning">⚠️ Cảnh báo</option>
+                  <option value="success">✅ Thành công</option>
+                  <option value="error">❌ Lỗi/Khẩn cấp</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                onClick={() => setShowAnnouncementModal(false)}
+                className="btn btn-ghost text-sm px-4 py-2 border border-white/20 text-slate-300 hover:text-white rounded-lg"
+                disabled={creatingAnnouncement}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={async () => {
+                  if (!announcementForm.title || !announcementForm.content) {
+                    setAnnouncementError('Vui lòng nhập đầy đủ tiêu đề và nội dung.');
+                    return;
+                  }
+                  setCreatingAnnouncement(true);
+                  setAnnouncementError(null);
+                  try {
+                    await announcementService.create({
+                      title: announcementForm.title,
+                      content: announcementForm.content,
+                      type: announcementForm.type,
+                      classId: numericClassId
+                    });
+                    showToast('Gửi thông báo thành công!', 'success');
+                    setShowAnnouncementModal(false);
+                  } catch (err) {
+                    const msg = err instanceof Error ? err.message : 'Gửi thông báo thất bại.';
+                    setAnnouncementError(msg);
+                  } finally {
+                    setCreatingAnnouncement(false);
+                  }
+                }}
+                disabled={creatingAnnouncement}
+                className="btn btn-primary text-sm px-4 py-2 rounded-lg font-semibold disabled:opacity-50"
+              >
+                {creatingAnnouncement ? 'Đang gửi...' : 'Gửi thông báo'}
               </button>
             </div>
           </div>

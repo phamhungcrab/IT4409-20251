@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useAuth from '../hooks/useAuth';
 import { resultService, ExamDetailResult, ResultItem } from '../services/resultService';
+import { formatLocalDateTime } from '../utils/dateUtils';
 
 /**
  * LocationState: dữ liệu đính kèm khi navigate từ trang danh sách
@@ -140,13 +141,13 @@ const ResultDetailPage: React.FC = () => {
             <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>Bắt đầu: {new Date(detail.startTimeStudent).toLocaleString('vi-VN')}</span>
+            <span>Bắt đầu: {formatLocalDateTime(detail.startTimeStudent)}</span>
           </div>
           <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span>Nộp bài: {new Date(detail.endTimeStudent).toLocaleString('vi-VN')}</span>
+            <span>Nộp bài: {formatLocalDateTime(detail.endTimeStudent)}</span>
           </div>
         </div>
 

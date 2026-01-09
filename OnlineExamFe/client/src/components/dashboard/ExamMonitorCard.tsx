@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ExamMonitorItem } from '../../services/dashboardService';
+import { formatShortDateTime, formatLocalDate } from '../../utils/dateUtils';
 
 interface ExamMonitorCardProps {
   upcoming: ExamMonitorItem[];
@@ -50,7 +51,7 @@ const ExamMonitorCard: React.FC<ExamMonitorCardProps> = ({ upcoming, live, isLoa
                              </span>
                          ) : (
                             <span className="px-2 py-1 rounded-full bg-sky-500/20 border border-sky-500/30 text-sky-400 text-xs font-bold">
-                                {new Date(ex.startTime).toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit'})}
+                                {formatLocalDate(ex.startTime)}
                             </span>
                          )}
                     </div>
@@ -58,9 +59,9 @@ const ExamMonitorCard: React.FC<ExamMonitorCardProps> = ({ upcoming, live, isLoa
                     <div className="flex items-center justify-between text-sm">
                         <div className="text-slate-300">
                            {type === 'live' ? (
-                               <span>Kết thúc: <span className="text-white font-mono">{new Date(ex.endTime).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span></span>
+                               <span>Kết thúc: <span className="text-white font-mono">{formatShortDateTime(ex.endTime)}</span></span>
                            ) : (
-                               <span>Bắt đầu: <span className="text-white font-mono">{new Date(ex.startTime).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</span></span>
+                               <span>Bắt đầu: <span className="text-white font-mono">{formatShortDateTime(ex.startTime)}</span></span>
                            )}
                         </div>
                     </div>

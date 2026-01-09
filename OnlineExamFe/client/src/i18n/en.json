@@ -81,6 +81,11 @@
       "enterFullscreen": "Enter fullscreen",
       "acknowledge": "I understand",
       "warningNote": "Repeated violations may be recorded as suspicious behavior."
+    },
+    "warning": {
+      "5min": "⚠️ Warning: 5 minutes remaining!",
+      "3min": "⚠️ Warning: 3 minutes remaining!",
+      "1min": "🚨 URGENT: Only 1 minute left!"
     }
   },
   "admin": {
@@ -89,5 +94,10 @@
     "allExams": "All Exams",
     "createExam": "Create New Exam",
     "students": "Students"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications",
+    "unread": "unread"
   }
 }
