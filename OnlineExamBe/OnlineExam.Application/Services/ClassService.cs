@@ -239,14 +239,21 @@ namespace OnlineExam.Application.Services
                 }
 
                 else
-                {
+                { 
+                    bool exists = curClass.StudentClasses.Any(sc => sc.StudentId == student.Id && sc.ClassId == classId); 
+                    if (exists) 
+                    {
+                        invalidStudents.Add(item);
+                        continue;
+                    }
                     var studentClass = new StudentClass
                     {
                         StudentId = student.Id,
                         ClassId = classId
                         
                     };
-                    try
+                   
+                        try
                     {
 
                         await _studentClassRepo.AddAsync(studentClass);
