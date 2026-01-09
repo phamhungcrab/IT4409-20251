@@ -83,6 +83,7 @@ namespace OnlineExam.Application.Services
             var totalItems = await query.CountAsync();
 
             var exams = await query
+                .Include(C => C.Class)
                 .Skip((searchModel.PageNumber - 1) * searchModel.PageSize)
                 .Take(searchModel.PageSize)
                 .Select(c => new ExamSimpleDto(c))
