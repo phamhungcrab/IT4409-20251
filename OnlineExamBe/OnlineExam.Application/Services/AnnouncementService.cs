@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using OnlineExam.Application.Dtos.AnnouncementDtos;
 using OnlineExam.Application.Dtos.ResponseDtos;
@@ -5,6 +7,7 @@ using OnlineExam.Application.Interfaces;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
+using OnlineExam.Infrastructure.Policy.Requirements;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,17 +23,23 @@ namespace OnlineExam.Application.Services
         private readonly IRepository<StudentAnnouncement> _studentAnnouncementRepo;
         private readonly IRepository<StudentClass> _studentClassRepo;
         private readonly IRepository<Class> _classRepo;
+        private readonly IAuthorizationService _authorizationService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public AnnouncementService(
             IRepository<Announcement> announcementRepo,
             IRepository<StudentAnnouncement> studentAnnouncementRepo,
             IRepository<StudentClass> studentClassRepo,
-            IRepository<Class> classRepo)
+            IRepository<Class> classRepo,
+            IAuthorizationService authorizationSerice,
+            IHttpContextAccessor httpContextAccessor)
         {
             _announcementRepo = announcementRepo;
             _studentAnnouncementRepo = studentAnnouncementRepo;
             _studentClassRepo = studentClassRepo;
             _classRepo = classRepo;
+            _authorizationService = authorizationSerice;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         /// <summary>
@@ -40,7 +49,7 @@ namespace OnlineExam.Application.Services
         public async Task<ResultApiModel> CreateAsync(CreateAnnouncementDto dto, int teacherId)
         {
             // Kiểm tra class tồn tại
-            var classEntity = await _classRepo.GetByIdAsync(dto.ClassId);
+            var classEntity = await _classRepo.GetByIdAsync(dto.ClassId, ["Teacher"]);
             if (classEntity == null)
             {
                 return new ResultApiModel
@@ -50,7 +59,16 @@ namespace OnlineExam.Application.Services
                     Data = "Không tìm thấy lớp học"
                 };
             }
-
+            // ktra giao vien cua lop
+            var checkAuthen = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, classEntity, new ResourceRequirement(ResourceAction.Create));
+            if(!checkAuthen.Succeeded)
+            {
+                return new ResultApiModel
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.Forbidden,
+                };
+            }
             // Tạo announcement
             var announcement = new Announcement
             {

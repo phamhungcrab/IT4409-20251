@@ -14,6 +14,8 @@ using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 namespace OnlineExam.Application.Services.Auth
 {
     
@@ -38,11 +40,13 @@ namespace OnlineExam.Application.Services.Auth
 
         public void Set(string key, object data, int minutes = 30)
         {
+            key = HashPassword(key);
             _cache.Set(key, data, TimeSpan.FromMinutes(minutes));
         }
 
         public T? Get<T>(string key)
         {
+            key = HashPassword(key);
             return _cache.TryGetValue(key, out T? value) ? value : default;
         }
 
@@ -62,7 +66,7 @@ namespace OnlineExam.Application.Services.Auth
         public async Task<Session> CreateAsync(User user, int expiresAfter)
         {
 
-            var session = new Session {
+            var session= new Session {
                 SessionString = RanNumGenHelper.generateRandomString(256),
                 UserId = user.Id,
                 UserRole = user.Role,
@@ -73,10 +77,11 @@ namespace OnlineExam.Application.Services.Auth
             var oldSession = await _repository.FindAsync(c => c.UserId == user.Id);
             if (oldSession.Any()) 
             {
-                await DeleteAsync((oldSession.First().SessionString));
+                await DeleteAsync((oldSession.First().Id));
 
             }
-
+            var sessionString = session.SessionString;
+            session.SessionString = HashPassword(sessionString);
             await CreateAsync(session);
 
             var listRolePer = await _roleService.GetPermissionByRole(user.Role) ?? Enumerable.Empty<PermissionDto>(); 
@@ -99,8 +104,9 @@ namespace OnlineExam.Application.Services.Auth
                 UserPermissionCode = userPermission.Select(c => c.Code).ToList()
 
             };
-
+            session.SessionString = sessionString;
             Set(session.SessionString, info);
+            
            
             return session;
 
@@ -110,10 +116,10 @@ namespace OnlineExam.Application.Services.Auth
         public  async Task<bool> DeleteByUserIdAsync(int userId)
         {
             var session = await _repository.FindAsync(c => c.UserId == userId);
-            _cache.Remove(session.First().SessionString);
+            _cache.Remove(HashPassword(session.First().SessionString));
             if (session.Any())
             {
-               await DeleteAsync((session.First().SessionString));
+               await DeleteAsync((session.First().Id));
                 return true;
             }
             
@@ -122,8 +128,8 @@ namespace OnlineExam.Application.Services.Auth
 
         public async Task<bool> DeleteAsync(string sessionString)
         {
-            _cache.Remove(sessionString);
-            var session = await _repository.FindAsync(c => c.SessionString == sessionString);
+            _cache.Remove(HashPassword(sessionString));
+            var session = await _repository.FindAsync(c => c.SessionString == HashPassword(sessionString));
             if (session.Any())
             {
                 await DeleteAsync(session.First().Id);
@@ -163,6 +169,13 @@ namespace OnlineExam.Application.Services.Auth
                 session!.ExpiresAt = DateTime.Now.AddMinutes(addMinutes);
                 Set(sessionString, session);
             }
+        }
+
+        private static string HashPassword(string password)
+        {
+            using var sha256 = SHA256.Create();
+            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            return Convert.ToHexString(bytes);
         }
     }
         
