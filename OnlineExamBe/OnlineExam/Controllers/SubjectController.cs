@@ -53,7 +53,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpGet("{id}")]
-        [SessionAuthorize("F0312")]
+        [SessionAuthorize("F0322")]
         public async Task<IActionResult> GetById(int id)
         {
             try
@@ -111,7 +111,7 @@ namespace OnlineExam.Controllers
 
 
         [HttpGet("get-with-{code}")]
-        [SessionAuthorize("F0312")]
+        [SessionAuthorize("F0322")]
         public async Task<IActionResult> GetBySubjectCode(string code)
         {
             var result = await _service.GetByCodeAsync(code);
