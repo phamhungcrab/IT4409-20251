@@ -1,15 +1,18 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Hangfire;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.ExamDtos;
 using OnlineExam.Application.Dtos.ExamStudent;
 using OnlineExam.Application.Dtos.ResponseDtos;
 using OnlineExam.Application.Dtos.UserDtos;
 using OnlineExam.Application.Interfaces;
+using OnlineExam.Application.Interfaces.Websocket;
 using OnlineExam.Application.Services;
 using OnlineExam.Attributes;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
+using OnlineExam.Infrastructure.Data;
 using OnlineExam.Infrastructure.Policy.Requirements;
 
 namespace OnlineExam.Controllers
@@ -22,14 +25,23 @@ namespace OnlineExam.Controllers
         private readonly IRepository<ExamStudent> _examStudentRepo;
         private readonly IAuthorizationService _authorizationService;
         private readonly IClassService _classService;
+        private readonly IExamGradingService _examGradingService;
+        private readonly IExamAnswerCache _examAnswerCache;
+        private readonly IBackgroundJobClient _backgroundJobClient;
         public ExamController(IExamService examService, IRepository<ExamStudent> examStudentRepo,
                               IAuthorizationService authorizationService,
-                              IClassService classService)
+                              IClassService classService,
+                              IExamGradingService examGradingService,
+                              IExamAnswerCache examAnswerCache,
+                              IBackgroundJobClient backgroundJobClient)
         {
             _examService = examService;
             _examStudentRepo = examStudentRepo;
             _authorizationService = authorizationService;
             _classService = classService;
+            _examGradingService = examGradingService;
+            _examAnswerCache = examAnswerCache;
+            _backgroundJobClient = backgroundJobClient;
         }
 
         [HttpPost]
@@ -126,7 +138,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpPost("start-exam")]
-        //[SessionAuthorize("F0522")]
+        [SessionAuthorize("F0522")]
         public async Task<IActionResult> StartExam([FromBody] ExamStartRequest dto)
         {
             try
@@ -157,7 +169,7 @@ namespace OnlineExam.Controllers
                         var deadline = state.StartTime!.AddMinutes(exam.DurationMinutes);
                         if (DateTime.Now > deadline)
                             return Ok(new { status = "expired" });
-
+                        
                         return Ok(new { status = "in_progress", wsUrl = websocketUrl });
                     }
 
@@ -205,6 +217,14 @@ namespace OnlineExam.Controllers
                     StudentId = dto.StudentId
                 });
 
+                // hen h nop bai tu dong
+
+                DateTimeOffset scheduledTime = new DateTimeOffset(deadlineSubmit > exam.EndTime ? exam.EndTime : deadlineSubmit);
+                string jobId = _backgroundJobClient.Schedule<IExamGradingService>(
+                    service => service.GradeAndSaveAsync(dto.ExamId, dto.StudentId),
+                    scheduledTime
+                    );
+
                 return Ok(new
                 {
                     status = "create",
@@ -221,7 +241,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpPost("generate")]
-        //[SessionAuthorize("F0525")]
+        [SessionAuthorize("F0525")]
         public async Task<IActionResult> Generate([FromBody] CreateExamForStudentDto dto)
         {
             try
@@ -232,6 +252,10 @@ namespace OnlineExam.Controllers
                     message = "Generated OK",
                     exam
                 });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
             }
             catch (Exception ex)
             {
@@ -251,6 +275,10 @@ namespace OnlineExam.Controllers
                 var result = await _examService.GetCurrentQuestionForExam(examId, studentId);
                 return Ok(result);
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
             catch (Exception ex)
             {
                 return BadRequest($"{ex.Message}");
@@ -269,6 +297,10 @@ namespace OnlineExam.Controllers
                 var result = await _examService.GetDetailResultExam(examId, studentId);
                 return Ok(result);
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
             catch (Exception ex)
             {
                 return BadRequest(new
@@ -282,17 +314,37 @@ namespace OnlineExam.Controllers
         [SessionAuthorize("F0525")]
         public async Task<IActionResult> GetResultSummary(int examId, [FromQuery] int studentId)
         {
-            var result = await _examService.GetResultSummary(examId, studentId);
-            return Ok(result);
+            try
+            {
+                var result = await _examService.GetResultSummary(examId, studentId);return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+            
+
         }
 
         [HttpGet("student/{studentId}/exams")]
+        [SessionAuthorize("F0525")]
         public async Task<IActionResult> GetExamsForStudent(int studentId)
         {
             try
             {
                 var result = await _examService.GetListExamForStudent(studentId);
                 return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
             }
             catch (Exception ex)
             {
@@ -302,11 +354,16 @@ namespace OnlineExam.Controllers
         }
 
         [HttpGet("{examId}/students-status")]
+        [SessionAuthorize("F0512")] // xem thong tin cho quan ly (gv, ad)
         public async Task<IActionResult> GetPreviewScoreStudentsExam(int examId) {
             try
             {
                 var result = await _examService.GetPreviewScoreStudentsExam(examId);
                 return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
             }
             catch (Exception ex)
             {
@@ -344,12 +401,17 @@ namespace OnlineExam.Controllers
         /// Marks the exam as COMPLETED and calculates the final score.
         /// </summary>
         [HttpPost("force-submit")]
+        [SessionAuthorize("F0515")]
         public async Task<IActionResult> ForceSubmit([FromBody] ForceSubmitRequest dto)
         {
             try
             {
                 await _examService.ForceSubmitAsync(dto.ExamId, dto.StudentId);
                 return Ok(new { success = true, message = "Đã nộp bài thành công" });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
             }
             catch (Exception ex)
             {

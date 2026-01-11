@@ -71,7 +71,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpGet("{id}")]
-        [SessionAuthorize("F0422")]
+        [SessionAuthorize("F0412")]
         public async Task<IActionResult> GetById(int id)
         {
             var entity = await _service.GetByIdAsync(id);

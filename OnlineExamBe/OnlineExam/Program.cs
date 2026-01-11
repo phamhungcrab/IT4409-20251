@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Hangfire;
+using Hangfire.SqlServer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -83,6 +85,21 @@ builder.Services.AddSession(option =>
     option.IdleTimeout = TimeSpan.FromMinutes(30);
     option.Cookie.IsEssential = true;
 });
+//dki hangfire
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(connectionString, new SqlServerStorageOptions
+    {
+        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+        QueuePollInterval = TimeSpan.Zero,
+        UseRecommendedIsolationLevel = true,
+        DisableGlobalLocks = true
+    }));
+builder.Services.AddHangfireServer();
 
 
 builder.Services.AddHttpContextAccessor();
@@ -118,6 +135,7 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
             "https://localhost:7239",
+            "https://localhost:5173",
             "https://www.manhhangmobile.store",
             "https://manhhangmobile.store",      // Development frontend
             "https://it4409-fe.vercel.app",   // Production frontend
@@ -130,7 +148,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-
 var app = builder.Build();
 
 app.UseForwardedHeaders(new ForwardedHeadersOptions
@@ -141,6 +158,7 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseHangfireDashboard();
 
 app.UseHttpsRedirection();
 
