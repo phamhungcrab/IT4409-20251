@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using OnlineExam.Application.Dtos.ClassDtos;
 //using Microsoft.IdentityModel.Tokens;
 using OnlineExam.Application.Dtos.ExamDtos;
@@ -10,11 +12,13 @@ using OnlineExam.Application.Services.Base;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
+using OnlineExam.Infrastructure.Policy.Requirements;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.Intrinsics.X86;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -30,7 +34,8 @@ namespace OnlineExam.Application.Services
         private readonly IRepository<StudentClass> _studentClassRepo;
         private readonly IRepository<Exam> _exam2Repo;
         private readonly IRepository<ExamStudentViolation> _violationRepo;
-
+        private readonly IAuthorizationService _authorizationService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         public ExamService(
             IRepository<Exam> examRepo,
             IRepository<Question> questionRepo,
@@ -40,7 +45,9 @@ namespace OnlineExam.Application.Services
             IRepository<ExamStudent> examStudentRepo,
             IRepository<StudentClass> studentClassRepo,
             IRepository<Exam> exam2Repo,
-            IRepository<ExamStudentViolation> violationRepo
+            IRepository<ExamStudentViolation> violationRepo,
+            IAuthorizationService authorizationService,
+            IHttpContextAccessor httpContextAccessor
 
             ) : base(examRepo)
         {
@@ -52,6 +59,8 @@ namespace OnlineExam.Application.Services
             _studentClassRepo = studentClassRepo;
             _exam2Repo = exam2Repo;
             _violationRepo = violationRepo;
+            _authorizationService = authorizationService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<ResultApiModel> SearchForAdminAsync(SearchExamDto searchModel)
@@ -83,6 +92,7 @@ namespace OnlineExam.Application.Services
             var totalItems = await query.CountAsync();
 
             var exams = await query
+                .Include(C => C.Class)
                 .Skip((searchModel.PageNumber - 1) * searchModel.PageSize)
                 .Take(searchModel.PageSize)
                 .Select(c => new ExamSimpleDto(c))
@@ -102,6 +112,7 @@ namespace OnlineExam.Application.Services
         }
         public async Task<ExamStudent?> GetExamStudent(int examId, int studentId)
         {
+
             var exis = await _examStudentRepo
                 .Query()
                 .FirstOrDefaultAsync(x => x.StudentId == studentId && x.ExamId == examId);
@@ -113,14 +124,22 @@ namespace OnlineExam.Application.Services
             var exam = await _exam2Repo.Query()
                 .AsNoTracking()
                 .Where(e => e.Id == examId)
+                .Include(e => e.Class)
+                .Include(e => e.Class.StudentClasses)
                 .Select(e => new
                 {
                     e.Id,
                     e.Name,
-                    e.ClassId
+                    e.ClassId,
+                    e.Class
+                    
                 })
                 .FirstOrDefaultAsync();
-
+            var checkAuth = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, exam.Class, new ResourceRequirement(ResourceAction.View));
+            if (!checkAuth.Succeeded)
+            {
+                throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
+            }
             if (exam == null)
                 throw new Exception("Exam not found");
 
@@ -173,10 +192,21 @@ namespace OnlineExam.Application.Services
 
         public async Task<ExamResultSummaryDto> GetResultSummary(int examId, int studentId)
         {
+            var exam = await this.GetByIdAsync(examId, ["Class"]);
+            if (exam == null) 
+            {
+                throw new Exception("Khong ton tai bai thi");
+            }
             var studentQuestions = await _studentQuesRepo.Query()
                 .Where(x => x.ExamId == examId && x.StudentId == studentId)
                 .ToListAsync();
 
+            var userId = int.Parse(_httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var checkAuth = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, studentId, new ResourceRequirement(ResourceAction.View));
+            if (!checkAuth.Succeeded && userId != exam.Class?.TeacherId)
+            {
+                throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
+            }
             // Count violations (always available, even for IN_PROGRESS)
             var violationCount = await _violationRepo.Query()
                 .CountAsync(v => v.ExamId == examId && v.StudentId == studentId);
@@ -252,9 +282,20 @@ namespace OnlineExam.Application.Services
         /// </summary>
         public async Task<bool> ForceSubmitAsync(int examId, int studentId)
         {
+            var exam = await this.GetByIdAsync(examId, ["Class"]);
+            if (exam == null)
+            {
+                throw new Exception("Khong ton tai bai thi");
+            }
+
+            var userId = int.Parse(_httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            if ( userId != exam.Class?.TeacherId)
+            {
+                throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
+            }
             var examStudent = await _examStudentRepo.Query()
                 .FirstOrDefaultAsync(es => es.ExamId == examId && es.StudentId == studentId);
-
+                
             if (examStudent == null)
                 throw new Exception("Không tìm thấy bài thi của sinh viên");
 
@@ -281,10 +322,16 @@ namespace OnlineExam.Application.Services
 
         public async Task<ExamResultPreviewDto> GetDetailResultExam(int examId, int studentId)
         {
-            var exam = await this.GetByIdAsync(examId);
+            var exam = await this.GetByIdAsync(examId, ["Class"]);
             if (exam == null)
                 throw new Exception("Không tìm thấy bài thi");
 
+            var userId = int.Parse(_httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var checkAuth = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, studentId, new ResourceRequirement(ResourceAction.View));
+            if (!checkAuth.Succeeded && userId != exam.Class?.TeacherId)
+            {
+                throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
+            }
             var examStudent = _examStudentRepo.Query()
                 .Where(x => x.ExamId == examId && x.StudentId == studentId)
                 .FirstOrDefault();
@@ -366,6 +413,12 @@ namespace OnlineExam.Application.Services
 
         public async Task<IEnumerable<GetListExamForStudentDto>> GetListExamForStudent(int studentId)
         {
+            var checkAuth = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, studentId, new ResourceRequirement(ResourceAction.View));
+            if (!checkAuth.Succeeded)
+            {
+                throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
+            }
+
             var classIds = await _studentClassRepo
                 .Query()
                 .Where(sc => sc.StudentId == studentId)
@@ -404,9 +457,15 @@ namespace OnlineExam.Application.Services
 
         public async Task<ExamGenerateResultDto> GetCurrentQuestionForExam(int examId, int studentId)
         {
-            var exam = await base.GetByIdAsync(examId);
+            var exam = await base.GetByIdAsync(examId, ["Class"]);
             if (exam == null) throw new Exception("Không tồn tại bài thi này");
 
+            var userId = int.Parse(_httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var checkAuth = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, studentId, new ResourceRequirement(ResourceAction.View));
+            if (!checkAuth.Succeeded && userId != exam.Class?.TeacherId)
+            {
+                throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
+            }
             var questions = await _questionExamRepo.Query()
                 .Where(qe => qe.ExamId == examId && qe.StudentId == studentId)
                 .Include(qe => qe.Question)
@@ -446,10 +505,14 @@ namespace OnlineExam.Application.Services
 
         public async Task<ExamGenerateResultDto> GenerateExamAsync(CreateExamForStudentDto dto)
         {
-            var exam = await base.GetByIdAsync(dto.ExamId);
+            var exam = await base.GetByIdAsync(dto.ExamId, ["Class", "Class.StudentClasses"]);
+            
 
             if (exam == null) throw new Exception("Không tồn tại bài thi này");
-
+            if(!exam.Class.StudentClasses.Select(c => c.StudentId).Contains(dto.StudentId))
+            {
+                throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
+            }
             var checkBlue = await _blueprintRepo
                 .Query()
                 .Include(x => x.Chapters)

@@ -15,6 +15,7 @@ public class StudentQuestion
     public float QuestionPoint { get; set; }
 
     // Navigation properties
+    public Exam? Exam { get; set; }
     public User? Student { get; set; }
     public QuestionExam? QuestionExam { get; set; }
 }
