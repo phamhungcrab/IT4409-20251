@@ -159,14 +159,13 @@ namespace OnlineExam.Middleware
                     switch (msg.Action)
                     {
                         case WebsocketAction.SubmitAnswer:
-
-                                await HandleSubmitAnswer(
-                                    socket,
-                                    examId,
-                                    studentId,
-                                    msg
-                                );
-                                break;
+                            await HandleSubmitAnswer(
+                                socket,
+                                examId,
+                                studentId,
+                                msg
+                            );
+                            break;
 
                         case WebsocketAction.SubmitExam:
                         await HandleSubmitExam(socket, examId, studentId);

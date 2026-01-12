@@ -489,7 +489,7 @@ namespace OnlineExam.Application.Services
                 return "";
 
             var correctAnswers = list
-                            .Split('|', StringSplitOptions.RemoveEmptyEntries)
+                            .Split("||", StringSplitOptions.RemoveEmptyEntries)
                             .Select(p => p.Trim())
                             .Where(p => p.EndsWith("*"))
                             .Select(p => p.TrimEnd('*').Trim())
@@ -499,7 +499,7 @@ namespace OnlineExam.Application.Services
                             .OrderBy(p => p, StringComparer.InvariantCultureIgnoreCase)
                             .ToList();
 
-            return string.Join("|", correctAnswers);
+            return string.Join("||", correctAnswers);
         }
            
         private List<string> CleanAnswer(string raw)
@@ -507,7 +507,7 @@ namespace OnlineExam.Application.Services
             if (string.IsNullOrWhiteSpace(raw))
                 return new List<string>();
 
-            return raw.Split('|', StringSplitOptions.RemoveEmptyEntries)
+            return raw.Split("||", StringSplitOptions.RemoveEmptyEntries)
                       .Select(x => x.Trim().TrimEnd('*').Trim())
                       .ToList();
         }
