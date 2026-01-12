@@ -1,0 +1,49 @@
+@startuml Student_UseCase_Real
+left to right direction
+actor "Sinh viên" as Student
+rectangle "Hệ thống Thi Trực Tuyến (OnlineExam)" {
+
+  package "Hệ thống" {
+    usecase "Đăng nhập" as UC_Login
+    usecase "Xem danh sách lớp & Môn học" as UC_ViewList
+    usecase "Vào phòng thi" as UC_EnterRoom
+  }
+
+  package "Quá trình làm bài (ExamRoomPage)" {
+    usecase "Làm bài thi" as UC_TakeExam
+    usecase "Trả lời câu hỏi\n(Lưu tự động qua WS)" as UC_Answer
+    usecase "Đồng bộ thời gian\n(Realtime Timer)" as UC_SyncTime
+    usecase "Nộp bài chủ động" as UC_Submit
+    usecase "Nộp bài tự động\n(Hết giờ)" as UC_AutoSubmit
+    usecase "Bị thu bài\n(Giáo viên Force Submit)" as UC_ForceSubmit
+
+    usecase "Cảnh báo vi phạm\n(Rời tab/Thoát Fullscreen)" as UC_Violation
+  }
+
+  package "Kết quả" {
+    usecase "Xem điểm thi nhanh" as UC_ViewScore
+    usecase "Xem chi tiết bài làm" as UC_ViewDetail
+  }
+
+  Student --> UC_Login
+  Student --> UC_ViewList
+  Student --> UC_EnterRoom
+
+  UC_EnterRoom ..> UC_TakeExam : <<include>>
+
+  UC_TakeExam ..> UC_Answer : <<include>>
+  UC_TakeExam ..> UC_SyncTime : <<include>>
+
+  ' Anti-Cheat Logic (useExamIntegrity.ts)
+  UC_TakeExam <.. UC_Violation : <<extend>> \n(Khi vi phạm > 7s)
+
+  ' Submit Flows (useExam.ts)
+  Student --> UC_Submit
+  UC_TakeExam <.. UC_Submit : <<extend>>
+  UC_TakeExam <.. UC_AutoSubmit : <<extend>> \n(Time <= 0)
+  UC_TakeExam <.. UC_ForceSubmit : <<extend>> \n(WebSocket Event)
+
+  Student --> UC_ViewScore
+  UC_ViewScore <.. UC_ViewDetail : <<extend>>
+}
+@enduml
