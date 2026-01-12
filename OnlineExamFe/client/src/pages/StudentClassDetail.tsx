@@ -24,7 +24,7 @@ const StudentClassDetail: React.FC = () => {
   const [students, setStudents] = useState<StudentDto[]>([]);
   const [activeTab, setActiveTab] = useState<Tab>('members');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 9; // Grid 3x3
+  const itemsPerPage = 8; // Grid 2 cols -> 8 items looks balanced
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
