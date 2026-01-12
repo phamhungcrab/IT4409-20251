@@ -203,7 +203,7 @@ namespace OnlineExam.Application.Services
 
             var userId = int.Parse(_httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             var checkAuth = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, studentId, new ResourceRequirement(ResourceAction.View));
-            if (!checkAuth.Succeeded && userId != exam.Class?.TeacherId)
+            if (userId != studentId && !checkAuth.Succeeded && userId != exam.Class?.TeacherId)
             {
                 throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
             }
@@ -328,7 +328,7 @@ namespace OnlineExam.Application.Services
 
             var userId = int.Parse(_httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             var checkAuth = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, studentId, new ResourceRequirement(ResourceAction.View));
-            if (!checkAuth.Succeeded && userId != exam.Class?.TeacherId)
+            if (userId != studentId && !checkAuth.Succeeded && userId != exam.Class?.TeacherId)
             {
                 throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
             }
@@ -374,8 +374,8 @@ namespace OnlineExam.Application.Services
                     Order = sq.QuestionExam.Order,
 
                     Content = question.Content,
-                    StudentAnswer = sq.Answer, // Keep raw string (e.g. "A||B")
-                    CorrectAnswer = sq.QuestionExam.CorrectAnswer, // Keep raw string (e.g. "A||C")
+                    StudentAnswer = NormalizeAnswer(sq.Answer), // Normalized string (e.g. "A||B")
+                    CorrectAnswer = NormalizeAnswer(sq.QuestionExam.CorrectAnswer), // Normalized string (e.g. "A||C")
                     CleanAnswer = CleanAnswer(question.Answer), // List of options ["A", "B", "C", "D"]
 
                     IsCorrect = isCorrect,
@@ -413,8 +413,9 @@ namespace OnlineExam.Application.Services
 
         public async Task<IEnumerable<GetListExamForStudentDto>> GetListExamForStudent(int studentId)
         {
+            var userId = int.Parse(_httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             var checkAuth = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, studentId, new ResourceRequirement(ResourceAction.View));
-            if (!checkAuth.Succeeded)
+            if (userId != studentId && !checkAuth.Succeeded)
             {
                 throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
             }
@@ -462,7 +463,7 @@ namespace OnlineExam.Application.Services
 
             var userId = int.Parse(_httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             var checkAuth = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, studentId, new ResourceRequirement(ResourceAction.View));
-            if (!checkAuth.Succeeded && userId != exam.Class?.TeacherId)
+            if (userId != studentId && !checkAuth.Succeeded && userId != exam.Class?.TeacherId)
             {
                 throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
             }
@@ -621,13 +622,22 @@ namespace OnlineExam.Application.Services
             }
         }
 
+        private string NormalizeAnswer(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return "";
+            var parts = raw.Split(new[] { "||", "|\r\n|", "|\n|" }, StringSplitOptions.RemoveEmptyEntries)
+                           .Select(x => x.Trim())
+                           .Where(x => !string.IsNullOrEmpty(x));
+            return string.Join("||", parts);
+        }
+
         private string GetCorrectAnswer(string list)
         {
             if (string.IsNullOrWhiteSpace(list))
                 return "";
 
             var correctAnswers = list
-                            .Split(new[] { "||", "|", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+                            .Split(new[] { "||", "|\r\n|", "|\n|" }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(p => p.Trim())
                             .Where(p => p.EndsWith("*"))
                             .Select(p => p.TrimEnd('*').Trim())
@@ -645,7 +655,7 @@ namespace OnlineExam.Application.Services
             if (string.IsNullOrWhiteSpace(raw))
                 return new List<string>();
 
-            return raw.Split(new[] { "||", "|", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+            return raw.Split(new[] { "||", "|\r\n|", "|\n|" }, StringSplitOptions.RemoveEmptyEntries)
                       .Select(x => x.Trim().TrimEnd('*').Trim())
                       .Where(x => !string.IsNullOrEmpty(x))
                       .ToList();
