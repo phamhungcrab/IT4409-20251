@@ -49,6 +49,7 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 const TeacherClassDetailPage = lazy(() => import('./pages/home/TeacherClassDetail'));
 const TeacherClassListPage = lazy(() => import('./pages/home/TeacherClassList'));
 const StudentClassListPage = lazy(() => import('./pages/StudentClassList'));
+const StudentClassDetailPage = lazy(() => import('./pages/StudentClassDetail'));
 const StudentSubjectList = lazy(() => import('./pages/StudentSubjectList'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const ExamListPage = lazy(() => import('./pages/ExamListPage'));
@@ -129,6 +130,14 @@ export const appRoutes: RouteObject[] = [
         element: (
           <RoleGuard allowedRoles={['Student']}>
              <StudentClassListPage />
+          </RoleGuard>
+        ),
+      },
+      {
+        path: 'student/classes/:classId',
+        element: (
+          <RoleGuard allowedRoles={['Student']}>
+             <StudentClassDetailPage />
           </RoleGuard>
         ),
       },
