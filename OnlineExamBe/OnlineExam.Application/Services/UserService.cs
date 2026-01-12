@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using OnlineExam.Application.Dtos.RequestDtos.UserDtos;
 using OnlineExam.Application.Dtos.ResponseDtos;
@@ -121,21 +122,15 @@ namespace OnlineExam.Application.Services
                 else {
                     var checkMail = await _repository.FindAsync(x => x.Email.ToLower().Equals(item.Email.ToLower()));
 
-                    if (checkMail.Any())
-                        {
-                            invalidUserList.Add(item);
-                        }
-
-            
-                        if (!CheckValidHelper.IsValiddMail(item.Email))
-                        {
-                            invalidUserList.Add(item);
-                        }
+                        if (checkMail.Any())
+                            {
+                                invalidUserList.Add(item);
+                            }
 
                         else
                         {
                         var PasswordHashed = HashPassword(item.Password);
-                        validUserList.Add(item: new User()
+                        var nU = new User()
                         {
                             Email = item.Email,
                             MSSV = item.MSSV,
@@ -143,12 +138,13 @@ namespace OnlineExam.Application.Services
                             FullName = item.FullName,
                             DateOfBirth = item.DateOfBirth,
                             Role = item.Role,
-                        });
+                        };
+
+                        await CreateAsync(nU);
                         }
                     }
             }
-            await _repository.AddRangeAsync(validUserList);
-            await _repository.SaveChangesAsync();
+           
             return new ResultApiModel()
             {
                 Status = true,

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
 using OnlineExam.Application.Dtos.ClassDtos;
@@ -65,6 +66,8 @@ namespace OnlineExam.Application.Services
             var totalItems = await query.CountAsync();
 
             var classes = await query
+                .Include(c => c.Teacher)
+                .Include(c => c.Subject)
                 .Skip((searchModel.PageNumber - 1) * searchModel.PageSize)
                 .Take(searchModel.PageSize)
                 .Select(c => new ClassDto(c))
@@ -143,7 +146,7 @@ namespace OnlineExam.Application.Services
             }
 
             var sClass = (await _studentClassRepo.FindAsync(c => c.StudentId == studentId,
-                                                     "Class", "Student", "Class.Subject", "Class.Teacher"
+                                                     "Class", "Student", "Class.Subject", "Class.Teacher","Class.Exams"
                                                      ))
                                                      .Where(c => c.Class != null)
                                                      .Select(c => new ClassDto(c.Class))
@@ -238,14 +241,31 @@ namespace OnlineExam.Application.Services
                 }
 
                 else
-                {
+                { 
+                    bool exists = curClass.StudentClasses.Any(sc => sc.StudentId == student.Id && sc.ClassId == classId); 
+                    if (exists) 
+                    {
+                        invalidStudents.Add(item);
+                        continue;
+                    }
                     var studentClass = new StudentClass
                     {
                         StudentId = student.Id,
                         ClassId = classId
                         
                     };
-                    await _studentClassRepo.AddAsync(studentClass);
+                   
+                        try
+                    {
+
+                        await _studentClassRepo.AddAsync(studentClass);
+                        await _studentClassRepo.SaveChangesAsync();
+                    }
+                    catch (DbUpdateException ex) when (ex.InnerException is SqlException sqlEx && sqlEx.Number == 2601)
+                    {
+
+                    }
+
                 }
 
             }
@@ -295,8 +315,16 @@ namespace OnlineExam.Application.Services
                         ClassId = classId
 
                     };
+                try
+                {
                     await _studentClassRepo.AddAsync(studentClass);
+                    await _studentClassRepo.SaveChangesAsync();
                 }
+                catch (DbUpdateException ex) when (ex.InnerException is SqlException sqlEx && sqlEx.Number == 2601)
+                {
+
+                }
+            }
 
 
             return new ResultApiModel

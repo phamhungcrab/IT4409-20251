@@ -28,6 +28,7 @@ namespace OnlineExam.Infrastructure.Data
         public DbSet<UserPermission> UserPermissions { get; set; }
         public DbSet<Announcement> Announcements { get; set; }
         public DbSet<StudentAnnouncement> StudentAnnouncements { get; set; }
+        public DbSet<ExamStudentViolation> ExamStudentViolations { get; set; }
 
 
         public DbSet<ExamBlueprintChapter> ExamBlueprintChapters { get; set; }
@@ -273,6 +274,26 @@ namespace OnlineExam.Infrastructure.Data
                       .WithMany(a => a.StudentAnnouncements)
                       .HasForeignKey(e => e.AnnouncementId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ExamStudentViolation
+            modelBuilder.Entity<ExamStudentViolation>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ViolationType).HasConversion<string>();
+
+                entity.HasOne(e => e.Exam)
+                      .WithMany()
+                      .HasForeignKey(e => e.ExamId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Student)
+                      .WithMany()
+                      .HasForeignKey(e => e.StudentId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.ExamId, e.StudentId })
+                      .HasDatabaseName("IX_ExamStudentViolation_Exam_Student");
             });
 
         }

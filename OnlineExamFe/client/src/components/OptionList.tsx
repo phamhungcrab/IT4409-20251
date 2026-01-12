@@ -16,6 +16,7 @@
 
 // lựa chọn đáp án
 import React from 'react';
+import MathContent from './MathContent';
 
 /**
  * OptionItem:
@@ -213,9 +214,9 @@ const OptionList: React.FC<OptionListProps> = ({
                 )}
               </span>
 
-              {/* Text đáp án hiển thị */}
+              {/* Text đáp án hiển thị - hỗ trợ LaTeX */}
               <span className="flex-1 text-sm leading-relaxed text-slate-100">
-                {opt.text}
+                <MathContent content={opt.text} />
               </span>
             </label>
           </li>

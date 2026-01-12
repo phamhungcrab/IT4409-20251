@@ -1,10 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using OnlineExam.Application.Dtos.ExamBlueprint;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Services.Base;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
+using OnlineExam.Infrastructure.Policy.Requirements;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,20 +23,33 @@ namespace OnlineExam.Application.Services
         public readonly IRepository<ExamBlueprintChapter> _chapterRepo;
         public readonly IRepository<Exam> _examRepo;
         public readonly IRepository<Question> _questionRepo;
+        private readonly IAuthorizationService _authorizationService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IClassService _classService;
         public ExamBlueprintService(
             IRepository<ExamBlueprint> blueprintRepo,
             IRepository<Exam> examRepo,
             IRepository<Question> questionRepo,
-            IRepository<ExamBlueprintChapter> chapterRepo
+            
+            IRepository<ExamBlueprintChapter> chapterRepo,
+            IAuthorizationService authorizationService,
+            IHttpContextAccessor httpContextAccessor,
+            IClassService classService
+            
         ) : base(blueprintRepo)
         {
             _chapterRepo = chapterRepo;
             _examRepo = examRepo;
             _questionRepo = questionRepo;
+            _authorizationService = authorizationService;
+            _httpContextAccessor = httpContextAccessor;
+            _classService = classService;
         }
 
         public async Task<List<ExamWithBlueprintSimpleDto>> GetExamsWithBlueprintByClassAsync(int classId)
         {
+           
+
             var exams = await _examRepo
                 .Query()
                 .AsNoTracking()
@@ -42,6 +58,7 @@ namespace OnlineExam.Application.Services
                 .OrderByDescending(e => e.Blueprint!.CreatedAt)
                 .ToListAsync();
 
+            
             return exams.Select(e => new ExamWithBlueprintSimpleDto
             {
                 ExamId = e.Id,

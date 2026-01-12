@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using OnlineExam.Application.Dtos.ClassDtos;
 //using Microsoft.IdentityModel.Tokens;
 using OnlineExam.Application.Dtos.ExamDtos;
@@ -10,11 +12,13 @@ using OnlineExam.Application.Services.Base;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
+using OnlineExam.Infrastructure.Policy.Requirements;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.Intrinsics.X86;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -29,7 +33,9 @@ namespace OnlineExam.Application.Services
         private readonly IRepository<StudentQuestion> _studentQuesRepo;
         private readonly IRepository<StudentClass> _studentClassRepo;
         private readonly IRepository<Exam> _exam2Repo;
-
+        private readonly IRepository<ExamStudentViolation> _violationRepo;
+        private readonly IAuthorizationService _authorizationService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         public ExamService(
             IRepository<Exam> examRepo,
             IRepository<Question> questionRepo,
@@ -38,7 +44,10 @@ namespace OnlineExam.Application.Services
             IRepository<StudentQuestion> studentQuesRepo,
             IRepository<ExamStudent> examStudentRepo,
             IRepository<StudentClass> studentClassRepo,
-            IRepository<Exam> exam2Repo
+            IRepository<Exam> exam2Repo,
+            IRepository<ExamStudentViolation> violationRepo,
+            IAuthorizationService authorizationService,
+            IHttpContextAccessor httpContextAccessor
 
             ) : base(examRepo)
         {
@@ -49,6 +58,9 @@ namespace OnlineExam.Application.Services
             _studentQuesRepo = studentQuesRepo;
             _studentClassRepo = studentClassRepo;
             _exam2Repo = exam2Repo;
+            _violationRepo = violationRepo;
+            _authorizationService = authorizationService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<ResultApiModel> SearchForAdminAsync(SearchExamDto searchModel)
@@ -80,6 +92,7 @@ namespace OnlineExam.Application.Services
             var totalItems = await query.CountAsync();
 
             var exams = await query
+                .Include(C => C.Class)
                 .Skip((searchModel.PageNumber - 1) * searchModel.PageSize)
                 .Take(searchModel.PageSize)
                 .Select(c => new ExamSimpleDto(c))
@@ -99,6 +112,7 @@ namespace OnlineExam.Application.Services
         }
         public async Task<ExamStudent?> GetExamStudent(int examId, int studentId)
         {
+
             var exis = await _examStudentRepo
                 .Query()
                 .FirstOrDefaultAsync(x => x.StudentId == studentId && x.ExamId == examId);
@@ -110,14 +124,22 @@ namespace OnlineExam.Application.Services
             var exam = await _exam2Repo.Query()
                 .AsNoTracking()
                 .Where(e => e.Id == examId)
+                .Include(e => e.Class)
+                .Include(e => e.Class.StudentClasses)
                 .Select(e => new
                 {
                     e.Id,
                     e.Name,
-                    e.ClassId
+                    e.ClassId,
+                    e.Class
+                    
                 })
                 .FirstOrDefaultAsync();
-
+            var checkAuth = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, exam.Class, new ResourceRequirement(ResourceAction.View));
+            if (!checkAuth.Succeeded)
+            {
+                throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
+            }
             if (exam == null)
                 throw new Exception("Exam not found");
 
@@ -148,34 +170,62 @@ namespace OnlineExam.Application.Services
 
             var students = studentsInClass
                 .Where(sc => sc.Student != null)
-                .Select(sc => { 
-                    var student = sc.Student!; 
-                    examStudentMap.TryGetValue(student.Id, out var es); 
+                .Select(sc => {
+                    var student = sc.Student!;
+                    examStudentMap.TryGetValue(student.Id, out var es);
                     return new ExamStudentStatusDto {
-                        StudentId = student.Id, 
-                        StudentName = student.FullName, 
-                        MSSV = student.MSSV, 
-                        Status = es?.Status, 
-                        Score = es?.Points, 
-                        SubmittedAt = es?.EndTime 
-                    }; 
+                        StudentId = student.Id,
+                        StudentName = student.FullName,
+                        MSSV = student.MSSV,
+                        Status = es?.Status,
+                        Score = es?.Points,
+                        SubmittedAt = es?.EndTime
+                    };
                 }).ToList();
 
             return new ExamStudentsStatusResponse {
-                ExamId = exam.Id, 
-                ExamName = exam.Name, 
-                Students = students 
+                ExamId = exam.Id,
+                ExamName = exam.Name,
+                Students = students
             };
         }
 
         public async Task<ExamResultSummaryDto> GetResultSummary(int examId, int studentId)
         {
+            var exam = await this.GetByIdAsync(examId, ["Class"]);
+            if (exam == null) 
+            {
+                throw new Exception("Khong ton tai bai thi");
+            }
             var studentQuestions = await _studentQuesRepo.Query()
                 .Where(x => x.ExamId == examId && x.StudentId == studentId)
                 .ToListAsync();
 
+            var userId = int.Parse(_httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var checkAuth = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, studentId, new ResourceRequirement(ResourceAction.View));
+            if (!checkAuth.Succeeded && userId != exam.Class?.TeacherId)
+            {
+                throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
+            }
+            // Count violations (always available, even for IN_PROGRESS)
+            var violationCount = await _violationRepo.Query()
+                .CountAsync(v => v.ExamId == examId && v.StudentId == studentId);
+
+            // If no questions answered yet (early IN_PROGRESS), return partial data
             if (!studentQuestions.Any())
-                throw new Exception("Không tìm thấy dữ liệu làm bài của sinh viên");
+            {
+                return new ExamResultSummaryDto
+                {
+                    ExamId = examId,
+                    StudentId = studentId,
+                    TotalQuestions = 0,
+                    CorrectCount = 0,
+                    TotalQuestionPoint = 0,
+                    StudentEarnedPoint = 0,
+                    FinalScore = 0,
+                    ViolationCount = violationCount
+                };
+            }
 
             int totalQuestions = studentQuestions.Count;
 
@@ -200,16 +250,88 @@ namespace OnlineExam.Application.Services
                 TotalQuestionPoint = totalExamPoint,
                 StudentEarnedPoint = studentEarnedPoint,
 
-                FinalScore = finalScore
+                FinalScore = finalScore,
+                ViolationCount = violationCount
             };
+        }
+
+        public async Task RecordViolationAsync(RecordViolationDto dto)
+        {
+            // Parse violation type
+            if (!Enum.TryParse<ViolationType>(dto.ViolationType, ignoreCase: true, out var violationType))
+            {
+                throw new ArgumentException($"Invalid violation type: {dto.ViolationType}");
+            }
+
+            var violation = new ExamStudentViolation
+            {
+                ExamId = dto.ExamId,
+                StudentId = dto.StudentId,
+                ViolationType = violationType,
+                OccurredAt = dto.OccurredAt,
+                DurationMs = dto.DurationMs
+            };
+
+            await _violationRepo.AddAsync(violation);
+            await _violationRepo.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Force submit a student's exam by teacher.
+        /// Sets status to COMPLETED and records end time.
+        /// </summary>
+        public async Task<bool> ForceSubmitAsync(int examId, int studentId)
+        {
+            var exam = await this.GetByIdAsync(examId, ["Class"]);
+            if (exam == null)
+            {
+                throw new Exception("Khong ton tai bai thi");
+            }
+
+            var userId = int.Parse(_httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            if ( userId != exam.Class?.TeacherId)
+            {
+                throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
+            }
+            var examStudent = await _examStudentRepo.Query()
+                .FirstOrDefaultAsync(es => es.ExamId == examId && es.StudentId == studentId);
+                
+            if (examStudent == null)
+                throw new Exception("Không tìm thấy bài thi của sinh viên");
+
+            if (examStudent.Status == ExamStatus.COMPLETED)
+                throw new Exception("Bài thi đã được nộp trước đó");
+
+            // Calculate score before marking as complete
+            var studentQuestions = await _studentQuesRepo.Query()
+                .Where(sq => sq.ExamId == examId && sq.StudentId == studentId)
+                .ToListAsync();
+ 
+            float totalExamPoint = studentQuestions.Sum(x => x.QuestionPoint);
+            float studentEarnedPoint = studentQuestions.Sum(x => x.Result ?? 0);
+            double rawScore = totalExamPoint == 0 ? 0 : (studentEarnedPoint / totalExamPoint) * 10;
+            float finalScore = (float)(Math.Round(rawScore * 2, MidpointRounding.AwayFromZero) / 2);
+
+            examStudent.Status = ExamStatus.COMPLETED;
+            examStudent.EndTime = DateTime.Now;
+            examStudent.Points = finalScore;
+
+            await _examStudentRepo.SaveChangesAsync();
+            return true;
         }
 
         public async Task<ExamResultPreviewDto> GetDetailResultExam(int examId, int studentId)
         {
-            var exam = await this.GetByIdAsync(examId);
+            var exam = await this.GetByIdAsync(examId, ["Class"]);
             if (exam == null)
                 throw new Exception("Không tìm thấy bài thi");
 
+            var userId = int.Parse(_httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var checkAuth = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, studentId, new ResourceRequirement(ResourceAction.View));
+            if (!checkAuth.Succeeded && userId != exam.Class?.TeacherId)
+            {
+                throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
+            }
             var examStudent = _examStudentRepo.Query()
                 .Where(x => x.ExamId == examId && x.StudentId == studentId)
                 .FirstOrDefault();
@@ -291,6 +413,12 @@ namespace OnlineExam.Application.Services
 
         public async Task<IEnumerable<GetListExamForStudentDto>> GetListExamForStudent(int studentId)
         {
+            var checkAuth = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, studentId, new ResourceRequirement(ResourceAction.View));
+            if (!checkAuth.Succeeded)
+            {
+                throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
+            }
+
             var classIds = await _studentClassRepo
                 .Query()
                 .Where(sc => sc.StudentId == studentId)
@@ -329,9 +457,15 @@ namespace OnlineExam.Application.Services
 
         public async Task<ExamGenerateResultDto> GetCurrentQuestionForExam(int examId, int studentId)
         {
-            var exam = await base.GetByIdAsync(examId);
+            var exam = await base.GetByIdAsync(examId, ["Class"]);
             if (exam == null) throw new Exception("Không tồn tại bài thi này");
 
+            var userId = int.Parse(_httpContextAccessor.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var checkAuth = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, studentId, new ResourceRequirement(ResourceAction.View));
+            if (!checkAuth.Succeeded && userId != exam.Class?.TeacherId)
+            {
+                throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
+            }
             var questions = await _questionExamRepo.Query()
                 .Where(qe => qe.ExamId == examId && qe.StudentId == studentId)
                 .Include(qe => qe.Question)
@@ -371,10 +505,14 @@ namespace OnlineExam.Application.Services
 
         public async Task<ExamGenerateResultDto> GenerateExamAsync(CreateExamForStudentDto dto)
         {
-            var exam = await base.GetByIdAsync(dto.ExamId);
+            var exam = await base.GetByIdAsync(dto.ExamId, ["Class", "Class.StudentClasses"]);
+            
 
             if (exam == null) throw new Exception("Không tồn tại bài thi này");
-
+            if(!exam.Class.StudentClasses.Select(c => c.StudentId).Contains(dto.StudentId))
+            {
+                throw new UnauthorizedAccessException("Forbidden: You do not have permission.");
+            }
             var checkBlue = await _blueprintRepo
                 .Query()
                 .Include(x => x.Chapters)
@@ -410,7 +548,7 @@ namespace OnlineExam.Application.Services
             allQuestions = allQuestions.OrderBy(x => Guid.NewGuid()).ToList();
 
             BuildQuestionExam(questionExams, exam, allQuestions, dto.StudentId);
-            
+
 
             await _questionExamRepo.AddRangeAsync(questionExams);
             await _questionExamRepo.SaveChangesAsync();
@@ -501,7 +639,7 @@ namespace OnlineExam.Application.Services
 
             return string.Join("||", correctAnswers);
         }
-           
+
         private List<string> CleanAnswer(string raw)
         {
             if (string.IsNullOrWhiteSpace(raw))

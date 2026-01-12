@@ -38,6 +38,8 @@ export interface ResultSummary {
   totalQuestionPoint: number;
   studentEarnedPoint: number;
   finalScore: number;
+  /** Number of integrity violations recorded during the exam */
+  violationCount?: number;
 }
 
 /**

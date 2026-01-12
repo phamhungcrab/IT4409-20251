@@ -203,8 +203,108 @@ export const examService = {
 
   updateExam: async (id: number, data: CreateExamForTeacherOrAdmin): Promise<any> => {
     return await apiClient.put(`/api/Exam/update/${id}`, data);
+  },
+
+  /**
+   * recordViolation(data):
+   * - Records an exam integrity violation (tab switch, fullscreen exit, etc.).
+   * - Implements offline queue: if API fails, stores in localStorage and retries later.
+   * - Called by useExamIntegrity hook when a violation is detected.
+   */
+  recordViolation: async (data: RecordViolationDto): Promise<void> => {
+    const OFFLINE_QUEUE_KEY = 'pending_violations';
+
+    // Helper: Load pending violations from localStorage
+    const loadPendingViolations = (): RecordViolationDto[] => {
+      try {
+        const saved = localStorage.getItem(OFFLINE_QUEUE_KEY);
+        return saved ? JSON.parse(saved) : [];
+      } catch {
+        return [];
+      }
+    };
+
+    // Helper: Save pending violations to localStorage
+    const savePendingViolations = (queue: RecordViolationDto[]) => {
+      try {
+        localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+      } catch (e) {
+        console.error('[ViolationService] Failed to save pending violations:', e);
+      }
+    };
+
+    // Helper: Send a single violation
+    const sendViolation = async (violation: RecordViolationDto): Promise<boolean> => {
+      try {
+        await apiClient.post('/api/Exam/violation', violation);
+        return true;
+      } catch (error) {
+        console.warn('[ViolationService] Failed to send violation:', error);
+        return false;
+      }
+    };
+
+    // Try to send the current violation
+    const success = await sendViolation(data);
+
+    if (!success) {
+      // Queue for later
+      console.log('[ViolationService] Queueing violation for later retry...');
+      const queue = loadPendingViolations();
+      queue.push(data);
+      savePendingViolations(queue);
+    } else {
+      // Also try to flush any pending violations
+      const pendingQueue = loadPendingViolations();
+      if (pendingQueue.length > 0) {
+        console.log(`[ViolationService] Flushing ${pendingQueue.length} pending violations...`);
+        const successfullyFlushed: number[] = [];
+
+        for (let i = 0; i < pendingQueue.length; i++) {
+          const sent = await sendViolation(pendingQueue[i]);
+          if (sent) {
+            successfullyFlushed.push(i);
+          } else {
+            // Stop on first failure to preserve order
+            break;
+          }
+        }
+
+        // Remove successfully sent items
+        const remaining = pendingQueue.filter((_, idx) => !successfullyFlushed.includes(idx));
+        savePendingViolations(remaining);
+
+        if (successfullyFlushed.length > 0) {
+          console.log(`[ViolationService] Successfully flushed ${successfullyFlushed.length} pending violations.`);
+        }
+      }
+    }
+  },
+
+  /**
+   * forceSubmit(examId, studentId):
+   * - Teacher forces a student's exam to be submitted.
+   * - Marks exam as COMPLETED and calculates final score.
+   */
+  forceSubmit: async (examId: number, studentId: number): Promise<{ success: boolean; message: string }> => {
+    return await apiClient.post<{ success: boolean; message: string }>('/api/Exam/force-submit', {
+      examId,
+      studentId
+    });
   }
 };
+
+/**
+ * RecordViolationDto:
+ * - Data to send when recording a violation.
+ */
+export interface RecordViolationDto {
+  examId: number;
+  studentId: number;
+  violationType: 'FOCUS_LOSS' | 'FULLSCREEN_EXIT';
+  occurredAt: string; // ISO timestamp
+  durationMs?: number;
+}
 
 /**
  * ExamStudentsStatusResponse:

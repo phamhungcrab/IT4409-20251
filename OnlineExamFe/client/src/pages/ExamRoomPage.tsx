@@ -201,8 +201,9 @@ const ExamRoomPage: React.FC = () => {
   /**
    * submitResult:
    * - Cờ hiển thị modal thông báo nộp bài thành công.
+   * - forceSubmitted: true nếu bài được nộp bởi giáo viên
    */
-  const [submitResult, setSubmitResult] = useState<{ success?: boolean } | null>(null);
+  const [submitResult, setSubmitResult] = useState<{ success?: boolean; forceSubmitted?: boolean; reason?: string } | null>(null);
 
   const {
     activeAlert,
@@ -213,8 +214,9 @@ const ExamRoomPage: React.FC = () => {
     markLeftPage,
   } = useExamIntegrity({
     examId,
+    studentId: user?.id,
     enabled: Boolean(user && examId && !submitResult),
-    focusLossThresholdMs: 5000,
+    focusLossThresholdMs: 7000, // 7s threshold as per requirement
     requireFullscreen: true,
     debug: import.meta.env.DEV,
   });
@@ -270,6 +272,85 @@ const ExamRoomPage: React.FC = () => {
 
     return () => {
         webRTCService.closeAll();
+    };
+  }, []);
+
+  // =========================
+  // 6) ANTI-CHEAT UI PROTECTIONS
+  // =========================
+  useEffect(() => {
+    // Block keyboard shortcuts
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Block Ctrl+P (Print)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        return;
+      }
+      // Block Ctrl+S (Save)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        return;
+      }
+      // Block Ctrl+U (View Source)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') {
+        e.preventDefault();
+        return;
+      }
+      // Block F12 (DevTools)
+      if (e.key === 'F12') {
+        e.preventDefault();
+        return;
+      }
+      // Block Ctrl+Shift+I (DevTools alternate)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'i') {
+        e.preventDefault();
+        return;
+      }
+    };
+
+    // Block right-click context menu
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    // Block copy/paste
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+    };
+
+    // Add print CSS dynamically
+    const printStyle = document.createElement('style');
+    printStyle.id = 'exam-anti-print-style';
+    printStyle.textContent = `
+      @media print {
+        body * {
+          display: none !important;
+        }
+        body::before {
+          content: "Nội dung bài thi được bảo mật - Không được phép in!";
+          display: block !important;
+          font-size: 24px;
+          color: red;
+          text-align: center;
+          padding: 100px;
+        }
+      }
+    `;
+    document.head.appendChild(printStyle);
+
+    // Add event listeners
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('copy', handleCopy);
+    document.addEventListener('paste', handleCopy);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('copy', handleCopy);
+      document.removeEventListener('paste', handleCopy);
+      const style = document.getElementById('exam-anti-print-style');
+      if (style) style.remove();
     };
   }, []);
 
@@ -384,15 +465,36 @@ const ExamRoomPage: React.FC = () => {
 
     onError: (msg) => {
       // Bỏ alert lỗi "không được để trống" theo yêu cầu (kệ họ)
+      // Ignore if it's actually a force submit signal disguised as error
+      if (typeof msg === 'string' && msg.includes('force_submitted')) {
+         return;
+      }
+
+      // Bỏ alert lỗi "không được để trống" theo yêu cầu (kệ họ)
       if (
         typeof msg === 'string' &&
         (msg.toLowerCase().includes('trống') ||
           msg.toLowerCase().includes('empty') ||
-          msg.toLowerCase().includes('null'))
+          msg.toLowerCase().includes('null') ||
+          msg.toLowerCase().includes('force') || // Ignore force related errors
+          msg.toLowerCase().includes('closed'))  // Ignore closed exam errors (handled by force submit logic)
       ) {
         return;
       }
       alert(`${t('common.error')}: ${msg}`);
+    },
+
+    // Handle when teacher force submits this student's exam
+    onForceSubmit: (reason) => {
+      // Clear timer storage
+      if (timerStorageKey) sessionStorage.removeItem(timerStorageKey);
+
+      // Show force submit result
+      setSubmitResult({
+        success: true,
+        forceSubmitted: true,
+        reason: reason || 'Bài thi đã được nộp bởi giáo viên do phát hiện vi phạm.'
+      });
     }
   });
 
@@ -936,43 +1038,67 @@ const ExamRoomPage: React.FC = () => {
       {submitResult && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
           <div className="bg-slate-900 border border-white/10 rounded-xl p-8 w-full max-w-md shadow-xl space-y-6 text-center">
-            {/* Icon thành công */}
-            <div className="mx-auto w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
-              <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
+            {/* Icon - Warning for force submit, Success for normal */}
+            {submitResult.forceSubmitted ? (
+              <div className="mx-auto w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+            ) : (
+              <div className="mx-auto w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            )}
 
             {/* Nội dung */}
             <div className="space-y-2">
-              <h3 className="text-2xl font-semibold text-white">
-                Nộp bài thành công!
+              <h3 className={`text-2xl font-semibold ${submitResult.forceSubmitted ? 'text-red-500 uppercase tracking-wider' : 'text-white'}`}>
+                {submitResult.forceSubmitted ? 'ĐÌNH CHỈ THI' : 'Nộp bài thành công!'}
               </h3>
               <p className="text-slate-400">
-                Bài làm của bạn đã được ghi nhận. Bạn có thể xem kết quả trong mục Kết quả.
+                {submitResult.forceSubmitted
+                  ? (submitResult.reason || 'Giám thị đã thu bài của bạn do phát hiện dấu hiệu gian lận hoặc vi phạm quy chế thi. Kết quả sẽ được ghi nhận tại thời điểm này.')
+                  : 'Bài làm của bạn đã được ghi nhận. Bạn có thể xem kết quả trong mục Kết quả.'}
               </p>
             </div>
 
             {/* Buttons */}
             <div className="flex justify-center gap-3 pt-2">
-              <button
-                onClick={() => {
-                  setSubmitResult(null);
-                  navigate('/exams');
-                }}
-                className="btn btn-ghost px-4 py-2 border border-white/15"
-              >
-                {t('nav.exams') || 'Về danh sách'}
-              </button>
-              <button
-                onClick={() => {
-                  setSubmitResult(null);
-                  navigate('/results');
-                }}
-                className="btn btn-primary px-4 py-2"
-              >
-                {t('nav.results') || 'Xem kết quả'}
-              </button>
+              {submitResult.forceSubmitted ? (
+                <button
+                  onClick={() => {
+                    setSubmitResult(null);
+                    navigate('/exams');
+                  }}
+                  className="btn btn-primary px-6 py-2"
+                >
+                  Rời khỏi phòng thi
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      setSubmitResult(null);
+                      navigate('/exams');
+                    }}
+                    className="btn btn-ghost px-4 py-2 border border-white/15"
+                  >
+                    {t('nav.exams') || 'Về danh sách'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSubmitResult(null);
+                      navigate('/results');
+                    }}
+                    className="btn btn-primary px-4 py-2"
+                  >
+                    {t('nav.results') || 'Xem kết quả'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

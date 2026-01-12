@@ -58,11 +58,27 @@ const ExamListPage: React.FC = () => {
   const [exams, setExams] = useState<StudentExamDto[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6; // 6 items per page (2 columns x 3 rows)
+
   const filteredExams = useMemo(() => {
     if (!searchTerm) return exams;
     const lower = searchTerm.toLowerCase();
     return exams.filter((e) => e.examName.toLowerCase().includes(lower));
   }, [exams, searchTerm]);
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredExams.length / itemsPerPage);
+  const paginatedExams = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredExams.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredExams, currentPage, itemsPerPage]);
+
+  // Reset to page 1 when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   /**
    * loading:
@@ -425,7 +441,7 @@ const ExamListPage: React.FC = () => {
       ) : (
         // Có bài thi -> render dạng lưới card
         <div className="grid gap-4 md:grid-cols-2">
-          {filteredExams.map((exam) => (
+          {paginatedExams.map((exam) => (
             <div key={exam.examId} className="p-5 flex flex-col gap-4 justify-between bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl shadow-sm hover:shadow-md transition-shadow">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -461,6 +477,50 @@ const ExamListPage: React.FC = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+          >
+            ← Trước
+          </button>
+
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                  currentPage === page
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-white dark:bg-slate-800 border border-gray-300 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-white/10 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+          >
+            Sau →
+          </button>
+        </div>
+      )}
+
+      {/* Info Text */}
+      {filteredExams.length > 0 && (
+        <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+          Hiển thị {paginatedExams.length} / {filteredExams.length} bài thi
+        </p>
       )}
     </div>
   );

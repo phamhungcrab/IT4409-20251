@@ -62,6 +62,7 @@ namespace OnlineExam.Controllers
             if (apiResultModel.MessageCode == ResponseCode.Forbidden) return Unauthorized("Forbidden: You do not have permission to perform this action.");
             return Ok(apiResultModel);
         }
+
         [HttpGet]
         [Route("get-classes-for-student")]
         [SessionAuthorize("F0122")]
@@ -75,7 +76,7 @@ namespace OnlineExam.Controllers
         }
         [HttpGet]
         [Route("get-by-id/{classId}")]
-        [SessionAuthorize("F0112")]
+        [SessionAuthorize("F0122")]
         public async Task<IActionResult> GetById(int classId)
         {
             ResultApiModel apiResultModel = new ResultApiModel();

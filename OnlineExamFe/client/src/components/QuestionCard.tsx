@@ -19,6 +19,7 @@
 
 import React from 'react';
 import OptionList, { OptionItem } from './OptionList';
+import MathContent from './MathContent';
 
 /**
  * Props = dữ liệu + hàm mà component cha truyền xuống.
@@ -132,8 +133,10 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
         )}
       </div>
 
-      {/* Nội dung câu hỏi */}
-      <h2 className="text-lg font-semibold text-white leading-relaxed">{text}</h2>
+      {/* Nội dung câu hỏi - hỗ trợ LaTeX với marker $$...$$ */}
+      <h2 className="text-lg font-semibold text-white leading-relaxed">
+        <MathContent content={text} />
+      </h2>
 
       {/* Nếu là tự luận (type=3) thì hiển thị ô nhập */}
       {questionType === 3 ? (
