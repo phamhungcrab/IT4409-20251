@@ -206,7 +206,7 @@ const StudentClassDetail: React.FC = () => {
                       {activeTab === 'exams' && (
                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                {(currentData as any[]).length > 0 ? (
-                                   (currentData as typeof classDetail.exams).map(exam => (
+                                    (currentData as NonNullable<ClassDto['exams']>).map(exam => (
                                        <div key={exam.id} className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 hover:border-emerald-500/30 transition-all group flex flex-col justify-between h-full">
                                            <div>
                                                <div className="flex justify-between items-start gap-2 mb-2">
