@@ -67,10 +67,15 @@ namespace OnlineExam.Controllers
 
         public async Task<IActionResult> GetById(int id)
         {
-            var exam = await _examService.GetByIdAsync(id);
+            var exam = await _examService.GetByIdAsync(id, ["Class","Class.StudentClasses"]);
+            var checkAuth = await _authorizationService.AuthorizeAsync(User, exam.Class, new ResourceRequirement(ResourceAction.ViewDetail));
+            if (!checkAuth.Succeeded)
+            {
+                return Unauthorized("Forbidden: You do not have permission to perform this action.");
+            }
             if (exam == null)
                 return NotFound("Exam not found");
-
+            exam.Class = null;
             return Ok(exam);
         }
 
@@ -78,7 +83,13 @@ namespace OnlineExam.Controllers
         [SessionAuthorize("F0513")]
         public async Task<IActionResult> UpdateExam(int id, [FromBody] UpdateExamDto dto)
         {
-            var exam = await _examService.GetByIdAsync(id);
+
+            var exam = await _examService.GetByIdAsync(id, ["Class", "Class.StudentClasses"]);
+            var checkAuth = await _authorizationService.AuthorizeAsync(User, exam.Class, new ResourceRequirement(ResourceAction.Edit));
+            if (!checkAuth.Succeeded)
+            {
+                return Unauthorized("Forbidden: You do not have permission to perform this action.");
+            }
             if (exam == null)
                 return NotFound("Exam not found");
 
@@ -90,6 +101,7 @@ namespace OnlineExam.Controllers
             exam.EndTime = dto.EndTime;
 
             await _examService.UpdateAsync(exam);
+            exam.Class = null;
             return Ok(new
             {
                 message = "Update exam successfully",
@@ -101,7 +113,12 @@ namespace OnlineExam.Controllers
         [SessionAuthorize("F0514")]
         public async Task<IActionResult> DeleteExam(int id)
         {
-            var exam = await _examService.GetByIdAsync(id);
+            var exam = await _examService.GetByIdAsync(id, ["Class"]);
+            var checkAuth = await _authorizationService.AuthorizeAsync(User, exam.Class, new ResourceRequirement(ResourceAction.Delete));
+            if (!checkAuth.Succeeded)
+            {
+                return Unauthorized("Forbidden: You do not have permission to perform this action.");
+            }
             if (exam == null)
                 return NotFound("Exam not found");
 
@@ -116,6 +133,12 @@ namespace OnlineExam.Controllers
         [SessionAuthorize("F0511")]
         public async Task<IActionResult> CreateExam([FromBody] CreateExamForTeacherOrAdmin dto)
         {
+            var curClass = await _classService.GetByIdAsync(dto.ClassId);
+            var checkAuth = await _authorizationService.AuthorizeAsync(User, curClass, new ResourceRequirement(ResourceAction.Delete));
+            if (!checkAuth.Succeeded)
+            {
+                return Unauthorized("Forbidden: You do not have permission to perform this action.");
+            }
             try
             {
                 var exam = new Exam

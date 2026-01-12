@@ -146,7 +146,7 @@ namespace OnlineExam.Application.Services
             }
 
             var sClass = (await _studentClassRepo.FindAsync(c => c.StudentId == studentId,
-                                                     "Class", "Student", "Class.Subject", "Class.Teacher"
+                                                     "Class", "Student", "Class.Subject", "Class.Teacher","Class.Exams"
                                                      ))
                                                      .Where(c => c.Class != null)
                                                      .Select(c => new ClassDto(c.Class))
