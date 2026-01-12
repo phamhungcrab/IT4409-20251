@@ -118,7 +118,11 @@ const TeacherClassDetail: React.FC = () => {
     show: boolean;
     blueprintId: number | null;
   }>({ show: false, blueprintId: null });
+
   const [deletingBlueprint, setDeletingBlueprint] = useState(false);
+
+  // === Blueprint Selection State ===
+  const [blueprintMode, setBlueprintMode] = useState<'new' | 'existing'>('new');
 
   // === Announcement Modal State ===
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
@@ -405,6 +409,12 @@ const TeacherClassDetail: React.FC = () => {
       chapters: [{ chapter: 1, easyCount: 0, mediumCount: 0, hardCount: 0, veryHardCount: 0 }]
     });
 
+    setBlueprintMode('new'); // Default to new
+    // Load available blueprints for selection
+    if (classDetail.subjectId) {
+        loadBlueprintsWithDetails(classDetail.subjectId).then(setAvailableBlueprints);
+    }
+
     setShowCreateModal(true);
   };
 
@@ -522,7 +532,7 @@ const TeacherClassDetail: React.FC = () => {
       endTime: formatDate(exam.endTime)
     });
 
-    // Load Blueprint Detail into Form
+     // Load Blueprint Detail into Form
     if (exam.blueprintId) {
          try {
              const bpDetail = await blueprintService.getById(exam.blueprintId);
@@ -530,6 +540,18 @@ const TeacherClassDetail: React.FC = () => {
                  subjectId: bpDetail.subjectId,
                  chapters: bpDetail.chapters || []
              });
+
+             // If editing an existing exam, we usually keep the blueprint as is (update mode)
+             // or allow selecting another one. For simplicity, we set it to 'new' (edit current)
+             // or we could detect if it matches an existing one.
+             // Here we just set 'new' to allow editing the "current" blueprint associated with this exam.
+             setBlueprintMode('new');
+
+             // Also pre-load available blueprints in case they want to switch
+             if (classDetail.subjectId) {
+                 loadBlueprintsWithDetails(classDetail.subjectId).then(setAvailableBlueprints);
+             }
+
          } catch(e) {
              console.error("Failed to load blueprint detail", e);
              // Fallback default if failed
@@ -544,6 +566,7 @@ const TeacherClassDetail: React.FC = () => {
            subjectId: classDetail.subjectId,
            chapters: [{ chapter: 1, easyCount: 0, mediumCount: 0, hardCount: 0, veryHardCount: 0 }]
         });
+        setBlueprintMode('new');
     }
 
     setShowCreateModal(true);
@@ -560,30 +583,49 @@ const TeacherClassDetail: React.FC = () => {
       return;
     }
 
-    // 2. Validate Blueprint Info
-    if (!blueprintForm.chapters || blueprintForm.chapters.length === 0) {
-      setCreateError('Vui lòng thêm ít nhất 1 chương vào cấu trúc đề.');
-      return;
+    // 2. Validate Blueprint Info (based on mode)
+    if (blueprintMode === 'new') {
+        if (!blueprintForm.chapters || blueprintForm.chapters.length === 0) {
+          setCreateError('Vui lòng thêm ít nhất 1 chương vào cấu trúc đề.');
+          return;
+        }
+    } else {
+        // Mode existing
+        if (!createForm.blueprintId) {
+             setCreateError('Vui lòng chọn cấu trúc đề có sẵn.');
+             return;
+        }
     }
 
     setCreating(true);
     setCreateError(null);
 
     try {
-      // --- Step 1: Handle Blueprint (Create or Update) ---
-      let finalBlueprintId = editingBlueprintId || 0;
+      // --- Step 1: Handle Blueprint ---
+      let finalBlueprintId = 0;
       const subjectId = classDetail?.subjectId || 0;
 
-      const bpPayload = {
-          subjectId,
-          chapters: blueprintForm.chapters
-      };
+      if (blueprintMode === 'new') {
+          // Create or Update 'adhoc' blueprint
+          // Note: If we are editing an exam that used a shared blueprint, updating it might affect others.
+          // For now, consistent with previous logic: we update the blueprint if editingBlueprintId exists
+          // or create a new one.
 
-      if (finalBlueprintId) {
-           await blueprintService.updateBlueprint(finalBlueprintId, bpPayload);
+          const bpPayload = {
+              subjectId,
+              chapters: blueprintForm.chapters
+          };
+
+          if (editingBlueprintId) {
+               await blueprintService.updateBlueprint(editingBlueprintId, bpPayload);
+               finalBlueprintId = editingBlueprintId;
+          } else {
+               const newBp = await blueprintService.create(bpPayload);
+               finalBlueprintId = newBp.id;
+          }
       } else {
-           const newBp = await blueprintService.create(bpPayload);
-           finalBlueprintId = newBp.id;
+          // Use selected existing blueprint
+          finalBlueprintId = createForm.blueprintId;
       }
 
       // --- Step 2: Handle Exam ---
@@ -1680,7 +1722,79 @@ const TeacherClassDetail: React.FC = () => {
                 </div>
               </div>
 
-              {/* Blueprint Table Section */}
+              {/* Blueprint Mode Selection */}
+              <div className="flex gap-4 mb-2">
+                 <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="bpMode" className="accent-sky-500"
+                        checked={blueprintMode === 'new'}
+                        onChange={() => setBlueprintMode('new')}
+                    />
+                    <span className="text-sm text-slate-300">Tạo cấu trúc mới</span>
+                 </label>
+                 <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="bpMode" className="accent-sky-500"
+                        checked={blueprintMode === 'existing'}
+                        onChange={() => setBlueprintMode('existing')}
+                    />
+                    <span className="text-sm text-slate-300">Chọn cấu trúc có sẵn</span>
+                 </label>
+              </div>
+
+              {/* MODE: EXISTING BLUEPRINT */}
+              {blueprintMode === 'existing' && (
+                 <div className="space-y-3">
+                     <select
+                        className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:border-sky-500 outline-none"
+                        value={createForm.blueprintId}
+                        onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setCreateForm(f => ({...f, blueprintId: val}));
+                            handleSelectBlueprint(val);
+                        }}
+                     >
+                         <option value={0}>-- Chọn cấu trúc đề --</option>
+                         {availableBlueprints.map(bp => (
+                             <option key={bp.id} value={bp.id}>
+                                 Blueprint #{bp.id} (Tạo: {new Date(bp.createdAt || '').toLocaleDateString()})
+                             </option>
+                         ))}
+                     </select>
+
+                     {/* PREVIEW SELECTED BLUEPRINT */}
+                     {selectedBlueprintDetail && (
+                         <div className="border border-white/10 rounded-lg p-4 bg-white/5 space-y-3">
+                            <div className="flex justify-between items-center">
+                                <label className="block text-sm font-semibold text-emerald-400">Xem trước cấu trúc</label>
+                                <div className="text-xs text-slate-400">
+                                    Tổng: {selectedBlueprintDetail.chapters?.reduce((sum, ch) => sum + (ch.easyCount||0) + (ch.mediumCount||0) + (ch.hardCount||0) + (ch.veryHardCount||0), 0) || 0} câu
+                                </div>
+                            </div>
+
+                             <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                                  <div className="grid grid-cols-12 gap-2 text-xs text-slate-500 uppercase font-semibold text-center mb-1">
+                                      <div className="col-span-2 text-left">Chương</div>
+                                      <div className="col-span-2">Dễ</div>
+                                      <div className="col-span-2">TBình</div>
+                                      <div className="col-span-2">Khó</div>
+                                      <div className="col-span-2">R.Khó</div>
+                                  </div>
+                                  {selectedBlueprintDetail.chapters?.map((ch, idx) => (
+                                      <div key={idx} className="grid grid-cols-12 gap-2 items-center text-sm text-slate-300 text-center border-b border-white/5 pb-1 last:border-0">
+                                          <div className="col-span-2 text-left font-medium text-white">#{ch.chapter}</div>
+                                          <div className="col-span-2">{ch.easyCount}</div>
+                                          <div className="col-span-2">{ch.mediumCount}</div>
+                                          <div className="col-span-2">{ch.hardCount}</div>
+                                          <div className="col-span-2">{ch.veryHardCount}</div>
+                                      </div>
+                                  ))}
+                             </div>
+                         </div>
+                     )}
+                 </div>
+              )}
+
+              {/* MODE: NEW BLUEPRINT */}
+              {blueprintMode === 'new' && (
               <div className="border border-white/10 rounded-lg p-4 bg-white/5 space-y-3">
                   <div className="flex justify-between items-center">
                     <label className="block text-sm font-semibold text-sky-400">Cấu trúc đề (Blueprint)</label>
@@ -1756,31 +1870,33 @@ const TeacherClassDetail: React.FC = () => {
                             </div>
                             <div className="col-span-2 text-right">
                                 {blueprintForm.chapters.length > 1 && (
-                                    <button onClick={() => {
-                                        const newChapters = blueprintForm.chapters.filter((_, i) => i !== idx);
-                                        setBlueprintForm(prev => ({...prev, chapters: newChapters}));
-                                    }} className="text-rose-400 hover:bg-rose-500/10 p-1 rounded">
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                                    </button>
+                                     <button onClick={() => {
+                                         const newChapters = blueprintForm.chapters.filter((_, i) => i !== idx);
+                                         setBlueprintForm(prev => ({...prev, chapters: newChapters}));
+                                     }} className="text-rose-400 hover:text-rose-300 text-xs">Xóa</button>
                                 )}
                             </div>
                         </div>
                       ))}
-                  </div>
 
-                  <button
-                    onClick={() => {
-                        const maxChapter = Math.max(0, ...blueprintForm.chapters.map(c => c.chapter));
-                        setBlueprintForm(prev => ({
+                      <button
+                        onClick={() => {
+                          const nextChapter = blueprintForm.chapters.length + 1;
+                          setBlueprintForm((prev) => ({
                             ...prev,
-                            chapters: [...prev.chapters, { chapter: maxChapter + 1, easyCount: 0, mediumCount: 0, hardCount: 0, veryHardCount: 0 }]
-                        }));
-                    }}
-                    className="w-full py-2 border border-dashed border-white/20 text-slate-400 text-sm rounded hover:bg-white/5 hover:text-white transition-colors"
-                  >
-                    + Thêm chương
-                  </button>
+                            chapters: [
+                              ...prev.chapters,
+                              { chapter: nextChapter, easyCount: 0, mediumCount: 0, hardCount: 0, veryHardCount: 0 }
+                            ]
+                          }));
+                        }}
+                        className="text-sm text-sky-400 hover:text-sky-300 w-full text-left pt-2"
+                      >
+                        + Thêm chương
+                      </button>
+                  </div>
               </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>

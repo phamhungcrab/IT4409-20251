@@ -132,7 +132,7 @@ namespace OnlineExam.Application.Services
                     e.Name,
                     e.ClassId,
                     e.Class
-                    
+
                 })
                 .FirstOrDefaultAsync();
             var checkAuth = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, exam.Class, new ResourceRequirement(ResourceAction.View));
@@ -193,7 +193,7 @@ namespace OnlineExam.Application.Services
         public async Task<ExamResultSummaryDto> GetResultSummary(int examId, int studentId)
         {
             var exam = await this.GetByIdAsync(examId, ["Class"]);
-            if (exam == null) 
+            if (exam == null)
             {
                 throw new Exception("Khong ton tai bai thi");
             }
@@ -295,7 +295,7 @@ namespace OnlineExam.Application.Services
             }
             var examStudent = await _examStudentRepo.Query()
                 .FirstOrDefaultAsync(es => es.ExamId == examId && es.StudentId == studentId);
-                
+
             if (examStudent == null)
                 throw new Exception("Không tìm thấy bài thi của sinh viên");
 
@@ -306,7 +306,7 @@ namespace OnlineExam.Application.Services
             var studentQuestions = await _studentQuesRepo.Query()
                 .Where(sq => sq.ExamId == examId && sq.StudentId == studentId)
                 .ToListAsync();
- 
+
             float totalExamPoint = studentQuestions.Sum(x => x.QuestionPoint);
             float studentEarnedPoint = studentQuestions.Sum(x => x.Result ?? 0);
             double rawScore = totalExamPoint == 0 ? 0 : (studentEarnedPoint / totalExamPoint) * 10;
@@ -374,9 +374,9 @@ namespace OnlineExam.Application.Services
                     Order = sq.QuestionExam.Order,
 
                     Content = question.Content,
-                    StudentAnswer = sq.Answer,
-                    CorrectAnswer = sq.QuestionExam.CorrectAnswer,
-                    CleanAnswer = CleanAnswer(question.Answer),
+                    StudentAnswer = sq.Answer, // Keep raw string (e.g. "A||B")
+                    CorrectAnswer = sq.QuestionExam.CorrectAnswer, // Keep raw string (e.g. "A||C")
+                    CleanAnswer = CleanAnswer(question.Answer), // List of options ["A", "B", "C", "D"]
 
                     IsCorrect = isCorrect,
                     QuestionPoint = questionPoint,
@@ -506,7 +506,7 @@ namespace OnlineExam.Application.Services
         public async Task<ExamGenerateResultDto> GenerateExamAsync(CreateExamForStudentDto dto)
         {
             var exam = await base.GetByIdAsync(dto.ExamId, ["Class", "Class.StudentClasses"]);
-            
+
 
             if (exam == null) throw new Exception("Không tồn tại bài thi này");
             if(!exam.Class.StudentClasses.Select(c => c.StudentId).Contains(dto.StudentId))
@@ -627,7 +627,7 @@ namespace OnlineExam.Application.Services
                 return "";
 
             var correctAnswers = list
-                            .Split("||", StringSplitOptions.RemoveEmptyEntries)
+                            .Split(new[] { "||", "|", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(p => p.Trim())
                             .Where(p => p.EndsWith("*"))
                             .Select(p => p.TrimEnd('*').Trim())
@@ -645,8 +645,9 @@ namespace OnlineExam.Application.Services
             if (string.IsNullOrWhiteSpace(raw))
                 return new List<string>();
 
-            return raw.Split("||", StringSplitOptions.RemoveEmptyEntries)
+            return raw.Split(new[] { "||", "|", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries)
                       .Select(x => x.Trim().TrimEnd('*').Trim())
+                      .Where(x => !string.IsNullOrEmpty(x))
                       .ToList();
         }
     }

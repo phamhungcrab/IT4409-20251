@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import useAuth from '../hooks/useAuth';
 import { resultService, ExamDetailResult, ResultItem } from '../services/resultService';
 import { formatLocalDateTime } from '../utils/dateUtils';
+import MathContent from '../components/MathContent';
 
 /**
  * LocationState: dữ liệu đính kèm khi navigate từ trang danh sách
@@ -204,7 +205,7 @@ const ResultDetailPage: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <p className="text-white font-medium">{q.content}</p>
+                    <p className="text-white font-medium"><MathContent content={q.content} /></p>
                   </div>
 
                   {/* Điểm */}
@@ -230,10 +231,10 @@ const ResultDetailPage: React.FC = () => {
                     <div className={`font-medium ${q.isCorrect ? 'text-emerald-300' : 'text-rose-300'}`}>
                       {q.studentAnswer ? (
                         <ul className="space-y-1">
-                          {q.studentAnswer.split('|').map((ans, idx) => (
+                          {q.studentAnswer.split('||').map((ans, idx) => (
                             <li key={idx} className="flex items-center gap-2">
                               <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                              {ans.trim()}
+                              <MathContent content={ans.trim()} />
                             </li>
                           ))}
                         </ul>
@@ -249,10 +250,10 @@ const ResultDetailPage: React.FC = () => {
                       Đáp án đúng
                     </p>
                     <ul className="font-medium text-sky-300 space-y-1">
-                      {q.correctAnswer.split('|').map((ans, idx) => (
+                      {q.correctAnswer.split('||').map((ans, idx) => (
                         <li key={idx} className="flex items-center gap-2">
                           <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                          {ans.trim()}
+                          <MathContent content={ans.trim()} />
                         </li>
                       ))}
                     </ul>
@@ -269,7 +270,7 @@ const ResultDetailPage: React.FC = () => {
                           key={idx}
                           className="px-2 py-1 rounded bg-white/5 text-xs text-slate-300"
                         >
-                          {ans}
+                          <MathContent content={ans} />
                         </span>
                       ))}
                     </div>
