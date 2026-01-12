@@ -62,7 +62,7 @@ const TeacherClassDetail: React.FC = () => {
   }>({
     show: false,
     studentName: '',
-    mssv: '',
+    mssv: '', 
     data: null,
     loading: false
   });
