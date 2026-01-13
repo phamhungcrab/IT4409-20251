@@ -94,6 +94,22 @@ npm run dev
 - Teacher: `teacher@example.com/teacher`
 - Admin: ` Mạnh Hằng Mobile Bắc Ninh/ liên hệ trực tiếp thì cho password`
 
+## 🔒 Security Considerations
+
+Hệ thống áp dụng các nguyên tắc bảo mật cơ bản:
+
+| Nguyên tắc | Mô tả |
+|------------|-------|
+| **Authentication** | Session-based auth, token lưu HttpOnly cookie |
+| **Authorization** | Phân quyền theo role (Student/Teacher/Admin) và permission code |
+| **Input Validation** | Validate & sanitize tất cả input từ client |
+| **Rate Limiting** | Giới hạn số request/phút để chống brute-force |
+| **Logging & Audit** | Ghi log các hành động quan trọng (login, submit, admin actions) |
+| **HTTPS** | Bắt buộc HTTPS trong môi trường production |
+| **CORS** | Chỉ cho phép origin được whitelist |
+
+> 📋 Chi tiết về báo cáo lỗ hổng: xem [SECURITY.md](SECURITY.md)
+
 ## Nhóm thực hiện
 Giảng viên hướng dẫn: TS. Đỗ Bá Lâm
 
