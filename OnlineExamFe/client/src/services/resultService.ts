@@ -162,13 +162,10 @@ export const resultService = {
         return [];
       }
 
-      // Bước 3: Với mỗi bài, lấy result-summary
-      const results: ResultItem[] = [];
-
-      for (const exam of completedExams) {
+      // Bước 3: Với mỗi bài, lấy result-summary (SONG SONG HÓA - Option A)
+      const summaryPromises = completedExams.map(async (exam) => {
         const summary = await resultService.getResultSummary(exam.examId, studentId);
-
-        results.push({
+        return {
           examId: exam.examId,
           examTitle: exam.examName || `Bài thi #${exam.examId}`,
           score: summary?.finalScore ?? 0,
@@ -177,8 +174,10 @@ export const resultService = {
           // Thêm thông tin bổ sung
           correctCount: summary?.correctCount,
           totalQuestions: summary?.totalQuestions
-        });
-      }
+        } as ResultItem;
+      });
+
+      const results = await Promise.all(summaryPromises);
 
       // Bước 4: Sắp xếp theo thời gian nộp bài mới nhất -> cũ nhất
       results.sort((a, b) => {

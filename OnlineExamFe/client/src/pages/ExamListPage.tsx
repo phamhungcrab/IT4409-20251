@@ -441,41 +441,100 @@ const ExamListPage: React.FC = () => {
       ) : (
         // Có bài thi -> render dạng lưới card
         <div className="grid gap-4 md:grid-cols-2">
-          {paginatedExams.map((exam) => (
-            <div key={exam.examId} className="p-5 flex flex-col gap-4 justify-between bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white">{exam.examName}</h3>
+          {paginatedExams.map((exam) => {
+            const now = new Date();
+            const start = exam.startTime ? new Date(exam.startTime) : null;
+            const end = exam.endTime ? new Date(exam.endTime) : null;
 
-                  {/* Tag trạng thái */}
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-slate-200 border border-gray-200 dark:border-white/10">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
-                    {exam.status}
-                  </span>
+            // Determine detailed status
+            let statusLabel = 'Sắp diễn ra';
+            let statusColor = 'bg-stone-100 text-stone-600 border-stone-200 dark:bg-white/5 dark:text-stone-300 dark:border-white/10';
+            let dotColor = 'bg-stone-400';
+            let isExpired = false;
+            let isUpcoming = false;
+            let isCompleted = exam.status === 'COMPLETED';
+            let isOngoing = false;
+
+            if (isCompleted) {
+                statusLabel = 'Đã hoàn thành';
+                statusColor = 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20';
+                dotColor = 'bg-emerald-500';
+            } else if (end && now > end) {
+                statusLabel = 'Đã kết thúc';
+                statusColor = 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20';
+                dotColor = 'bg-rose-500';
+                isExpired = true;
+            } else if (start && now < start) {
+                statusLabel = 'Chưa bắt đầu';
+                 statusColor = 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20';
+                dotColor = 'bg-amber-500';
+                isUpcoming = true;
+            } else {
+                statusLabel = 'Đang diễn ra';
+                statusColor = 'bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20';
+                dotColor = 'bg-sky-500';
+                isOngoing = true;
+            }
+
+            return (
+              <div key={exam.examId} className={`relative p-5 flex flex-col gap-4 justify-between bg-white dark:bg-white/5 border rounded-xl shadow-sm transition-all ${isExpired || isCompleted ? 'opacity-80 hover:opacity-100 border-gray-200 dark:border-white/5' : 'border-gray-200 dark:border-white/10 hover:shadow-md hover:border-emerald-500/30'}`}>
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white line-clamp-2 leading-tight" title={exam.examName}>{exam.examName}</h3>
+
+                    {/* Tag trạng thái */}
+                    <span className={`flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${statusColor}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} aria-hidden />
+                      {statusLabel}
+                    </span>
+                  </div>
+
+                  {/* Thông tin thời lượng và thời gian */}
+                  <div className="grid grid-cols-2 gap-y-2 text-sm text-slate-500 dark:text-slate-400">
+                    <div className="col-span-2 flex items-center gap-2">
+                       <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                       <span>{t('exam.duration')}: <span className="font-medium text-slate-700 dark:text-slate-200">{exam.durationMinutes} phút</span></span>
+                    </div>
+                    <div className="flex flex-col">
+                       <span className="text-xs uppercase tracking-wider text-slate-400">Bắt đầu</span>
+                       <span className="font-medium text-slate-700 dark:text-slate-200">{formatLocalDateTime(exam.startTime)}</span>
+                    </div>
+                    <div className="flex flex-col">
+                       <span className="text-xs uppercase tracking-wider text-slate-400">Kết thúc</span>
+                        <span className="font-medium text-slate-700 dark:text-slate-200">{formatLocalDateTime(exam.endTime)}</span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Thông tin thời lượng và thời gian bắt đầu */}
-                <div className="text-sm text-slate-500 dark:text-slate-400 space-y-1">
-                  <p>
-                    {t('exam.duration')}: {exam.durationMinutes} phút
-                  </p>
-                  <p>
-                    {t('exam.startTime')}: {formatLocalDateTime(exam.startTime)}
-                  </p>
+                <div className="pt-2 border-t border-gray-100 dark:border-white/5">
+                   {/* Logic render Nút bấm */}
+                   {isExpired ? (
+                       <button disabled className="w-full btn bg-slate-100 text-slate-400 border-slate-200 dark:bg-white/5 dark:text-slate-500 dark:border-white/5 cursor-not-allowed">
+                          Đã kết thúc
+                       </button>
+                   ) : isCompleted ? (
+                       <button
+                          onClick={() => navigate('/results')}
+                          className="w-full btn bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 dark:hover:bg-emerald-500/20"
+                        >
+                          Xem kết quả
+                       </button>
+                   ) : isUpcoming ? (
+                       <button disabled className="w-full btn bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-500 dark:border-amber-500/20 cursor-not-allowed opacity-80">
+                          Chưa đến giờ
+                       </button>
+                   ) : (
+                       <button
+                         onClick={() => handleStartExam(exam.examId, exam.examName)}
+                         className="w-full btn btn-primary shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:-translate-y-0.5 transition-all"
+                       >
+                         {t('exam.startExam')}
+                       </button>
+                   )}
                 </div>
               </div>
-
-              <div className="flex gap-2">
-                {/* Nút bắt đầu bài thi */}
-                <button
-                  onClick={() => handleStartExam(exam.examId, exam.examName)}
-                  className="btn btn-primary hover:-translate-y-0.5 flex-1"
-                >
-                  {t('exam.startExam')}
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

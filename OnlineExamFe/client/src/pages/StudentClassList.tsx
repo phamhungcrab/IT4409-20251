@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { classService, ClassDto } from '../services/classService';
 import useAuth from '../hooks/useAuth';
 
 const StudentClassList: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [classes, setClasses] = useState<ClassDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,7 +134,9 @@ const StudentClassList: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
            {filteredClasses.map(cls => (
-              <div key={cls.id} className="group flex flex-col bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl hover:shadow-xl hover:border-emerald-500/30 hover:-translate-y-1 transition-all duration-300 overflow-hidden relative">
+              <div key={cls.id}
+                   onClick={() => navigate(`/student/classes/${cls.id}`)}
+                   className="group flex flex-col bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl hover:shadow-xl hover:border-emerald-500/30 hover:-translate-y-1 transition-all duration-300 overflow-hidden relative cursor-pointer">
                  {/* Decorative Header */}
                  <div className="h-1.5 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
 
