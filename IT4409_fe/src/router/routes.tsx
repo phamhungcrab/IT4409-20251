@@ -6,6 +6,7 @@ import { ProtectedRoute } from './protectedRoute';
 import RoleGuard from '../components/RoleGuard';
 
 // Admin pages
+const CMSExamBlueprint = lazy(() => import('../pages/(admin)/CMSExamBlueprint'));
 const CMSHome = lazy(() => import('../pages/(admin)/CMSHome'));
 const CMSLogin = lazy(() => import('../pages/(admin)/CMSLogin'));
 const CMSSignup = lazy(() => import('../pages/(admin)/CMSSignup'));
@@ -87,8 +88,8 @@ const appRoutes: RouteObject[] = [
             </ProtectedRoute>
         ),
         children: [
-            { path: 'home', element: <CMSProfile /> },
-            { path: 'accounts', element: <CMSAccounts /> },
+            { path: '', element: <CMSAccounts /> },
+            { path: 'blueprint', element: <CMSExamBlueprint /> },
             { path: 'class', element: <CMSClass /> },
             { path: 'class/:id', element: <CMSClassDetail /> },
             { path: 'exam', element: <CMSExam /> },

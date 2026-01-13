@@ -1,15 +1,15 @@
-// Quản lý lớp học
-import { useEffect, useState, useCallback } from "react"; // Thêm useCallback
+import { useEffect, useState, useCallback } from "react";
 import { Form } from "../../components/Form";
 import { CommonButton } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { ExamCard } from "../../components/Card";
 import { AddStudentToClassForm } from "../../components/AddStudentToClassForm";
 import { createClass, deleteClass, searchForAdmin, updateClass } from "../../services/(admin)/ClassApi";
-import { getAllUsers } from "../../services/(admin)/UserApi";
+import { searchUsersForAdmin } from "../../services/(admin)/UserApi";
 import { getAllSubject } from "../../services/(admin)/SubjectApi";
 import { ConfirmModal } from "../../components/ConfirmModal";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const CMSClass = () => {
     const [classes, setClasses] = useState([]);
@@ -33,33 +33,37 @@ const CMSClass = () => {
 
     const navigate = useNavigate();
 
-    const searchClasses = useCallback(async (currentFilters, currentPagination) => {
+    const searchClasses = useCallback(async () => {
         try {
             const payload = {
-                pageSize: currentPagination.pageSize,
-                pageNumber: currentPagination.pageNumber,
-                name: currentFilters.name?.trim() || null,
-                teacherId: Number(currentFilters.teacherId) || null,
-                subjectId: Number(currentFilters.subjectId) || null,
+                pageSize: pagination.pageSize,
+                pageNumber: pagination.pageNumber,
+                name: filters.name?.trim() || null,
+                teacherId: Number(filters.teacherId) || null,
+                subjectId: Number(filters.subjectId) || null,
             };
             const res = await searchForAdmin(payload);
-            console.log("Res: ", res);
-            setClasses(res.data.users || []);
-            setPagination(prev => ({ ...prev }));
+            if (res && res.data) {
+                setClasses(res.data.users || []);
+            }
         } catch (e) {
             console.error("Lỗi search lớp học:", e);
         }
-    }, []);
+    }, [filters, pagination]);
 
     const fetchMetaData = async () => {
         try {
             const [teacherRes, subjectRes] = await Promise.all([
-                getAllUsers(),
+                searchUsersForAdmin({ role: "TEACHER", pageSize: 1000 }),
                 getAllSubject()
             ]);
 
-            setTeachers(teacherRes.map(t => ({ value: t.id, label: t.fullName })));
-            setSubjects(subjectRes.map(s => ({ value: s.id, label: `${s.subjectCode} - ${s.name}` })));
+            if (teacherRes?.data?.users) {
+                setTeachers(teacherRes.data.users.map(t => ({ value: t.id, label: t.fullName })));
+            }
+            if (subjectRes) {
+                setSubjects(subjectRes.map(s => ({ value: s.id, label: `${s.subjectCode} - ${s.name}` })));
+            }
         } catch (e) {
             console.error("Lỗi tải metadata:", e);
         }
@@ -71,42 +75,53 @@ const CMSClass = () => {
 
     useEffect(() => {
         const timeout = setTimeout(() => {
-            searchClasses(filters, pagination);
+            searchClasses();
         }, 400);
         return () => clearTimeout(timeout);
-    }, [filters, pagination.pageNumber, pagination.pageSize, searchClasses]);
+    }, [searchClasses]);
 
     useEffect(() => {
         setPagination(prev => ({ ...prev, pageNumber: 1 }));
     }, [filters]);
+
+    const handleResetFilters = () => {
+        setFilters({ name: "", subjectId: "", teacherId: "" });
+    };
+
+    const handleSave = async (formData) => {
+        try {
+            if (editData) {
+                await updateClass(formData, editData.id);
+                toast.success("Cập nhật lớp học thành công");
+            } else {
+                await createClass(formData);
+                toast.success("Tạo lớp học mới thành công");
+            }
+            setOpen(false);
+            searchClasses();
+        } catch (error) {
+            toast.error("Thao tác thất bại");
+        }
+    };
+
+    const confirmDelete = async () => {
+        try {
+            const res = await deleteClass(deleteId);
+            if (res) {
+                toast.success("Đã xóa lớp học");
+                searchClasses();
+            }
+        } catch (error) {
+            toast.error("Không thể xóa lớp học");
+        }
+        setDeleteId(null);
+    };
 
     const classFields = [
         { name: "name", label: "Tên lớp học", type: "text" },
         { name: "subjectId", label: "Mã học phần", type: "select", options: subjects },
         { name: "teacherId", label: "Giảng viên", type: "select", options: teachers }
     ];
-
-    const handleSave = async (formData) => {
-        try {
-            if (editData) {
-                await updateClass(formData, editData.id);
-            } else {
-                await createClass(formData);
-            }
-            setOpen(false);
-            searchClasses(filters, pagination);
-        } catch (error) {
-            console.error("Lỗi khi lưu:", error);
-        }
-    };
-
-    const confirmDelete = async () => {
-        const res = await deleteClass(deleteId);
-        if (res) {
-            searchClasses(filters, pagination);
-        }
-        setDeleteId(null);
-    };
 
     const actions = (classroom) => [
         { label: "Xem chi tiết", color: "gray", onClick: () => navigate(`/class/${classroom.id}`) },
@@ -116,28 +131,40 @@ const CMSClass = () => {
     ];
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6">Quản lý lớp học</h1>
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Quản lý Lớp học</h1>
+                <CommonButton label="+ Thêm lớp học" color="danger" onClick={() => { setEditData(null); setOpen(true); }} />
+            </div>
 
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3 flex-1">
+            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-wrap lg:flex-nowrap items-end gap-4">
+                <div className="flex-1 min-w-[200px]">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Tên lớp học</label>
                     <input
                         type="text"
-                        placeholder="Tìm kiếm lớp học..."
-                        className="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                        placeholder="Tìm kiếm..."
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-red-400 transition-all"
                         value={filters.name}
                         onChange={(e) => setFilters(prev => ({ ...prev, name: e.target.value }))}
                     />
+                </div>
+
+                <div className="flex-1 min-w-[180px]">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Học phần</label>
                     <select
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:border-red-400"
                         value={filters.subjectId}
                         onChange={(e) => setFilters(prev => ({ ...prev, subjectId: e.target.value }))}
                     >
                         <option value="">Tất cả học phần</option>
                         {subjects.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                     </select>
+                </div>
+
+                <div className="flex-1 min-w-[180px]">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5 ml-1">Giảng viên</label>
                     <select
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:border-red-400"
                         value={filters.teacherId}
                         onChange={(e) => setFilters(prev => ({ ...prev, teacherId: e.target.value }))}
                     >
@@ -145,35 +172,45 @@ const CMSClass = () => {
                         {teachers.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                 </div>
-                <CommonButton label="+ Thêm lớp học" color="danger" onClick={() => { setEditData(null); setOpen(true); }} />
+
+                <button
+                    onClick={handleResetFilters}
+                    className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-lg text-sm font-bold border border-gray-200 transition-all h-[38px] whitespace-nowrap"
+                >
+                    Xóa bộ lọc
+                </button>
             </div>
 
-            {/* Grid Classes */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {classes.map(classroom => (
                     <ExamCard
                         key={classroom.id}
                         title={classroom.name}
-                        subtitle={`${classroom.subjectName || classroom.subjectId} - ${classroom.teacherName || classroom.teacherId}`}
+                        subtitle={
+                            <div className="flex flex-col gap-1">
+                                <span>{classroom.subject?.subjectCode || "N/A"}</span>
+                                <span>GV: {classroom.teacher?.fullName || "Chưa phân công"}</span>
+                            </div>
+                        }
                         actions={actions(classroom)}
+                        onClick={() => navigate(`/class/${classroom.id}`)}
                     />
                 ))}
             </div>
 
-            {/* Pagination */}
-            <div className="flex justify-between items-center mt-6 text-sm text-gray-600">
-                <p>Hiển thị {classes.length} lớp học</p>
+            <div className="flex justify-between items-center mt-6 text-sm text-gray-600 bg-white p-4 rounded-lg shadow-sm border border-slate-100">
+                <p>Hiển thị <b>{classes.length}</b> lớp học</p>
                 <div className="flex items-center gap-4">
                     <button
-                        className="disabled:opacity-30"
-                        disabled={pagination.pageNumber === 0}
+                        className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-30 transition-all"
+                        disabled={pagination.pageNumber === 1}
                         onClick={() => setPagination(p => ({ ...p, pageNumber: p.pageNumber - 1 }))}
                     >
                         Trước
                     </button>
-                    <span>Trang {pagination.pageNumber + 1}</span>
+                    <span className="font-bold">Trang {pagination.pageNumber}</span>
                     <button
-                        className="disabled:opacity-30"
+                        className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-30 transition-all"
                         disabled={classes.length < pagination.pageSize}
                         onClick={() => setPagination(p => ({ ...p, pageNumber: p.pageNumber + 1 }))}
                     >
@@ -182,7 +219,6 @@ const CMSClass = () => {
                 </div>
             </div>
 
-            {/* Modals */}
             <ConfirmModal
                 isOpen={!!deleteId}
                 title="Xóa lớp học"
@@ -194,7 +230,11 @@ const CMSClass = () => {
             <Modal isOpen={open} onClose={() => setOpen(false)} title={editData ? "Sửa lớp học" : "Thêm lớp học"}>
                 <Form
                     fields={classFields}
-                    initialValues={editData || { name: "", subjectId: "", teacherId: "" }}
+                    initialValues={editData ? {
+                        name: editData.name,
+                        subjectId: editData.subjectId,
+                        teacherId: editData.teacherId
+                    } : { name: "", subjectId: "", teacherId: "" }}
                     onSubmit={handleSave}
                     onCancel={() => setOpen(false)}
                 />
@@ -202,7 +242,7 @@ const CMSClass = () => {
 
             <Modal isOpen={openMultiple} onClose={() => setOpenMultiple(false)} title="Thêm sinh viên vào lớp">
                 <AddStudentToClassForm
-                    onSuccess={() => { setOpenMultiple(false); searchClasses(filters, pagination); }}
+                    onSuccess={() => { setOpenMultiple(false); searchClasses(); }}
                     classId={selectedClassId}
                 />
             </Modal>

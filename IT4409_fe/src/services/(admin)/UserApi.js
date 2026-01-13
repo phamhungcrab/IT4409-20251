@@ -1,4 +1,5 @@
 import { api } from "../../lib/axiosClient";
+import toast from "react-hot-toast";
 
 const getAllUsers = async () => {
     try {
@@ -6,7 +7,7 @@ const getAllUsers = async () => {
         console.log("User data (api): ", users.data.data);
         return users.data.data;
     } catch (e) {
-        alert("Lấy danh sách người dùng thất bại");
+        toast.error("Lấy danh sách người dùng thất bại");
         return;
     }
 }
@@ -32,13 +33,20 @@ const uploadUsersJson = async (jsonData, fileName = "users.json") => {
 
         formData.append("file", blob, fileName);
 
-        const res = await api.post("/User/create-users", formData);
+        //console.log("formData:", formData);
+
+        const res = await api.post("/User/create-users", formData, {
+            headers: {
+                "Content-Type": undefined,
+            },
+        });
 
         if (!res.o) throw new Error("Lỗi API");
 
+        toast.success("Thêm danh sách người dùng thành công!")
         return await res.data;
     } catch (e) {
-        alert("Thêm danh sách người dùng mới thất bại");
+        //toast.error("Thêm danh sách người dùng mới thất bại");
         return;
     }
 }
@@ -54,14 +62,16 @@ const createSingleUser = async (credentials) => {
             role: credentials.role
         });
 
+        toast.success("Thêm người dùng thành công!")
         return user.data;
     } catch (e) {
-        alert("Thêm người dùng thất bại");
+        //toast.error("Thêm người dùng thất bại");
         return;
     }
 }
 
 const editUser = async (credentials) => {
+    console.log("edit user: ", credentials);
     try {
         const editedUser = await api.put("/User/update", {
             fullName: credentials.fullName,
@@ -72,9 +82,11 @@ const editUser = async (credentials) => {
             role: credentials.role
         });
 
+        toast.success("Sửa thông tin người dùng thành công!")
+
         return editedUser.data;
     } catch (e) {
-        alert("Sửa thông tin người dùng thất bại");
+        //toast.error("Sửa thông tin người dùng thất bại");
         return;
     }
 }
@@ -84,7 +96,7 @@ const deleteUser = async (userId) => {
         const res = await api.delete(`/User/delete?userId=${userId}`);
         return res;
     } catch (e) {
-        alert("Không thể xóa người dùng");
+        //toast.error("Không thể xóa người dùng, vui lòng thử lại");
         return;
     }
 }

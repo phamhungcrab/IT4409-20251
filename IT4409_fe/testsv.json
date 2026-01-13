@@ -1,0 +1,42 @@
+[
+    {
+        "fullName": "Nguyễn Sinh Viên 1",
+        "dateOfBirth": "2002-01-01",
+        "mssv": "20221000",
+        "email": "nsv1@gmail.com",
+        "password": "123456",
+        "role": "STUDENT"
+    },
+    {
+        "fullName": "Nguyễn Sinh Viên 2",
+        "dateOfBirth": "2002-02-01",
+        "mssv": "20221001",
+        "email": "nsv2@gmail.com",
+        "password": "123456",
+        "role": "STUDENT"
+    },
+    {
+        "fullName": "Nguyễn Sinh Viên 3",
+        "dateOfBirth": "2002-03-01",
+        "mssv": "20221002",
+        "email": "nsv1@gmail.com",
+        "password": "123456",
+        "role": "STUDENT"
+    },
+    {
+        "fullName": "Nguyễn Sinh Viên 4",
+        "dateOfBirth": "2002-04-01",
+        "mssv": "20221003",
+        "email": "nsv2@gmail.com",
+        "password": "123456",
+        "role": "STUDENT"
+    },
+    {
+        "fullName": "Nguyễn Sinh Viên 5",
+        "dateOfBirth": "2002-05-01",
+        "mssv": "20221004",
+        "email": "nsv1@gmail.com",
+        "password": "123456",
+        "role": "STUDENT"
+    }
+]

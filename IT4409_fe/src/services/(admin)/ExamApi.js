@@ -6,7 +6,7 @@ const getAllExams = async () => {
         console.log("exams: ", exams.data);
         return exams.data;
     } catch (e) {
-        alert("Không thể lấy danh sách bài kiểm tra");
+        //alert("Không thể lấy danh sách bài kiểm tra");
         console.error(e);
         return
     }
@@ -43,8 +43,35 @@ const createExam = async (payload) => {
         });
         return res.data;
     } catch (e) {
-        alert("Tạo bài kiểm tra thất bại");
+        //alert("Tạo bài kiểm tra thất bại");
         console.error(e);
+        return null;
+    }
+};
+
+const updateExam = async (payload, examId) => {
+    try {
+        const res = await api.put(`/Exam/update/${examId}`, {
+            name: payload.name,
+            classId: Number(payload.classId),
+            blueprintId: Number(payload.examBlueprint),
+            durationMinutes: Number(payload.durationMinutes),
+            startTime: new Date(payload.startTime).toISOString(),
+            endTime: new Date(payload.endTime).toISOString()
+        });
+        return res.data;
+    } catch (e) {
+        console.error("Lỗi khi cập nhật bài kiểm tra:", e);
+        return null;
+    }
+};
+
+const deleteExam = async (examId) => {
+    try {
+        const res = await api.delete(`/Exam/delete/${examId}`);
+        return res.data;
+    } catch (e) {
+        console.error("Lỗi khi xóa bài kiểm tra:", e);
         return null;
     }
 };
@@ -54,7 +81,7 @@ const generateExam = async (payload) => {
         const res = await api.post("/Exam/generate", payload);
         return res.data;
     } catch (e) {
-        alert("Không thể generate đề thi");
+        //alert("Không thể generate đề thi");
         console.error(e);
         return null;
     }
@@ -65,7 +92,7 @@ const createExamBlueprint = async (payload) => {
         const res = await api.post("/ExamBlueprint/create", payload);
         return res.data;
     } catch (e) {
-        alert("Tạo blueprint thất bại");
+        //alert("Tạo blueprint thất bại");
         console.error(e);
         return null;
     }
@@ -82,11 +109,25 @@ const getExamDetail = async (examId) => {
     }
 }
 
+const getExamStudentStatus = async (examId) => {
+    try {
+        const res = await api.get(`/Exam/${examId}/students-status`);
+        console.log("Student status: ", res.data);
+        return res.data;
+    } catch (e) {
+        console.error(e);
+        return null;
+    }
+}
+
 export {
     getAllExams,
     searchExamsForAdmin,
+    updateExam,
+    deleteExam,
     createExam,
     generateExam,
     createExamBlueprint,
-    getExamDetail
+    getExamDetail,
+    getExamStudentStatus
 }

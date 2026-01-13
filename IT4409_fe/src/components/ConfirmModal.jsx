@@ -22,7 +22,7 @@ export const ConfirmModal = ({
                 />
                 <CommonButton
                     label={confirmLabel}
-                    color="red"
+                    color="danger"
                     onClick={onConfirm}
                 />
             </div>

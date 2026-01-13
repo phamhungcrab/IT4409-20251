@@ -1,7 +1,7 @@
 export const CommonButton = ({ label, onClick, color = "primary", type = "button" }) => {
     const colors = {
-        primary: "bg-blue-600 hover:bg-indigo-700 text-white",
-        danger: "bg-blue-600 hover:bg-blue-800 text-white",
+        primary: "bg-indigo-600 hover:bg-indigo-700 text-white",
+        danger: "bg-red-600 hover:bg-blue-800 text-white",
         outline: "border border-gray-300 hover:bg-gray-100 text-gray-700",
     };
 

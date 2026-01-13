@@ -1,8 +1,9 @@
 import { api } from "../../lib/axiosClient";
+import toast from "react-hot-toast";
 
 export async function loginApi(credentials) {
     try {
-        const res = await api.post("/auth/login", {
+        const res = await api.post("/Auth/login", {
             Email: credentials.email,
             Password: credentials.password
         });
@@ -29,6 +30,22 @@ export async function getAbout() {
         console.log("About: ", res.data);
         return res.data;
     } catch (e) {
+        console.error(e);
+        return null;
+    }
+}
+
+export async function changePassword(payload) {
+    try {
+        const res = await api.post("/Auth/change-password", {
+            email: payload.email,
+            newPassword: payload.newPassword,
+            oldPassword: payload.oldPassword
+        });
+        toast.success("Đổi mật khẩu thành công!");
+        return res;
+    } catch (e) {
+        toast.error("Đổi mật khẩu thất bại. Vui lòng thử lại");
         console.error(e);
         return null;
     }

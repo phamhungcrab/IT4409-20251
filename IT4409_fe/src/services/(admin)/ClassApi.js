@@ -1,4 +1,5 @@
 import { api } from "../../lib/axiosClient";
+import toast from "react-hot-toast";
 
 const getAllClasses = async () => {
     try {
@@ -36,21 +37,35 @@ const getClassesByTeacherSubject = async (teacherId, subjectId) => {
 
 }
 
-const addStudentsToClass = async (jsonData, classId, fileName = "students.json") => {
+const addStudentsToClass = async (jsonData, classId, fileName = "test.json") => {
     try {
+        console.log("Json data: ", JSON.stringify(jsonData));
         const blob = new Blob([JSON.stringify(jsonData)], {
             type: "application/json"
         });
+
+        console.log("formData", jsonData);
 
         const formData = new FormData();
 
         formData.append("file", blob, fileName);
 
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ', pair[1]);
+        }
+
+        const fileInForm = formData.get("file");
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            console.log("Nội dung file thực tế gửi đi:", e.target.result);
+        };
+        reader.readAsText(fileInForm);
+
         const res = await api.post(`/Class/add-users/${classId}`, formData);
 
         return await res.data;
     } catch (e) {
-        alert("Thêm danh sách sinh viên vào lớp học thất bại");
+        toast.me
         console.error(e);
         return;
     }
@@ -124,6 +139,29 @@ const getClassDetail = async (classId) => {
     }
 }
 
+const addStudentToClass = async (classId, payload) => {
+    try {
+        const res = await api.post(`/Class/add-user/${classId}`, {
+            email: payload.email,
+            mssv: payload.mssv
+        });
+        return res.data;
+    } catch (e) {
+        console.error(e);
+        return null
+    }
+}
+
+const removeSingleStudent = async (classId, studentId) => {
+    try {
+        const res = await api.delete(`/Class/remove-user/${classId}/${studentId}`);
+        return res.data;
+    } catch (e) {
+        console.error(e);
+        return;
+    }
+}
+
 export {
     getAllClasses,
     searchForAdmin,
@@ -132,6 +170,8 @@ export {
     updateClass,
     deleteClass,
     addStudentsToClass,
+    addStudentToClass,
     getStudentsOfClass,
-    getClassDetail
+    getClassDetail,
+    removeSingleStudent
 }

@@ -4,7 +4,7 @@ import { CommonButton } from "../../components/Button";
 import { Modal } from "../../components/Modal";
 import { ExamCard } from "../../components/Card";
 import { useNavigate } from "react-router-dom";
-import { createExam, searchExamsForAdmin } from "../../services/(admin)/ExamApi";
+import { createExam, searchExamsForAdmin, updateExam, deleteExam } from "../../services/(admin)/ExamApi";
 import { getAllClasses } from "../../services/(admin)/ClassApi";
 import { getAllExamBlueprints } from "../../services/(admin)/ExamBlueprintApi";
 import { ConfirmModal } from "../../components/ConfirmModal";
@@ -25,10 +25,26 @@ const CMSExam = () => {
         endTimeTo: "",
     });
 
+    const handleViewDetail = (id) => {
+        navigate(`/results/${id}`);
+    };
+
     const [pagination, setPagination] = useState({
         pageNumber: 1,
-        pageSize: 8,
+        pageSize: 9,
     });
+
+    const formatDateTime = (dateString) => {
+        if (!dateString) return "—";
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+
+        return `${day}/${month}/${year}`;
+    };
 
     const navigate = useNavigate();
 
@@ -92,17 +108,39 @@ const CMSExam = () => {
     const handleSave = async (formData) => {
         if (editData) {
             await updateExam(formData, editData.id);
+            if (res) toast.success("Cập nhật bài kiểm tra thành công!");
         } else {
             await createExam(formData);
+            if (res) toast.success("Tạo bài kiểm tra thành công!");
         }
         setOpen(false);
         fetchExams();
     };
 
     const confirmDelete = async () => {
-        const res = await deleteExam(deleteId);
-        if (res) fetchExams();
-        setDeleteId(null);
+        try {
+            const res = await deleteExam(deleteId);
+            if (res) {
+                toast.success("Đã xóa bài kiểm tra thành công!");
+                fetchExams();
+            }
+        } catch (error) {
+            toast.error("Lỗi khi xóa bài kiểm tra!");
+        } finally {
+            setDeleteId(null);
+        }
+    };
+
+    const getInitialValues = () => {
+        if (editData) {
+            return {
+                ...editData,
+                examBlueprint: editData.blueprintId,
+                startTime: editData.startTime ? editData.startTime.substring(0, 16) : "",
+                endTime: editData.endTime ? editData.endTime.substring(0, 16) : "",
+            };
+        }
+        return { name: "", durationMinutes: 60 };
     };
 
     const examFields = [
@@ -121,75 +159,64 @@ const CMSExam = () => {
     ];
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="space-y-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-800">Quản lý bài kiểm tra</h1>
                 <CommonButton label="+ Tạo bài kiểm tra" color="danger" onClick={() => { setEditData(null); setOpen(true); }} />
             </div>
 
-            <div className="mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-1">
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Tìm kiếm tên</label>
-                        <input
-                            type="text"
-                            placeholder="Nhập tên bài kiểm tra..."
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-400 outline-none"
-                            value={filters.name}
-                            onChange={(e) => setFilters(prev => ({ ...prev, name: e.target.value }))}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Bắt đầu (Khoảng)</label>
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="datetime-local"
-                                className="w-full px-2 py-2 border border-gray-200 rounded text-xs"
-                                value={filters.startTimeFrom ? filters.startTimeFrom.substring(0, 16) : ""}
-                                onChange={(e) => setFilters(prev => ({ ...prev, startTimeFrom: e.target.value ? new Date(e.target.value).toISOString() : "" }))}
-                            />
-                            <span className="text-gray-400">-</span>
-                            <input
-                                type="datetime-local"
-                                className="w-full px-2 py-2 border border-gray-200 rounded text-xs"
-                                value={filters.startTimeTo ? filters.startTimeTo.substring(0, 16) : ""}
-                                onChange={(e) => setFilters(prev => ({ ...prev, startTimeTo: e.target.value ? new Date(e.target.value).toISOString() : "" }))}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex items-end gap-3">
-                        <div className="flex-1">
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Kết thúc (Đến)</label>
-                            <input
-                                type="datetime-local"
-                                className="w-full px-3 py-2 border border-gray-200 rounded text-sm"
-                                value={filters.endTimeTo ? filters.endTimeTo.substring(0, 16) : ""}
-                                onChange={(e) => setFilters(prev => ({ ...prev, endTimeTo: e.target.value ? new Date(e.target.value).toISOString() : "" }))}
-                            />
-                        </div>
-                        <button
-                            onClick={handleResetFilters}
-                            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-sm font-medium transition-all"
-                        >
-                            Xóa lọc
-                        </button>
-                    </div>
+            <div className="mb-8 bg-white p-4 rounded-xl border border-gray-100 flex flex-wrap lg:flex-nowrap items-end gap-4">
+                <div className="flex-1 min-w-[200px]">
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tìm kiếm theo tên</label>
+                    <input
+                        type="text"
+                        placeholder="Tìm kiếm..."
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-red-400 transition-all"
+                        value={filters.name}
+                        onChange={(e) => setFilters(prev => ({ ...prev, name: e.target.value }))}
+                    />
                 </div>
+
+                <div className="w-full sm:w-auto flex-1 min-w-[180px]">
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Bắt đầu</label>
+                    <input
+                        type="datetime-local"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-red-400"
+                        value={filters.startTimeFrom?.substring(0, 16) || ""}
+                        onChange={(e) => setFilters(prev => ({ ...prev, startTimeFrom: e.target.value ? new Date(e.target.value).toISOString() : "" }))}
+                    />
+                </div>
+
+                <div className="w-full sm:w-auto flex-1 min-w-[180px]">
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Kết thúc</label>
+                    <input
+                        type="datetime-local"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-red-400"
+                        value={filters.endTimeTo?.substring(0, 16) || ""}
+                        onChange={(e) => setFilters(prev => ({ ...prev, endTimeTo: e.target.value ? new Date(e.target.value).toISOString() : "" }))}
+                    />
+                </div>
+
+                <button
+                    onClick={handleResetFilters}
+                    className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-lg text-sm font-bold border border-gray-200 transition-all h-[38px] whitespace-nowrap"
+                >
+                    Xóa bộ lọc
+                </button>
             </div>
 
             {exams.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {exams.map(exam => (
                         <ExamCard
                             key={exam.id}
                             title={exam.name}
-                            subtitle={`Lớp: ${classes.find(c => c.value === exam.classId)?.label || exam.classId}`}
+                            subtitle={`${formatDateTime(exam.startTime)} - ${formatDateTime(exam.endTime)}`}
                             durations={exam.durationMinutes}
                             startTime={exam.startTime}
                             endTime={exam.endTime}
                             actions={actions(exam)}
+                            onClick={() => handleViewDetail(exam.id)}
                         />
                     ))}
                 </div>
