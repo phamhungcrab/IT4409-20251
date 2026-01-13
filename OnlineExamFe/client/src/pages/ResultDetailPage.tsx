@@ -10,7 +10,7 @@ import MathContent from '../components/MathContent';
  * LocationState: dữ liệu đính kèm khi navigate từ trang danh sách
  */
 type LocationState = {
-  result?: ResultItem;
+  result?: ResultItem; 
 };
 
 const ResultDetailPage: React.FC = () => {
