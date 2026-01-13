@@ -205,6 +205,13 @@ const ExamRoomPage: React.FC = () => {
    */
   const [submitResult, setSubmitResult] = useState<{ success?: boolean; forceSubmitted?: boolean; reason?: string } | null>(null);
 
+  /**
+   * duplicateConnectionError:
+   * - Hiển thị khi phát hiện tài khoản đang được sử dụng ở thiết bị khác
+   * - Chặn việc thi hộ bằng cách kiểm tra WS trước khi load đề
+   */
+  const [duplicateConnectionError, setDuplicateConnectionError] = useState(false);
+
   const {
     activeAlert,
     fullscreenGate,
@@ -653,6 +660,47 @@ const ExamRoomPage: React.FC = () => {
   // 7) KHÔI PHỤC TRẠNG THÁI KHI REFRESH (NẾU location.state BỊ MẤT)
   // =========================================================
 
+  /**
+   * checkWsConnection(wsUrl):
+   * - Kiểm tra xem có thể kết nối WebSocket không.
+   * - Dùng để phát hiện trường hợp tài khoản đang được sử dụng ở thiết bị khác.
+   * - BE trả 409 Conflict + "ALREADY_CONNECTED" nếu đã có người kết nối.
+   *
+   * @returns Promise<boolean> - true nếu kết nối được, false nếu bị chặn
+   */
+  const checkWsConnection = async (wsUrlToCheck: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const token = localStorage.getItem('token');
+      const urlWithToken = token
+        ? `${wsUrlToCheck}${wsUrlToCheck.includes('?') ? '&' : '?'}session=${encodeURIComponent(token)}`
+        : wsUrlToCheck;
+
+      const testSocket = new WebSocket(urlWithToken);
+      const timeout = setTimeout(() => {
+        testSocket.close();
+        resolve(false); // Timeout = không kết nối được
+      }, 5000); // 5s timeout
+
+      testSocket.onopen = () => {
+        clearTimeout(timeout);
+        testSocket.close(); // Đóng ngay sau khi test thành công
+        resolve(true);
+      };
+
+      testSocket.onerror = () => {
+        clearTimeout(timeout);
+        resolve(false); // Lỗi kết nối (có thể là 409)
+      };
+
+      testSocket.onclose = (event) => {
+        clearTimeout(timeout);
+        // Nếu close trước khi open (bị reject) thì false
+        if (event.code !== 1000) {
+          resolve(false);
+        }
+      };
+    });
+  };
   useEffect(() => {
     /**
      * Nếu trang trước có gửi questions qua location.state
@@ -687,8 +735,24 @@ const ExamRoomPage: React.FC = () => {
           setInternalDuration(res.data.durationMinutes);
           mapAndSetQuestions(res.data.questions);
         }
-        // Nếu không có data (status = 'in_progress') -> gọi API lấy đề riêng
+        // Nếu không có data (status = 'in_progress') -> kiểm tra WS trước khi lấy đề
         else if (res.status === 'in_progress') {
+          /**
+           * ANTI-CHEAT: Kiểm tra WS connection trước khi cho phép lấy đề.
+           * Nếu đã có người khác kết nối (thi hộ), WS sẽ bị reject với 409.
+           * -> Không cho phép vào phòng thi.
+           */
+          if (res.wsUrl) {
+            const wsOk = await checkWsConnection(res.wsUrl);
+            if (!wsOk) {
+              // Tài khoản đang được sử dụng ở thiết bị khác
+              console.warn('[ExamRoom] WS connection rejected - duplicate session detected');
+              setDuplicateConnectionError(true);
+              return; // Không load đề, không vào phòng thi
+            }
+          }
+
+          // WS OK -> Tiếp tục lấy đề như bình thường
           const examData = await examService.getCurrentQuestion(Number(examId), user.id);
           if (examData) {
             setInternalDuration(examData.durationMinutes);
@@ -888,6 +952,44 @@ const ExamRoomPage: React.FC = () => {
     fullscreenGate === 'exit'
       ? t('exam.integrity.fullscreenExitBody')
       : t('exam.integrity.fullscreenRequiredBody');
+
+  // =========================================================
+  // UI: HIỂN THỊ LỖI KHI PHÁT HIỆN TÀI KHOẢN ĐANG ĐƯỢC SỬ DỤNG Ở THIẾT BỊ KHÁC
+  // =========================================================
+  if (duplicateConnectionError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+        <div className="max-w-md p-8 bg-red-950/50 border border-red-500/30 rounded-2xl text-center shadow-2xl">
+          <div className="w-16 h-16 mx-auto mb-6 bg-red-500/20 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+
+          <h2 className="text-2xl font-bold text-red-300 mb-3">
+            {t('exam.duplicateSession.title') || 'Phiên làm bài bị từ chối'}
+          </h2>
+
+          <p className="text-red-200/80 mb-6 leading-relaxed">
+            {t('exam.duplicateSession.message') || 'Tài khoản của bạn đang được sử dụng để làm bài thi trên một thiết bị khác. Mỗi tài khoản chỉ được phép đăng nhập trên một thiết bị tại một thời điểm.'}
+          </p>
+
+          <div className="bg-red-900/30 border border-red-500/20 rounded-lg p-4 mb-6">
+            <p className="text-sm text-red-300/70">
+              {t('exam.duplicateSession.hint') || 'Nếu bạn cho rằng đây là nhầm lẫn, vui lòng liên hệ giáo viên hoặc thử lại sau 1 phút.'}
+            </p>
+          </div>
+
+          <button
+            onClick={() => navigate('/classes')}
+            className="btn bg-red-600 hover:bg-red-500 text-white px-8 py-3 rounded-xl font-medium transition-all hover:-translate-y-0.5"
+          >
+            {t('exam.duplicateSession.backToList') || 'Quay về danh sách lớp học'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

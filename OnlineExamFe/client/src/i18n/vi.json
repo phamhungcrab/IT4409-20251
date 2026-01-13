@@ -86,7 +86,14 @@
             "5min": "⚠️ Chú ý: Còn lại 5 phút!",
             "3min": "⚠️ Chú ý: Còn lại 3 phút!",
             "1min": "🚨 GẤP: Còn 1 phút cuối cùng!"
-        }
+        },
+        "duplicateSession": {
+            "title": "Phiên làm bài bị từ chối",
+            "message": "Tài khoản của bạn đang được sử dụng để làm bài thi trên một thiết bị khác. Mỗi tài khoản chỉ được phép đăng nhập trên một thiết bị tại một thời điểm.",
+            "hint": "Nếu bạn cho rằng đây là nhầm lẫn, vui lòng liên hệ giáo viên hoặc thử lại sau 1 phút.",
+            "backToList": "Quay về danh sách lớp học"
+        },
+        "timeUp": "Hết giờ làm bài!"
     },
     "admin": {
         "dashboard": "Bảng điều khiển Admin",

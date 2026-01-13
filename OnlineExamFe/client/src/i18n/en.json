@@ -86,7 +86,14 @@
       "5min": "⚠️ Warning: 5 minutes remaining!",
       "3min": "⚠️ Warning: 3 minutes remaining!",
       "1min": "🚨 URGENT: Only 1 minute left!"
-    }
+    },
+    "duplicateSession": {
+      "title": "Session Rejected",
+      "message": "Your account is currently being used on another device. Only one active session is allowed per account.",
+      "hint": "If you believe this is a mistake, please contact your instructor or try again in 1 minute.",
+      "backToList": "Back to Classes"
+    },
+    "timeUp": "Time's up!"
   },
   "admin": {
     "dashboard": "Admin Dashboard",
