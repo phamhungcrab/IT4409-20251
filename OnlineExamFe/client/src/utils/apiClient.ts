@@ -160,12 +160,21 @@ apiClient.interceptors.response.use(
        * - Có nơi trả `data` (không chuẩn nhưng vẫn gặp)
        */
       const data: any = error.response.data;
-      let message =
-        data?.message ||
-        data?.error ||
-        data?.data ||
-        data?.Message ||
-        data?.Error;
+      let message: string | undefined;
+
+      // Case 1: Backend trả về plain text string trực tiếp
+      if (typeof data === 'string' && data.trim()) {
+        message = data;
+      } else {
+        // Case 2: Backend trả về object với các field khác nhau
+        message =
+          data?.message ||
+          data?.error ||
+          data?.data ||
+          data?.Message ||
+          data?.Error ||
+          data?.title; // ASP.NET Core ProblemDetails format
+      }
 
       // "Phiên dịch" status code đặc thù của hệ thống sang tiếng Việt
       if (!message && data?.status) {

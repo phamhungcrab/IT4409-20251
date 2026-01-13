@@ -23,11 +23,8 @@ Frontend React/Vite kết hợp ASP.NET Core giúp trải nghiệm mượt và d
 <!-- Video option 2: HTML tag (cần click play) -->
 <video src="docs/assets/demo.mp4" controls width="100%"></video>
 
-<!-- Video option 3: YouTube -->
-
-[![Video Demo](https://img.youtube.com/vi/I2BNTTbmXLE/0.jpg)](https://youtu.be/I2BNTTbmXLE)
-
-YouTube/Drive: `[Video demo](cập nhật sau)`.
+### 🎬 Video Demo
+[![Video Demo - Online Exam System](https://img.youtube.com/vi/I2BNTTbmXLE/0.jpg)](https://youtu.be/I2BNTTbmXLE)
 
 ## Tính năng theo vai trò
 ### Sinh viên
