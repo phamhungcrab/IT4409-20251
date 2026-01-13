@@ -44,13 +44,8 @@ namespace OnlineExam.Controllers
         [HttpGet("get-all")]
         public async Task<IActionResult> GetAll()
         {
-            var list = await _examBlueprintService.GetAllAsync();
-            return Ok(list.Select(b => new
-            {
-                b.Id,
-                b.SubjectId,
-                b.CreatedAt
-            }));
+            var list = await _examBlueprintService.GetAllViewAsync();
+            return Ok(list);
         }
 
         [HttpGet("{id}")]

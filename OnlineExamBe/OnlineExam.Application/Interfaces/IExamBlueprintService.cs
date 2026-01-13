@@ -15,5 +15,6 @@ namespace OnlineExam.Application.Interfaces
         Task<ExamBlueprintDto> GetDetailAsync(int blueprintId);
         Task<ExamBlueprintDto> UpdateBlueprintAsync(int blueprintId, CreateExamBlueprintDto dto);
         Task<List<ExamWithBlueprintSimpleDto>> GetExamsWithBlueprintByClassAsync(int classId);
+        Task<List<ExamBlueprintListViewDto>> GetAllViewAsync();
     }
 }

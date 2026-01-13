@@ -22,7 +22,9 @@ namespace OnlineExam.Application.Services
     {
         public readonly IRepository<ExamBlueprintChapter> _chapterRepo;
         public readonly IRepository<Exam> _examRepo;
+        private readonly IRepository<ExamBlueprint> _blueprintRepo2;
         public readonly IRepository<Question> _questionRepo;
+        private readonly IRepository<Subject> _subjectRepo;
         private readonly IAuthorizationService _authorizationService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IClassService _classService;
@@ -30,7 +32,8 @@ namespace OnlineExam.Application.Services
             IRepository<ExamBlueprint> blueprintRepo,
             IRepository<Exam> examRepo,
             IRepository<Question> questionRepo,
-            
+            IRepository<Subject> subjectRepo,
+            IRepository<ExamBlueprint> blueprintRepo2,
             IRepository<ExamBlueprintChapter> chapterRepo,
             IAuthorizationService authorizationService,
             IHttpContextAccessor httpContextAccessor,
@@ -41,9 +44,11 @@ namespace OnlineExam.Application.Services
             _chapterRepo = chapterRepo;
             _examRepo = examRepo;
             _questionRepo = questionRepo;
+            _subjectRepo = subjectRepo;
             _authorizationService = authorizationService;
             _httpContextAccessor = httpContextAccessor;
             _classService = classService;
+            _blueprintRepo2 = blueprintRepo2;
         }
 
         public async Task<List<ExamWithBlueprintSimpleDto>> GetExamsWithBlueprintByClassAsync(int classId)
@@ -128,6 +133,44 @@ namespace OnlineExam.Application.Services
                 throw new Exception("Không tìm thấy blueprint");
 
             return MapToDto(blueprint, blueprint.Chapters!.ToList());
+        }
+
+        public async Task<List<ExamBlueprintListViewDto>> GetAllViewAsync()
+        {
+            //Lấy toàn bộ blueprint + chapters
+            var blueprints = await _blueprintRepo2
+                .Query()
+                .Include(b => b.Chapters)
+                .ToListAsync();
+
+            //Lấy toàn bộ subject liên quan
+            var subjectIds = blueprints
+                .Select(b => b.SubjectId)
+                .Distinct()
+                .ToList();
+
+            var subjects = await _subjectRepo
+                .FindAsync(s => subjectIds.Contains(s.Id));
+
+            return blueprints.Select(b =>
+            {
+                var subject = subjects.First(s => s.Id == b.SubjectId);
+
+                return new ExamBlueprintListViewDto
+                {
+                    Id = b.Id,
+                    SubjectId = b.SubjectId,
+
+                    SubjectName = subject.Name,
+                    SubjectCode = subject.SubjectCode,
+                    TotalChapters = subject.TotalChapters,
+
+                    CreatedAt = b.CreatedAt,
+
+                    TotalQuestions = b.Chapters?
+                        .Sum(c => c.TotalQuestions) ?? 0
+                };
+            }).ToList();
         }
 
         public async Task<ExamBlueprintDto> UpdateBlueprintAsync(
