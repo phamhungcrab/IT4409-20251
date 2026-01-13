@@ -3,10 +3,12 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useAuth from '../hooks/useAuth';
 import { resultService, ExamDetailResult, ResultItem } from '../services/resultService';
+import { formatLocalDateTime } from '../utils/dateUtils';
+import MathContent from '../components/MathContent';
 
 /**
  * LocationState: dữ liệu đính kèm khi navigate từ trang danh sách
- */
+ */ 
 type LocationState = {
   result?: ResultItem;
 };
@@ -140,13 +142,13 @@ const ResultDetailPage: React.FC = () => {
             <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>Bắt đầu: {new Date(detail.startTimeStudent).toLocaleString('vi-VN')}</span>
+            <span>Bắt đầu: {formatLocalDateTime(detail.startTimeStudent)}</span>
           </div>
           <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span>Nộp bài: {new Date(detail.endTimeStudent).toLocaleString('vi-VN')}</span>
+            <span>Nộp bài: {formatLocalDateTime(detail.endTimeStudent)}</span>
           </div>
         </div>
 
@@ -203,7 +205,7 @@ const ResultDetailPage: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <p className="text-white font-medium">{q.content}</p>
+                    <p className="text-white font-medium"><MathContent content={q.content} /></p>
                   </div>
 
                   {/* Điểm */}
@@ -229,10 +231,10 @@ const ResultDetailPage: React.FC = () => {
                     <div className={`font-medium ${q.isCorrect ? 'text-emerald-300' : 'text-rose-300'}`}>
                       {q.studentAnswer ? (
                         <ul className="space-y-1">
-                          {q.studentAnswer.split('|').map((ans, idx) => (
+                          {q.studentAnswer.split('||').map((ans, idx) => (
                             <li key={idx} className="flex items-center gap-2">
                               <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                              {ans.trim()}
+                              <MathContent content={ans.trim()} />
                             </li>
                           ))}
                         </ul>
@@ -248,10 +250,10 @@ const ResultDetailPage: React.FC = () => {
                       Đáp án đúng
                     </p>
                     <ul className="font-medium text-sky-300 space-y-1">
-                      {q.correctAnswer.split('|').map((ans, idx) => (
+                      {q.correctAnswer.split('||').map((ans, idx) => (
                         <li key={idx} className="flex items-center gap-2">
                           <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                          {ans.trim()}
+                          <MathContent content={ans.trim()} />
                         </li>
                       ))}
                     </ul>
@@ -268,7 +270,7 @@ const ResultDetailPage: React.FC = () => {
                           key={idx}
                           className="px-2 py-1 rounded bg-white/5 text-xs text-slate-300"
                         >
-                          {ans}
+                          <MathContent content={ans} />
                         </span>
                       ))}
                     </div>

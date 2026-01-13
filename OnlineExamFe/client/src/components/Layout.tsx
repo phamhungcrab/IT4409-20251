@@ -4,12 +4,13 @@ import { useTranslation } from 'react-i18next';
 import useAuth from '../hooks/useAuth';
 import Sidebar, { SidebarLink } from './Sidebar';
 import AnnouncementBanner from './AnnouncementBanner';
+import NotificationBell from './NotificationBell';
 import { useAnnouncements } from '../hooks/useAnnouncements';
 
 const Layout: React.FC = () => {
     const { t, i18n } = useTranslation();
     const { user, logout } = useAuth();
-    const { announcements } = useAnnouncements(user);
+    const { announcements, allAnnouncements, unreadCount, dismiss, markAsRead } = useAnnouncements(user);
     const changeLanguage = (lng: string) => {
         i18n.changeLanguage(lng);
     };
@@ -96,6 +97,15 @@ const Layout: React.FC = () => {
                                 )}
                             </button>
 
+                            {/* Notification Bell */}
+                            {user && (
+                                <NotificationBell
+                                    announcements={allAnnouncements}
+                                    unreadCount={unreadCount}
+                                    onMarkAsRead={markAsRead}
+                                />
+                            )}
+
                              {user && (
                                 <div className="flex min-w-0 flex-wrap items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 shadow-sm">
                                   <Link
@@ -147,7 +157,7 @@ const Layout: React.FC = () => {
                 <main className="flex-1 p-4 sm:p-6 overflow-auto">
                     {user && announcements.length > 0 && (
                         <div className="mb-4 sm:mb-6">
-                            <AnnouncementBanner announcements={announcements} />
+                            <AnnouncementBanner announcements={announcements} onDismiss={dismiss} />
                         </div>
                     )}
                     <Outlet />

@@ -24,4 +24,18 @@ namespace OnlineExam.Application.Dtos.ExamBlueprint
         public int VeryHardCount { get; set; }
     }
 
+    public class ExamBlueprintListViewDto
+    {
+        public int Id { get; set; }
+        public int SubjectId { get; set; }
+
+        // Subject info (bổ sung)
+        public string SubjectName { get; set; } = "";
+        public string SubjectCode { get; set; } = "";
+        public int TotalChapters { get; set; }
+
+        // Blueprint info
+        public DateTime CreatedAt { get; set; }
+        public int TotalQuestions { get; set; }
+    }
 }

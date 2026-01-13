@@ -38,7 +38,7 @@ const ContactPage = () => {
             <div>
               <h3 className="font-semibold text-gray-700 dark:text-gray-200">Điện thoại</h3>
               <p className="text-gray-600 dark:text-gray-300">
-                (024) 3869 2243
+                (078) 7273446
               </p>
             </div>
           </div>
@@ -54,8 +54,8 @@ const ContactPage = () => {
         </p>
         <ul className="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-300">
           <li>Sinh viên: Liên hệ phòng Đào tạo hoặc giảng viên phụ trách môn học</li>
-          <li>Giảng viên: Liên hệ bộ phận IT của khoa/viện</li>
-          <li>Vấn đề kỹ thuật: Email đến địa chỉ support</li>
+          <li>Giảng viên: Đỗ Bá Lâm</li>
+          <li>Vấn đề kỹ thuật: Gọi điện đến số điện thoại 078 7273446</li>
         </ul>
       </section>
 

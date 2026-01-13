@@ -46,7 +46,7 @@ const Sidebar: React.FC<SidebarProps> = ({ links }) => {
      * - border-r: viền bên phải
      * - backdrop-blur: hiệu ứng kính mờ (glass)
      */
-    <aside className="hidden lg:flex w-72 flex-col border-r border-white/5 bg-slate-950/60 backdrop-blur-xl px-6 py-8 text-slate-100 shadow-xl">
+    <aside className="hidden lg:flex w-72 flex-col border-r border-white/5 bg-slate-950/60 backdrop-blur-xl px-6 py-8 text-slate-100 shadow-xl sticky top-0 h-screen overflow-y-auto">
       {/* Phần header của sidebar: tiêu đề dashboard */}
       <div className="mb-8 space-y-2">
         {/* Tag “Live” chỉ là UI trang trí */}

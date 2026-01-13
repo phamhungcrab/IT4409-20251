@@ -127,7 +127,16 @@ const LoginPage: React.FC = () => {
        */
       let ipAddress = 'Unknown IP';
       try {
-        const ipRes = await fetch('https://api.ipify.org?format=json').catch(() => null);
+        // Thêm timeout 2s để tránh treo login nếu mạng lag hoặc API lỗi
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+        const ipRes = await fetch('https://api.ipify.org?format=json', {
+            signal: controller.signal
+        }).catch(() => null);
+
+        clearTimeout(timeoutId);
+
         if (ipRes && ipRes.ok) {
           const ipData = await ipRes.json();
           ipAddress = ipData.ip;
@@ -141,14 +150,21 @@ const LoginPage: React.FC = () => {
        * - Thường sẽ gọi API backend để xác thực.
        * - Nếu thành công: backend trả token + user, FE lưu lại (localStorage/context).
        * - Nếu thất bại: throw error => rơi vào catch.
+       * - Timeout 10s để tránh treo UI nếu server quá lag.
        */
-      await login({
+      const loginPromise = login({
         email,
         password,
         userAgent,
         deviceId,
         ipAddress,
       });
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('LOGIN_TIMEOUT')), 10000)
+      );
+
+      await Promise.race([loginPromise, timeoutPromise]);
 
       /**
        * Lấy role để điều hướng.
@@ -188,7 +204,11 @@ const LoginPage: React.FC = () => {
        * - Nếu login() thất bại (sai mật khẩu, lỗi mạng, lỗi server...)
        * - Ta setError để hiển thị lên UI.
        */
-      setError(t('auth.loginFailed'));
+      if (err instanceof Error && err.message === 'LOGIN_TIMEOUT') {
+        setError('Server không phản hồi. Vui lòng thử lại sau.');
+      } else {
+        setError(t('auth.loginFailed'));
+      }
       console.error(err);
     } finally {
       /**

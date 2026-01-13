@@ -7,6 +7,7 @@ import { useTimer } from '../hooks/useTimer';
 import { useExamIntegrity } from '../hooks/useExamIntegrity';
 import QuestionCard from '../components/QuestionCard';
 import { examService } from '../services/examService';
+import { webRTCService } from '../services/webRTCService';
 
 /**
  * Question:
@@ -143,7 +144,46 @@ const ExamRoomPage: React.FC = () => {
    * Dùng Record<number, any> vì câu tự luận có thể là string,
    * còn trắc nghiệm thường là string nối bằng '|'.
    */
-  const [answers, setAnswers] = useState<Record<number, any>>({});
+  /**
+   * AnswerEntry: Gộp cả đáp án + trạng thái vào 1 object
+   */
+  type AnswerEntry = {
+    answer: string;
+    status: 'pending' | 'synced';
+    order: number;
+  };
+
+  /**
+   * answerMap: 1 Map duy nhất chứa tất cả thông tin đáp án
+   * - Key: questionId
+   * - Value: { answer, status, order }
+   * - Persist vào localStorage để không mất khi F5
+   */
+  const answerMapStorageKey = `exam_${examId}_answerMap`;
+
+  // Load từ localStorage khi khởi tạo
+  const loadAnswerMap = (): Record<number, AnswerEntry> => {
+    try {
+      const saved = localStorage.getItem(answerMapStorageKey);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {};
+  };
+
+  const [answerMap, setAnswerMap] = useState<Record<number, AnswerEntry>>(loadAnswerMap);
+
+  // Persist vào localStorage mỗi khi answerMap thay đổi
+  useEffect(() => {
+    try {
+      localStorage.setItem(answerMapStorageKey, JSON.stringify(answerMap));
+    } catch {}
+  }, [answerMap, answerMapStorageKey]);
+
+  // Helper: Lấy answer text từ answerMap
+  const getAnswer = (questionId: number): string | undefined => answerMap[questionId]?.answer;
+
+  // Helper: Lấy status từ answerMap
+  const getStatus = (questionId: number): 'pending' | 'synced' | undefined => answerMap[questionId]?.status;
 
   /**
    * currentQuestionIndex:
@@ -161,8 +201,16 @@ const ExamRoomPage: React.FC = () => {
   /**
    * submitResult:
    * - Cờ hiển thị modal thông báo nộp bài thành công.
+   * - forceSubmitted: true nếu bài được nộp bởi giáo viên
    */
-  const [submitResult, setSubmitResult] = useState<{ success?: boolean } | null>(null);
+  const [submitResult, setSubmitResult] = useState<{ success?: boolean; forceSubmitted?: boolean; reason?: string } | null>(null);
+
+  /**
+   * duplicateConnectionError:
+   * - Hiển thị khi phát hiện tài khoản đang được sử dụng ở thiết bị khác
+   * - Chặn việc thi hộ bằng cách kiểm tra WS trước khi load đề
+   */
+  const [duplicateConnectionError, setDuplicateConnectionError] = useState(false);
 
   const {
     activeAlert,
@@ -173,8 +221,9 @@ const ExamRoomPage: React.FC = () => {
     markLeftPage,
   } = useExamIntegrity({
     examId,
+    studentId: user?.id,
     enabled: Boolean(user && examId && !submitResult),
-    focusLossThresholdMs: 5000,
+    focusLossThresholdMs: 7000, // 7s threshold as per requirement
     requireFullscreen: true,
     debug: import.meta.env.DEV,
   });
@@ -214,15 +263,153 @@ const ExamRoomPage: React.FC = () => {
   /**
    * useTimer(durationMinutes, onTimeUp, storageKey)
    */
-  const { formattedTime, setRemainingTime } = useTimer(
+  // Ref để track việc đã hiện thông báo chưa (tránh spam khi re-render hoặc timer nhảy)
+  const warningRef = React.useRef<{ [key: number]: boolean }>({});
+
+  // 5) WebRTC / Proctoring
+  const localVideoRef = React.useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    // 1. Khởi tạo Camera
+    webRTCService.startLocalStream().then((stream) => {
+        if (localVideoRef.current && stream) {
+            localVideoRef.current.srcObject = stream;
+        }
+    });
+
+    return () => {
+        webRTCService.closeAll();
+    };
+  }, []);
+
+  // =========================
+  // 6) ANTI-CHEAT UI PROTECTIONS
+  // =========================
+  useEffect(() => {
+    // Block keyboard shortcuts
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Block Ctrl+P (Print)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        return;
+      }
+      // Block Ctrl+S (Save)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        return;
+      }
+      // Block Ctrl+U (View Source)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') {
+        e.preventDefault();
+        return;
+      }
+      // Block F12 (DevTools)
+      if (e.key === 'F12') {
+        e.preventDefault();
+        return;
+      }
+      // Block Ctrl+Shift+I (DevTools alternate)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'i') {
+        e.preventDefault();
+        return;
+      }
+    };
+
+    // Block right-click context menu
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    // Block copy/paste
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+    };
+
+    // Add print CSS dynamically
+    const printStyle = document.createElement('style');
+    printStyle.id = 'exam-anti-print-style';
+    printStyle.textContent = `
+      @media print {
+        body * {
+          display: none !important;
+        }
+        body::before {
+          content: "Nội dung bài thi được bảo mật - Không được phép in!";
+          display: block !important;
+          font-size: 24px;
+          color: red;
+          text-align: center;
+          padding: 100px;
+        }
+      }
+    `;
+    document.head.appendChild(printStyle);
+
+    // Add event listeners
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('copy', handleCopy);
+    document.addEventListener('paste', handleCopy);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('copy', handleCopy);
+      document.removeEventListener('paste', handleCopy);
+      const style = document.getElementById('exam-anti-print-style');
+      if (style) style.remove();
+    };
+  }, []);
+
+  /**
+   * useTimer(durationMinutes, onTimeUp, storageKey)
+   */
+  const { formattedTime, timeLeft, setRemainingTime } = useTimer(
     internalDuration,
     () => {
-      alert(t('exam.timeUp'));
+      alert(t('exam.timeUp') || 'Hết giờ làm bài!');
       // Gọi qua ref vì lúc này submitExam chưa được khởi tạo
       submitExamRef.current();
     },
     timerStorageKey
   );
+
+  // State thông báo đếm ngược (Toast)
+  const [timeToast, setTimeToast] = useState<{ msg: string; type: 'warning' | 'error' } | null>(null);
+
+  // Effect: Check thời gian để hiện cảnh báo
+  useEffect(() => {
+    // Reset warning flags nếu thời gian > 5 phút (trường hợp hack/test)
+    if (timeLeft > 305) {
+      warningRef.current = {};
+    }
+
+    // Ngưỡng cảnh báo: 5 phút (300s), 3 phút (180s), 1 phút (60s)
+    const thresholds = [
+      { sec: 300, msg: t('exam.warning.5min') || '⚠️ Chú ý: Còn lại 5 phút!' },
+      { sec: 180, msg: t('exam.warning.3min') || '⚠️ Chú ý: Còn lại 3 phút!' },
+      { sec: 60, msg: t('exam.warning.1min') || '🚨 GẤP: Còn 1 phút cuối cùng!', type: 'error' }
+    ];
+
+    thresholds.forEach(th => {
+      // Nếu timeLeft chạm ngưỡng (trong khoảng 1s - 2s do timer interval)
+      // và chưa warning -> hiện toast
+      if (timeLeft <= th.sec && timeLeft > th.sec - 2 && !warningRef.current[th.sec]) {
+        warningRef.current[th.sec] = true;
+        setTimeToast({ msg: th.msg, type: (th.type as any) || 'warning' });
+
+        // Tự tắt sau 5s
+        setTimeout(() => setTimeToast(null), 5000);
+      }
+    });
+  }, [timeLeft, t]);
+
+  // Helper: Màu sắc đồng hồ
+  const getTimerColor = (sec: number) => {
+    if (sec <= 60) return 'text-red-500 font-bold animate-pulse'; // < 1 phút: Đỏ nhấp nháy
+    if (sec <= 300) return 'text-amber-400 font-bold'; // < 5 phút: Vàng cam
+    return 'text-sky-100'; // Bình thường
+  };
 
   // =========================================================
   // 5) HOOK WEBSOCKET: useExam
@@ -241,31 +428,37 @@ const ExamRoomPage: React.FC = () => {
     // NEW: Đồng bộ timer từ BE (BE gửi số giây còn lại mỗi giây)
     onTimeSync: setRemainingTime, // Giờ đã có setRemainingTime để dùng
 
+    // NEW: Khi 1 câu trả lời được BE xác nhận (SubmitAnswer ACK)
+    onAnswerSubmitted: (data: any) => {
+      const qId = data.questionId ?? data.QuestionId;
+      if (qId) {
+        setAnswerMap((prev) => ({
+          ...prev,
+          [qId]: prev[qId] ? { ...prev[qId], status: 'synced' } : { answer: '', status: 'synced', order: 0 }
+        }));
+      }
+    },
+
     onSynced: (syncedData) => {
       if (Array.isArray(syncedData)) {
-        const incoming: Record<number, any> = {};
+        setAnswerMap((prev) => {
+          const next = { ...prev };
+          syncedData.forEach((item: any) => {
+            const qId = item.questionId ?? item.QuestionId ?? item.id ?? item.Id;
+            const orderVal = item.order ?? item.Order ?? 0;
+            if (qId !== undefined && qId !== null) {
+              const raw = item.answer ?? item.Answer;
+              const answerText = Array.isArray(raw) ? raw.join('||') : String(raw ?? '');
 
-        syncedData.forEach((item: any) => {
-          const qId = item.questionId ?? item.QuestionId ?? item.id ?? item.Id;
-
-          if (qId !== undefined && qId !== null) {
-            const raw = item.answer ?? item.Answer;
-
-            // Nếu server trả dạng mảng thì nối thành chuỗi "a|b|c"
-            if (Array.isArray(raw)) {
-              incoming[qId] = raw.join('|');
-            } else if (raw !== undefined && raw !== null) {
-              incoming[qId] = String(raw);
+              // Chỉ update nếu local chưa có hoặc local đang synced (không ghi đè pending)
+              if (!next[qId] || next[qId].status === 'synced') {
+                next[qId] = { answer: answerText, status: 'synced', order: orderVal };
+              }
             }
-          }
+          });
+          return next;
         });
-
-        // Merge đáp án từ server vào answers hiện tại
-        if (Object.keys(incoming).length > 0) {
-          setAnswers((prev) => ({ ...prev, ...incoming }));
-        }
       }
-
       console.log(t('exam.synced'));
     },
 
@@ -277,7 +470,39 @@ const ExamRoomPage: React.FC = () => {
       setSubmitResult({ success: true });
     },
 
-    onError: (msg) => alert(`${t('common.error')}: ${msg}`)
+    onError: (msg) => {
+      // Bỏ alert lỗi "không được để trống" theo yêu cầu (kệ họ)
+      // Ignore if it's actually a force submit signal disguised as error
+      if (typeof msg === 'string' && msg.includes('force_submitted')) {
+         return;
+      }
+
+      // Bỏ alert lỗi "không được để trống" theo yêu cầu (kệ họ)
+      if (
+        typeof msg === 'string' &&
+        (msg.toLowerCase().includes('trống') ||
+          msg.toLowerCase().includes('empty') ||
+          msg.toLowerCase().includes('null') ||
+          msg.toLowerCase().includes('force') || // Ignore force related errors
+          msg.toLowerCase().includes('closed'))  // Ignore closed exam errors (handled by force submit logic)
+      ) {
+        return;
+      }
+      alert(`${t('common.error')}: ${msg}`);
+    },
+
+    // Handle when teacher force submits this student's exam
+    onForceSubmit: (reason) => {
+      // Clear timer storage
+      if (timerStorageKey) sessionStorage.removeItem(timerStorageKey);
+
+      // Show force submit result
+      setSubmitResult({
+        success: true,
+        forceSubmitted: true,
+        reason: reason || 'Bài thi đã được nộp bởi giáo viên do phát hiện vi phạm.'
+      });
+    }
   });
 
   // Cập nhật ref mỗi khi submitExam thay đổi
@@ -396,7 +621,7 @@ const ExamRoomPage: React.FC = () => {
             q.options
               ?.filter((opt) => parsed.includes(opt.id))
               .map((opt) => opt.text) ?? [];
-          savedAnswers[q.id] = texts.join('|');
+          savedAnswers[q.id] = texts.join('||');
         }
         /**
          * Trường hợp parsed là 1 số (ví dụ 2) -> đổi sang text đáp án
@@ -417,7 +642,17 @@ const ExamRoomPage: React.FC = () => {
     });
 
     if (Object.keys(savedAnswers).length > 0) {
-      setAnswers((prev) => ({ ...prev, ...savedAnswers }));
+      // Merge saved answers vào answerMap với status 'synced' (đã có từ localStorage cũ)
+      setAnswerMap((prev) => {
+        const next = { ...prev };
+        Object.entries(savedAnswers).forEach(([id, value]) => {
+          const qId = Number(id);
+          if (!next[qId]) {
+            next[qId] = { answer: String(value), status: 'synced', order: qId };
+          }
+        });
+        return next;
+      });
     }
   };
 
@@ -425,6 +660,47 @@ const ExamRoomPage: React.FC = () => {
   // 7) KHÔI PHỤC TRẠNG THÁI KHI REFRESH (NẾU location.state BỊ MẤT)
   // =========================================================
 
+  /**
+   * checkWsConnection(wsUrl):
+   * - Kiểm tra xem có thể kết nối WebSocket không.
+   * - Dùng để phát hiện trường hợp tài khoản đang được sử dụng ở thiết bị khác.
+   * - BE trả 409 Conflict + "ALREADY_CONNECTED" nếu đã có người kết nối.
+   *
+   * @returns Promise<boolean> - true nếu kết nối được, false nếu bị chặn
+   */
+  const checkWsConnection = async (wsUrlToCheck: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const token = localStorage.getItem('token');
+      const urlWithToken = token
+        ? `${wsUrlToCheck}${wsUrlToCheck.includes('?') ? '&' : '?'}session=${encodeURIComponent(token)}`
+        : wsUrlToCheck;
+
+      const testSocket = new WebSocket(urlWithToken);
+      const timeout = setTimeout(() => {
+        testSocket.close();
+        resolve(false); // Timeout = không kết nối được
+      }, 5000); // 5s timeout
+
+      testSocket.onopen = () => {
+        clearTimeout(timeout);
+        testSocket.close(); // Đóng ngay sau khi test thành công
+        resolve(true);
+      };
+
+      testSocket.onerror = () => {
+        clearTimeout(timeout);
+        resolve(false); // Lỗi kết nối (có thể là 409)
+      };
+
+      testSocket.onclose = (event) => {
+        clearTimeout(timeout);
+        // Nếu close trước khi open (bị reject) thì false
+        if (event.code !== 1000) {
+          resolve(false);
+        }
+      };
+    });
+  };
   useEffect(() => {
     /**
      * Nếu trang trước có gửi questions qua location.state
@@ -459,8 +735,24 @@ const ExamRoomPage: React.FC = () => {
           setInternalDuration(res.data.durationMinutes);
           mapAndSetQuestions(res.data.questions);
         }
-        // Nếu không có data (status = 'in_progress') -> gọi API lấy đề riêng
+        // Nếu không có data (status = 'in_progress') -> kiểm tra WS trước khi lấy đề
         else if (res.status === 'in_progress') {
+          /**
+           * ANTI-CHEAT: Kiểm tra WS connection trước khi cho phép lấy đề.
+           * Nếu đã có người khác kết nối (thi hộ), WS sẽ bị reject với 409.
+           * -> Không cho phép vào phòng thi.
+           */
+          if (res.wsUrl) {
+            const wsOk = await checkWsConnection(res.wsUrl);
+            if (!wsOk) {
+              // Tài khoản đang được sử dụng ở thiết bị khác
+              console.warn('[ExamRoom] WS connection rejected - duplicate session detected');
+              setDuplicateConnectionError(true);
+              return; // Không load đề, không vào phòng thi
+            }
+          }
+
+          // WS OK -> Tiếp tục lấy đề như bình thường
           const examData = await examService.getCurrentQuestion(Number(examId), user.id);
           if (examData) {
             setInternalDuration(examData.durationMinutes);
@@ -510,7 +802,7 @@ const ExamRoomPage: React.FC = () => {
     if (!question || !answerText) return [];
 
     const tokens = answerText
-      .split('|')
+      .split('||')
       .map((t) => normalizeText(t))
       .filter(Boolean);
 
@@ -548,17 +840,19 @@ const ExamRoomPage: React.FC = () => {
       const selectedOpts =
         q?.options?.filter((opt) => ids.includes(opt.id)).map((opt) => opt.text) ?? [];
 
-      answerText = selectedOpts.join('|');
+      answerText = selectedOpts.join('||');
     }
 
-    // (1) cập nhật UI
-    setAnswers((prev) => ({ ...prev, [questionId]: answerText }));
+    // (1) Cập nhật answerMap với status pending (Vàng)
+    setAnswerMap((prev) => ({
+      ...prev,
+      [questionId]: { answer: answerText, status: 'pending', order }
+    }));
 
     // (2) đồng bộ realtime lên server
     syncAnswer(questionId, order, answerText);
 
-    // (3) lưu localStorage để refresh không mất đáp án
-    localStorage.setItem(`exam_${examId}_q_${questionId}`, JSON.stringify(answerText));
+    // (3) localStorage riêng không cần nữa vì answerMap đã persist
   };
 
   /**
@@ -602,7 +896,7 @@ const ExamRoomPage: React.FC = () => {
    * - Lấy đáp án đã lưu của câu hiện tại từ answers.
    * - Dạng thường là string (VD: "Đáp án A|Đáp án C") hoặc tự luận.
    */
-  const selectedValue = currentQuestion ? answers[currentQuestion.id] : undefined;
+  const selectedValue = currentQuestion ? getAnswer(currentQuestion.id) : undefined;
 
   /**
    * selectedOptions:
@@ -659,6 +953,44 @@ const ExamRoomPage: React.FC = () => {
       ? t('exam.integrity.fullscreenExitBody')
       : t('exam.integrity.fullscreenRequiredBody');
 
+  // =========================================================
+  // UI: HIỂN THỊ LỖI KHI PHÁT HIỆN TÀI KHOẢN ĐANG ĐƯỢC SỬ DỤNG Ở THIẾT BỊ KHÁC
+  // =========================================================
+  if (duplicateConnectionError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+        <div className="max-w-md p-8 bg-red-950/50 border border-red-500/30 rounded-2xl text-center shadow-2xl">
+          <div className="w-16 h-16 mx-auto mb-6 bg-red-500/20 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+
+          <h2 className="text-2xl font-bold text-red-300 mb-3">
+            {t('exam.duplicateSession.title') || 'Phiên làm bài bị từ chối'}
+          </h2>
+
+          <p className="text-red-200/80 mb-6 leading-relaxed">
+            {t('exam.duplicateSession.message') || 'Tài khoản của bạn đang được sử dụng để làm bài thi trên một thiết bị khác. Mỗi tài khoản chỉ được phép đăng nhập trên một thiết bị tại một thời điểm.'}
+          </p>
+
+          <div className="bg-red-900/30 border border-red-500/20 rounded-lg p-4 mb-6">
+            <p className="text-sm text-red-300/70">
+              {t('exam.duplicateSession.hint') || 'Nếu bạn cho rằng đây là nhầm lẫn, vui lòng liên hệ giáo viên hoặc thử lại sau 1 phút.'}
+            </p>
+          </div>
+
+          <button
+            onClick={() => navigate('/classes')}
+            className="btn bg-red-600 hover:bg-red-500 text-white px-8 py-3 rounded-xl font-medium transition-all hover:-translate-y-0.5"
+          >
+            {t('exam.duplicateSession.backToList') || 'Quay về danh sách lớp học'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header dính trên cùng: trạng thái kết nối, timer, nút nộp */}
@@ -687,7 +1019,9 @@ const ExamRoomPage: React.FC = () => {
 
           <div className="flex items-center gap-3">
             {/* Đồng hồ đếm ngược */}
-            <div className="text-xl font-mono font-bold text-sky-100">{formattedTime}</div>
+            <div className={`text-xl font-mono transition-colors duration-300 ${getTimerColor(timeLeft)}`}>
+              {formattedTime}
+            </div>
 
             {/* Nút nộp bài */}
             <button onClick={handleSubmit} className="btn btn-primary hover:-translate-y-0.5">
@@ -696,6 +1030,13 @@ const ExamRoomPage: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* Cảnh báo offline */}
+      {(connectionState === 'disconnected' || connectionState === 'reconnecting') && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-3 text-center text-sm font-medium text-amber-300 animate-pulse">
+            ⚠️ Đang mất kết nối máy chủ. Đừng lo, đáp án của bạn đang được lưu offline và sẽ tự động gửi khi có mạng lại. Vui lòng KHÔNG đóng tab này.
+        </div>
+      )}
 
       <main className="flex-1">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-6 lg:flex-row">
@@ -746,19 +1087,44 @@ const ExamRoomPage: React.FC = () => {
                 - Nếu đang ở câu hiện tại -> nền xanh.
               */}
               <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-4">
-                {questions.map((q, idx) => (
+                {questions.map((q, idx) => {
+                  const entry = answerMap[q.id];
+                  const status = entry?.status;
+                  const hasAnswer = !!entry?.answer;
+
+                  // Logic màu sắc:
+                  // - Synced (Xanh): Đã được server xác nhận
+                  // - Pending (Vàng): Có đáp án nhưng chưa synced (hoặc local)
+                  // - Default: Chưa làm
+                  let borderClass = 'border-white/10';
+                  let bgClass = ''; // default bg is handle below logic
+
+                  if (status === 'synced') {
+                    borderClass = 'border-emerald-400 bg-emerald-500/20 text-emerald-100';
+                  } else if (status === 'pending') {
+                    borderClass = 'border-amber-400 bg-amber-500/20 text-amber-100';
+                  } else if (hasAnswer) {
+                    // Có đáp án nhưng không rõ status (thường là mới load trang chưa sync xong)
+                    // -> Mặc định coi là pending (Vàng) hoặc để trắng tuỳ ý.
+                    // User yêu cầu: "chưa tick thi không tô màu".
+                    // Nếu đã tick (hasAnswer) mà chưa sync -> tốt nhất nên là Vàng.
+                    borderClass = 'border-amber-400/50 bg-amber-500/10 text-amber-100/70';
+                  }
+
+                  return (
                   <button
                     key={q.id}
                     onClick={() => setCurrentQuestionIndex(idx)}
-                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition
-                      ${currentQuestionIndex === idx ? 'bg-sky-500 text-white' : 'bg-white/5 text-slate-100'}
-                      ${answers[q.id] ? 'border border-emerald-300/50' : 'border border-white/10'}
+                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition border
+                      ${currentQuestionIndex === idx ? 'bg-sky-600 text-white ring-2 ring-sky-300' : 'bg-white/5'}
+                      ${borderClass}
                     `}
                     aria-label={`${t('exam.questions')} ${idx + 1}`}
                   >
                     {idx + 1}
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -774,43 +1140,67 @@ const ExamRoomPage: React.FC = () => {
       {submitResult && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
           <div className="bg-slate-900 border border-white/10 rounded-xl p-8 w-full max-w-md shadow-xl space-y-6 text-center">
-            {/* Icon thành công */}
-            <div className="mx-auto w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
-              <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
+            {/* Icon - Warning for force submit, Success for normal */}
+            {submitResult.forceSubmitted ? (
+              <div className="mx-auto w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+            ) : (
+              <div className="mx-auto w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            )}
 
             {/* Nội dung */}
             <div className="space-y-2">
-              <h3 className="text-2xl font-semibold text-white">
-                Nộp bài thành công!
+              <h3 className={`text-2xl font-semibold ${submitResult.forceSubmitted ? 'text-red-500 uppercase tracking-wider' : 'text-white'}`}>
+                {submitResult.forceSubmitted ? 'ĐÌNH CHỈ THI' : 'Nộp bài thành công!'}
               </h3>
               <p className="text-slate-400">
-                Bài làm của bạn đã được ghi nhận. Bạn có thể xem kết quả trong mục Kết quả.
+                {submitResult.forceSubmitted
+                  ? (submitResult.reason || 'Giám thị đã thu bài của bạn do phát hiện dấu hiệu gian lận hoặc vi phạm quy chế thi. Kết quả sẽ được ghi nhận tại thời điểm này.')
+                  : 'Bài làm của bạn đã được ghi nhận. Bạn có thể xem kết quả trong mục Kết quả.'}
               </p>
             </div>
 
             {/* Buttons */}
             <div className="flex justify-center gap-3 pt-2">
-              <button
-                onClick={() => {
-                  setSubmitResult(null);
-                  navigate('/exams');
-                }}
-                className="btn btn-ghost px-4 py-2 border border-white/15"
-              >
-                {t('nav.exams') || 'Về danh sách'}
-              </button>
-              <button
-                onClick={() => {
-                  setSubmitResult(null);
-                  navigate('/results');
-                }}
-                className="btn btn-primary px-4 py-2"
-              >
-                {t('nav.results') || 'Xem kết quả'}
-              </button>
+              {submitResult.forceSubmitted ? (
+                <button
+                  onClick={() => {
+                    setSubmitResult(null);
+                    navigate('/exams');
+                  }}
+                  className="btn btn-primary px-6 py-2"
+                >
+                  Rời khỏi phòng thi
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      setSubmitResult(null);
+                      navigate('/exams');
+                    }}
+                    className="btn btn-ghost px-4 py-2 border border-white/15"
+                  >
+                    {t('nav.exams') || 'Về danh sách'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSubmitResult(null);
+                      navigate('/results');
+                    }}
+                    className="btn btn-primary px-4 py-2"
+                  >
+                    {t('nav.results') || 'Xem kết quả'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -890,6 +1280,42 @@ const ExamRoomPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Toast Cảnh báo thời gian */}
+      {timeToast && (
+        <div className="fixed top-20 right-5 z-50 animate-bounce-in">
+          <div className={`px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md flex items-center gap-3 ${
+            timeToast.type === 'error'
+              ? 'bg-red-500/20 border-red-500/50 text-red-100'
+              : 'bg-amber-500/20 border-amber-500/50 text-amber-100'
+          }`}>
+            <span className="text-2xl">{timeToast.type === 'error' ? '🚨' : '⚠️'}</span>
+            <div className="font-semibold">{timeToast.msg}</div>
+            <button
+              onClick={() => setTimeToast(null)}
+              className="ml-2 opacity-70 hover:opacity-100 hover:bg-white/10 rounded p-1"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Proctoring Camera Loopback */}
+      <div className="fixed bottom-4 left-4 z-40 bg-slate-900/80 backdrop-blur border border-white/20 rounded-lg overflow-hidden shadow-lg w-40 h-32 flex items-center justify-center group">
+         <video
+            ref={localVideoRef}
+            muted
+            autoPlay
+            playsInline
+            className="w-full h-full object-cover transform scale-x-[-1]" // Mirror image for natural feel
+         />
+         {/* Recording Indicator */}
+         <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-red-500 animate-pulse border-2 border-slate-900" title="Monitoring Active"></div>
+         <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            <span className="text-white text-xs font-semibold px-2 text-center">Monitoring Active</span>
+         </div>
+      </div>
     </div>
   );
 };

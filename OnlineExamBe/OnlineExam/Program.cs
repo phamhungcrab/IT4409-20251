@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Hangfire;
+using Hangfire.SqlServer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -83,6 +85,21 @@ builder.Services.AddSession(option =>
     option.IdleTimeout = TimeSpan.FromMinutes(30);
     option.Cookie.IsEssential = true;
 });
+//dki hangfire
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(connectionString, new SqlServerStorageOptions
+    {
+        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+        QueuePollInterval = TimeSpan.Zero,
+        UseRecommendedIsolationLevel = true,
+        DisableGlobalLocks = true
+    }));
+builder.Services.AddHangfireServer();
 
 
 builder.Services.AddHttpContextAccessor();
@@ -109,6 +126,9 @@ builder.Services.AddScoped<IExamService, ExamService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IExamGradingService, ExamGradingService>();
 builder.Services.AddSingleton<IExamAnswerCache, ExamAnswerCache>();
+builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
+
+builder.Services.AddSingleton<WsSessionManager>();
 
 // CORS configuration
 builder.Services.AddCors(options =>
@@ -116,16 +136,18 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
+            "http://localhost:5133",
             "https://www.manhhangmobile.store",
             "https://manhhangmobile.store",      // Development frontend
-            "https://it4409-fe.vercel.app"     // Production frontend
+            "https://it4409-fe.vercel.app",   // Production frontend
+            "https://adminexam-6c6ff.web.app"
+
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
     });
 });
-
 
 var app = builder.Build();
 
@@ -137,6 +159,7 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseHangfireDashboard();
 
 app.UseHttpsRedirection();
 
@@ -155,6 +178,21 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseMiddleware<ExamWebSocketMiddleware>();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<ExamSystemDbContext>();
+        context.Database.Migrate(); 
+        Console.WriteLine("--> Database Migration Applied Successfully!");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"--> Could not run migration: {ex.Message}");
+    }
+}
 
 app.MapControllers();
 

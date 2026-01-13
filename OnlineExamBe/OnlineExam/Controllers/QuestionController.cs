@@ -50,6 +50,7 @@ namespace OnlineExam.Controllers
             var options = new JsonSerializerOptions
             {
                 Converters = { new JsonStringEnumConverter() }
+
             };
 
             options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
@@ -70,7 +71,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpGet("{id}")]
-        [SessionAuthorize("F0422")]
+        [SessionAuthorize("F0412")]
         public async Task<IActionResult> GetById(int id)
         {
             var entity = await _service.GetByIdAsync(id);

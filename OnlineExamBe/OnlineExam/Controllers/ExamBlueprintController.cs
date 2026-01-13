@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.ExamBlueprint;
 using OnlineExam.Application.Interfaces;
+using OnlineExam.Application.Services;
 using OnlineExam.Attributes;
 using OnlineExam.Domain.Enums;
+using OnlineExam.Infrastructure.Policy.Requirements;
 
 namespace OnlineExam.Controllers
 {
@@ -12,13 +15,19 @@ namespace OnlineExam.Controllers
     {
         private readonly IExamBlueprintService _examBlueprintService;
 
-        public ExamBlueprintController(IExamBlueprintService examBlueprintService)
+        private readonly IAuthorizationService _authorizationService;
+        private readonly IClassService _classService;
+        public ExamBlueprintController(IExamBlueprintService examBlueprintService,
+                                        IAuthorizationService authorizationService,
+                                        IClassService classService)
         {
             _examBlueprintService = examBlueprintService;
+            _authorizationService = authorizationService;
+            _classService = classService;
         }
 
         [HttpPost("create")]
-        //[SessionAuthorize("F0511")]
+        [SessionAuthorize("F0511")]
         public async Task<IActionResult> Create([FromBody] CreateExamBlueprintDto dto)
         {
             try
@@ -35,13 +44,8 @@ namespace OnlineExam.Controllers
         [HttpGet("get-all")]
         public async Task<IActionResult> GetAll()
         {
-            var list = await _examBlueprintService.GetAllAsync();
-            return Ok(list.Select(b => new
-            {
-                b.Id,
-                b.SubjectId,
-                b.CreatedAt
-            }));
+            var list = await _examBlueprintService.GetAllViewAsync();
+            return Ok(list);
         }
 
         [HttpGet("{id}")]
@@ -60,7 +64,7 @@ namespace OnlineExam.Controllers
         }
 
         [HttpPut("update/{id}")]
-        //[SessionAuthorize("F0513")]
+        [SessionAuthorize("F0513")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateExamBlueprintDto dto)
         {
             try
@@ -88,6 +92,31 @@ namespace OnlineExam.Controllers
                 return BadRequest(ex.Message);
             }
             
+        }
+
+        [HttpGet("by-class/{classId}")]
+        public async Task<IActionResult> GetByClass(int classId)
+        {
+            var curClass = await _classService.GetByIdAsync(classId, ["StudentClasses"]);
+
+            var checkAuth = await _authorizationService.AuthorizeAsync(User, curClass, new ResourceRequirement(ResourceAction.View));
+            if (!checkAuth.Succeeded)
+            {
+                return Unauthorized("Forbidden: You do not have permission to perform this action.");
+            }
+            try
+            {
+                var result = await _examBlueprintService.GetExamsWithBlueprintByClassAsync(classId);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
         }
     }
 }

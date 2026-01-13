@@ -32,6 +32,18 @@ namespace OnlineExam.Application.Services.Websocket
 
         public async Task<float> GradeAndSaveAsync(int examId, int studentId)
         {
+            var examStudent = await _examStudentRepo
+               .Query()
+               .FirstOrDefaultAsync(x => x.ExamId == examId && x.StudentId == studentId);
+            if (examStudent == null) 
+            {
+                throw new Exception("Không tìm thấy bảng tiến trình làm bài");
+            }
+
+            if(examStudent.Status == ExamStatus.COMPLETED)
+            {
+                return examStudent.Points ?? 0;
+            }
             var answers = _cache.GetAnswers(examId, studentId)
                 .ToDictionary(x => x.QuestionId, x => x.Answer ?? "");
 
@@ -75,10 +87,7 @@ namespace OnlineExam.Application.Services.Websocket
             await _studentQuestionRepo.SaveChangesAsync();
 
             //Lưu bảng kết quả
-            var examStudent = await _examStudentRepo
-                .Query()
-                .FirstOrDefaultAsync(x => x.ExamId == examId && x.StudentId == studentId);
-
+           
             double rawScore = totalScoreExam == 0 ? 0 : (totalScore / totalScoreExam) * 10;
 
             float finalScore = (float)(Math.Round(rawScore * 2, MidpointRounding.AwayFromZero) / 2);
@@ -114,7 +123,7 @@ namespace OnlineExam.Application.Services.Websocket
                 return "";
 
             var parts = answer
-                .Split('|', StringSplitOptions.RemoveEmptyEntries)
+                .Split("||", StringSplitOptions.RemoveEmptyEntries)
                 .Select(p => p.Trim())
                 .Where(p => p.Length > 0)
                 .Select(p => p.ToLowerInvariant())
@@ -122,7 +131,7 @@ namespace OnlineExam.Application.Services.Websocket
                 .OrderBy(p => p, StringComparer.InvariantCultureIgnoreCase)
                 .ToList();
 
-            return string.Join("|", parts);
+            return string.Join("||", parts);
         }
 
     }

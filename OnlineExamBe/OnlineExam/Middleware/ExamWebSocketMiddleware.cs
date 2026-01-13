@@ -1,12 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using OnlineExam.Application.Dtos.WebSocket;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Websocket;
+using OnlineExam.Application.Services.Websocket;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -16,13 +19,25 @@ namespace OnlineExam.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly WsSessionManager _sessionManager;
+
+        // Use relaxed escaping to prevent unicode characters like Vietnamese from being escaped (e.g. \u1ECDi -> ọi)
+        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+        {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        };
+
         public ExamWebSocketMiddleware(
             RequestDelegate next,
-            IServiceScopeFactory scopeFactory)
+            IServiceScopeFactory scopeFactory,
+            WsSessionManager sessionManager)
         {
             _next = next;
             _scopeFactory = scopeFactory;
-        }
+            _sessionManager = sessionManager;
+        }   
 
         public async Task InvokeAsync(HttpContext context)
         {
@@ -45,7 +60,33 @@ namespace OnlineExam.Middleware
                 return;
             }
 
-            using WebSocket socket = await context.WebSockets.AcceptWebSocketAsync(); 
+            var key = (examId, studentId);
+
+            if (_sessionManager.TryGet(key, out var existing))
+            {
+                var diff = DateTime.Now - existing.LastHeartbeat;
+
+                if (diff <= TimeSpan.FromSeconds(60))
+                {
+                    context.Response.StatusCode = StatusCodes.Status409Conflict;
+                    await context.Response.WriteAsync("ALREADY_CONNECTED");
+                    return;
+                }
+
+                // quá timeout → cho reconnect
+                _sessionManager.Remove(key);
+            }
+
+            using WebSocket socket = await context.WebSockets.AcceptWebSocketAsync();
+
+            _sessionManager.TryAdd(
+                (examId, studentId),
+                new WsSession
+                {
+                    Socket = socket,
+                    LastHeartbeat = DateTime.Now
+                }
+            );
             await ListenLoop(socket, examId, studentId);
         }
 
@@ -70,7 +111,7 @@ namespace OnlineExam.Middleware
                             if (examStudent == null || exam == null)
                             {
                                 var msgBytes = Encoding.UTF8.GetBytes(
-                                JsonSerializer.Serialize(new { status = $"error : Không có bài thi cho sinh viên này {examId} : {studentId}" })
+                                JsonSerializer.Serialize(new { status = $"error : Không có bài thi cho sinh viên này {examId} : {studentId}" }, _jsonOptions)
                                 );
                                 await socket.SendAsync(msgBytes, WebSocketMessageType.Text, true, CancellationToken.None);
                                 await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed", CancellationToken.None);
@@ -79,9 +120,25 @@ namespace OnlineExam.Middleware
                             var remainingTime = exam.DurationMinutes * 60 - (int)(DateTime.Now - examStudent.StartTime).TotalSeconds;
                             if (remainingTime <= 0 || exam.EndTime <= DateTime.Now)
                             {
+                                // Hết giờ -> Tự động nộp
                                 await HandleSubmitExam(socket, examId, studentId);
                                 break;
                             }
+
+                            // Check nếu bài thi đã bị nộp (Force Submit bởi Teacher)
+                            if (examStudent.Status == ExamStatus.COMPLETED)
+                            {
+                                var msgBytes = Encoding.UTF8.GetBytes(
+                                    JsonSerializer.Serialize(new {
+                                        status = "force_submitted",
+                                        reason = "Bài thi đã được thu bởi giáo viên"
+                                    }, _jsonOptions)
+                                );
+                                await socket.SendAsync(msgBytes, WebSocketMessageType.Text, true, CancellationToken.None);
+                                await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Force submitted", CancellationToken.None);
+                                break;
+                            }
+
                             var bytes = Encoding.UTF8.GetBytes(remainingTime.ToString());
                             try
                             {
@@ -103,7 +160,7 @@ namespace OnlineExam.Middleware
                         }
                     }
                 }
-                catch(Exception ex) 
+                catch(Exception ex)
                 {
                     Console.WriteLine(ex.ToString());
                 }
@@ -120,7 +177,7 @@ namespace OnlineExam.Middleware
                     }
                 }
             });
-            
+
 
             // nhan ycau tu fe de xu ly
 
@@ -159,14 +216,13 @@ namespace OnlineExam.Middleware
                     switch (msg.Action)
                     {
                         case WebsocketAction.SubmitAnswer:
-
-                                await HandleSubmitAnswer(
-                                    socket,
-                                    examId,
-                                    studentId,
-                                    msg
-                                );
-                                break;
+                            await HandleSubmitAnswer(
+                                socket,
+                                examId,
+                                studentId,
+                                msg
+                            );
+                            break;
 
                         case WebsocketAction.SubmitExam:
                         await HandleSubmitExam(socket, examId, studentId);
@@ -178,8 +234,9 @@ namespace OnlineExam.Middleware
                             break;
 
                         case WebsocketAction.Heartbeat:
-                            var ms = Encoding.UTF8.GetBytes(
-                                JsonSerializer.Serialize(new { status = "Heartbeat"})
+                                _sessionManager.UpdateHeartbeat((examId, studentId));
+                                var ms = Encoding.UTF8.GetBytes(
+                                JsonSerializer.Serialize(new { status = "Heartbeat"}, _jsonOptions)
                             );
 
                             await socket.SendAsync(ms, WebSocketMessageType.Text, true, CancellationToken.None);
@@ -193,7 +250,8 @@ namespace OnlineExam.Middleware
             }
             finally
             {
-                if (socket.State != WebSocketState.Closed &&
+                    _sessionManager.Remove((examId, studentId));
+                    if (socket.State != WebSocketState.Closed &&
                     socket.State != WebSocketState.Aborted)
                 {
                     await socket.CloseAsync(
@@ -220,11 +278,28 @@ namespace OnlineExam.Middleware
                     x.ExamId == examId &&
                     x.StudentId == studentId);
 
-            if (state == null || state.Status != ExamStatus.IN_PROGRESS)
+            if (state == null)
             {
-                await SendWsError(socket,
-                    "EXAM_CLOSED",
-                    "Bài thi không tồn tại hoặc đã kết thúc");
+                await SendWsError(socket, "EXAM_NOT_FOUND", "Bài thi không tồn tại");
+                return;
+            }
+
+            if (state.Status == ExamStatus.COMPLETED)
+            {
+                // Nếu đã completed (có thể do force submit), gửi lại message force_submitted
+                var msgBytes = Encoding.UTF8.GetBytes(
+                    JsonSerializer.Serialize(new {
+                        status = "force_submitted",
+                        reason = "Bài thi đã được thu bởi giáo viên"
+                    }, _jsonOptions)
+                );
+                await socket.SendAsync(msgBytes, WebSocketMessageType.Text, true, CancellationToken.None);
+                return;
+            }
+
+            if (state.Status != ExamStatus.IN_PROGRESS)
+            {
+                await SendWsError(socket, "EXAM_CLOSED", "Bài thi đã kết thúc");
                 return;
             }
 
@@ -261,8 +336,9 @@ namespace OnlineExam.Middleware
                         status = "submitted",
                         order = msg.Order,
                         questionId = msg.QuestionId,
+                        address = "", // Placeholder
                         answer = msg.Answer
-                    })
+                    }, _jsonOptions)
                 ),
                 WebSocketMessageType.Text,
                 true,
@@ -277,7 +353,7 @@ namespace OnlineExam.Middleware
 
             var answers = cache.GetAnswers(examId, studentId);
 
-            var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(answers));
+            var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(answers, _jsonOptions));
 
             await socket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
         }
@@ -293,7 +369,7 @@ namespace OnlineExam.Middleware
             cache.Clear(examId, studentId);
 
             var msgBytes = Encoding.UTF8.GetBytes(
-                JsonSerializer.Serialize(new { status = "submitted"})
+                JsonSerializer.Serialize(new { status = "submitted"}, _jsonOptions)
             );
 
             await socket.SendAsync(msgBytes, WebSocketMessageType.Text, true, CancellationToken.None);
@@ -312,7 +388,7 @@ namespace OnlineExam.Middleware
                 status = "error",
                 code,
                 message
-            });
+            }, _jsonOptions);
 
             await socket.SendAsync(
                 Encoding.UTF8.GetBytes(payload),

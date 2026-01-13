@@ -6,6 +6,7 @@ import { AuthProvider } from './hooks/useAuth';
 import { HelmetProvider } from 'react-helmet-async';
 import './i18n/i18n';
 import './index.css';
+import 'katex/dist/katex.min.css';
 
 const container = document.getElementById('root');
 if (!container) {

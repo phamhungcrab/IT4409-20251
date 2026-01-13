@@ -1,15 +1,18 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Hangfire;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineExam.Application.Dtos.ExamDtos;
 using OnlineExam.Application.Dtos.ExamStudent;
 using OnlineExam.Application.Dtos.ResponseDtos;
 using OnlineExam.Application.Dtos.UserDtos;
 using OnlineExam.Application.Interfaces;
+using OnlineExam.Application.Interfaces.Websocket;
 using OnlineExam.Application.Services;
 using OnlineExam.Attributes;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
+using OnlineExam.Infrastructure.Data;
 using OnlineExam.Infrastructure.Policy.Requirements;
 
 namespace OnlineExam.Controllers
@@ -22,14 +25,23 @@ namespace OnlineExam.Controllers
         private readonly IRepository<ExamStudent> _examStudentRepo;
         private readonly IAuthorizationService _authorizationService;
         private readonly IClassService _classService;
+        private readonly IExamGradingService _examGradingService;
+        private readonly IExamAnswerCache _examAnswerCache;
+        private readonly IBackgroundJobClient _backgroundJobClient;
         public ExamController(IExamService examService, IRepository<ExamStudent> examStudentRepo,
                               IAuthorizationService authorizationService,
-                              IClassService classService)
+                              IClassService classService,
+                              IExamGradingService examGradingService,
+                              IExamAnswerCache examAnswerCache,
+                              IBackgroundJobClient backgroundJobClient)
         {
             _examService = examService;
             _examStudentRepo = examStudentRepo;
             _authorizationService = authorizationService;
             _classService = classService;
+            _examGradingService = examGradingService;
+            _examAnswerCache = examAnswerCache;
+            _backgroundJobClient = backgroundJobClient;
         }
 
         [HttpPost]
@@ -55,10 +67,15 @@ namespace OnlineExam.Controllers
 
         public async Task<IActionResult> GetById(int id)
         {
-            var exam = await _examService.GetByIdAsync(id);
+            var exam = await _examService.GetByIdAsync(id, ["Class","Class.StudentClasses"]);
+            var checkAuth = await _authorizationService.AuthorizeAsync(User, exam.Class, new ResourceRequirement(ResourceAction.ViewDetail));
+            if (!checkAuth.Succeeded)
+            {
+                return Unauthorized("Forbidden: You do not have permission to perform this action.");
+            }
             if (exam == null)
                 return NotFound("Exam not found");
-
+            exam.Class = null;
             return Ok(exam);
         }
 
@@ -66,7 +83,13 @@ namespace OnlineExam.Controllers
         [SessionAuthorize("F0513")]
         public async Task<IActionResult> UpdateExam(int id, [FromBody] UpdateExamDto dto)
         {
-            var exam = await _examService.GetByIdAsync(id);
+
+            var exam = await _examService.GetByIdAsync(id, ["Class", "Class.StudentClasses"]);
+            var checkAuth = await _authorizationService.AuthorizeAsync(User, exam.Class, new ResourceRequirement(ResourceAction.Edit));
+            if (!checkAuth.Succeeded)
+            {
+                return Unauthorized("Forbidden: You do not have permission to perform this action.");
+            }
             if (exam == null)
                 return NotFound("Exam not found");
 
@@ -78,6 +101,7 @@ namespace OnlineExam.Controllers
             exam.EndTime = dto.EndTime;
 
             await _examService.UpdateAsync(exam);
+            exam.Class = null;
             return Ok(new
             {
                 message = "Update exam successfully",
@@ -89,7 +113,12 @@ namespace OnlineExam.Controllers
         [SessionAuthorize("F0514")]
         public async Task<IActionResult> DeleteExam(int id)
         {
-            var exam = await _examService.GetByIdAsync(id);
+            var exam = await _examService.GetByIdAsync(id, ["Class"]);
+            var checkAuth = await _authorizationService.AuthorizeAsync(User, exam.Class, new ResourceRequirement(ResourceAction.Delete));
+            if (!checkAuth.Succeeded)
+            {
+                return Unauthorized("Forbidden: You do not have permission to perform this action.");
+            }
             if (exam == null)
                 return NotFound("Exam not found");
 
@@ -102,10 +131,21 @@ namespace OnlineExam.Controllers
 
         [HttpPost("create-exam")]
         [SessionAuthorize("F0511")]
+
         public async Task<IActionResult> CreateExam([FromBody] CreateExamForTeacherOrAdmin dto)
         {
             try
             {
+                var curClass = await _classService.GetByIdAsync(dto.ClassId);
+                if (curClass == null)
+                    return BadRequest("Class not found");
+
+                var checkAuth = await _authorizationService.AuthorizeAsync(User, curClass, new ResourceRequirement(ResourceAction.Delete));
+                if (!checkAuth.Succeeded)
+                {
+                    return Unauthorized("Forbidden: You do not have permission to perform this action.");
+                }
+
                 var exam = new Exam
                 {
                     Name = dto.Name,
@@ -117,11 +157,15 @@ namespace OnlineExam.Controllers
                 };
 
                 await _examService.CreateAsync(exam);
+
+                // Break JSON cycle (EF Core Reference Fixup populates this because curClass is tracked)
+                exam.Class = null;
+
                 return Ok(exam);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest($"Error creating exam: {ex.Message} {ex.InnerException?.Message}");
             }
         }
 
@@ -129,86 +173,102 @@ namespace OnlineExam.Controllers
         [SessionAuthorize("F0522")]
         public async Task<IActionResult> StartExam([FromBody] ExamStartRequest dto)
         {
-            var req = HttpContext.Request;
-            var wsScheme = req.Scheme == "https" ? "wss" : "ws";
-            var host = req.Host.Value;
-            var websocketUrl = $"{wsScheme}://{host}/ws?examId={dto.ExamId}&studentId={dto.StudentId}";
-
-            var exam = await _examService.GetByIdAsync(dto.ExamId);
-            if (exam == null) return BadRequest("Exam not found");
-
-
-            var c = await _classService.GetByIdAsync(exam.ClassId, ["StudentClasses"]);
-
-            var authResult = await _authorizationService.AuthorizeAsync(User, c, new ResourceRequirement(ResourceAction.StartExam));
-            if (!authResult.Succeeded)
+            try
             {
-                return Unauthorized("Forbidden: You do not have permission to perform this action.");
-            }
+                var req = HttpContext.Request;
+                var wsScheme = req.Scheme == "https" ? "wss" : "ws";
+                var host = req.Host.Value;
+                var websocketUrl = $"{wsScheme}://{host}/ws?examId={dto.ExamId}&studentId={dto.StudentId}";
 
-            var state = await _examService.GetExamStudent(dto.ExamId, dto.StudentId);
+                var exam = await _examService.GetByIdAsync(dto.ExamId);
+                if (exam == null) return BadRequest("Exam not found");
 
-            if (state != null)
-            {
-                if (state.Status == ExamStatus.IN_PROGRESS)
+
+                var c = await _classService.GetByIdAsync(exam.ClassId, ["StudentClasses"]);
+
+                var authResult = await _authorizationService.AuthorizeAsync(User, c, new ResourceRequirement(ResourceAction.StartExam));
+                if (!authResult.Succeeded)
                 {
-                    var deadline = state.StartTime!.AddMinutes(exam.DurationMinutes);
-                    if (DateTime.Now > deadline)
-                        return Ok(new { status = "expired" });
-
-                    return Ok(new { status = "in_progress", wsUrl = websocketUrl });
+                    return Unauthorized("Forbidden: You do not have permission to perform this action.");
                 }
 
-                if (state.Status == ExamStatus.COMPLETED)
+                var state = await _examService.GetExamStudent(dto.ExamId, dto.StudentId);
+
+                if (state != null)
                 {
-                    return Ok(new
+                    if (state.Status == ExamStatus.IN_PROGRESS)
                     {
-                        status = "completed",
-                        data = new ResponseResultExamDto
+                        var deadline = state.StartTime!.AddMinutes(exam.DurationMinutes);
+                        if (DateTime.Now > deadline)
+                            return Ok(new { status = "expired" });
+
+                        return Ok(new { status = "in_progress", wsUrl = websocketUrl });
+                    }
+
+                    if (state.Status == ExamStatus.COMPLETED)
+                    {
+                        return Ok(new
                         {
-                            ExamId = state.ExamId,
-                            StudentId = state.StudentId,
-                            StartTime = state.StartTime,
-                            EndTime = state.EndTime,
-                            Status = state.Status
-                        }
-                    });
+                            status = "completed",
+                            data = new ResponseResultExamDto
+                            {
+                                ExamId = state.ExamId,
+                                StudentId = state.StudentId,
+                                StartTime = state.StartTime,
+                                EndTime = state.EndTime,
+                                Status = state.Status
+                            }
+                        });
+                    }
+
+                    return Ok(new { status = "expired" });
                 }
 
-                return Ok(new { status = "expired" });
+                if (DateTime.Now < exam.StartTime)
+                    return BadRequest(new { status = "not_started" });
+
+                if (DateTime.Now > exam.EndTime)
+                    return BadRequest(new { status = "expired" });
+
+                var examStudent = new ExamStudent
+                {
+                    ExamId = dto.ExamId,
+                    StudentId = dto.StudentId,
+                    StartTime = DateTime.Now,
+                    Status = ExamStatus.IN_PROGRESS
+                };
+
+                var deadlineSubmit = examStudent.StartTime.AddMinutes(exam.DurationMinutes);
+
+                await _examStudentRepo.AddAsync(examStudent);
+                await _examStudentRepo.SaveChangesAsync();
+
+                var examForStudent = await _examService.GenerateExamAsync(new CreateExamForStudentDto
+                {
+                    ExamId = dto.ExamId,
+                    StudentId = dto.StudentId
+                });
+
+                // hen h nop bai tu dong
+
+                DateTimeOffset scheduledTime = new DateTimeOffset(deadlineSubmit > exam.EndTime ? exam.EndTime : deadlineSubmit);
+                string jobId = _backgroundJobClient.Schedule<IExamGradingService>(
+                    service => service.GradeAndSaveAsync(dto.ExamId, dto.StudentId),
+                    scheduledTime
+                    );
+
+                return Ok(new
+                {
+                    status = "create",
+                    wsUrl = websocketUrl,
+                    data = examForStudent
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
             }
 
-            if (DateTime.Now < exam.StartTime)
-                return BadRequest(new { status = "not_started" });
-
-            if (DateTime.Now > exam.EndTime)
-                return BadRequest(new { status = "expired" });
-
-            var examStudent = new ExamStudent
-            {
-                ExamId = dto.ExamId,
-                StudentId = dto.StudentId,
-                StartTime = DateTime.Now,
-                Status = ExamStatus.IN_PROGRESS
-            };
-
-            var deadlineSubmit = examStudent.StartTime.AddMinutes(exam.DurationMinutes);
-
-            await _examStudentRepo.AddAsync(examStudent);
-            await _examStudentRepo.SaveChangesAsync();
-
-            var examForStudent = await _examService.GenerateExamAsync(new CreateExamForStudentDto
-            {
-                ExamId = dto.ExamId,
-                StudentId = dto.StudentId
-            });
-
-            return Ok(new
-            {
-                status = "create",
-                wsUrl = websocketUrl,
-                data = examForStudent
-            });
 
         }
 
@@ -224,6 +284,10 @@ namespace OnlineExam.Controllers
                     message = "Generated OK",
                     exam
                 });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
             }
             catch (Exception ex)
             {
@@ -243,11 +307,15 @@ namespace OnlineExam.Controllers
                 var result = await _examService.GetCurrentQuestionForExam(examId, studentId);
                 return Ok(result);
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
             catch (Exception ex)
             {
                 return BadRequest($"{ex.Message}");
             }
-            
+
         }
 
         [HttpGet("detail")]
@@ -260,6 +328,10 @@ namespace OnlineExam.Controllers
             {
                 var result = await _examService.GetDetailResultExam(examId, studentId);
                 return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
             }
             catch (Exception ex)
             {
@@ -274,11 +346,27 @@ namespace OnlineExam.Controllers
         [SessionAuthorize("F0525")]
         public async Task<IActionResult> GetResultSummary(int examId, [FromQuery] int studentId)
         {
-            var result = await _examService.GetResultSummary(examId, studentId);
-            return Ok(result);
+            try
+            {
+                var result = await _examService.GetResultSummary(examId, studentId);return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+
+
         }
 
         [HttpGet("student/{studentId}/exams")]
+        [SessionAuthorize("F0525")]
         public async Task<IActionResult> GetExamsForStudent(int studentId)
         {
             try
@@ -286,19 +374,28 @@ namespace OnlineExam.Controllers
                 var result = await _examService.GetListExamForStudent(studentId);
                 return Ok(result);
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
             catch (Exception ex)
             {
                 return BadRequest($"{ex.Message}");
             }
-            
+
         }
 
         [HttpGet("{examId}/students-status")]
+        [SessionAuthorize("F0512")] // xem thong tin cho quan ly (gv, ad)
         public async Task<IActionResult> GetPreviewScoreStudentsExam(int examId) {
             try
             {
                 var result = await _examService.GetPreviewScoreStudentsExam(examId);
                 return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
             }
             catch (Exception ex)
             {
@@ -308,5 +405,59 @@ namespace OnlineExam.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Records an exam integrity violation (tab switch, fullscreen exit, etc.).
+        /// Called by the student's browser when a violation is detected.
+        /// </summary>
+        [HttpPost("violation")]
+        public async Task<IActionResult> RecordViolation([FromBody] RecordViolationDto dto)
+        {
+            try
+            {
+                await _examService.RecordViolationAsync(dto);
+                return Ok(new { success = true });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Failed to record violation", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Force submit a student's exam by teacher.
+        /// Marks the exam as COMPLETED and calculates the final score.
+        /// </summary>
+        [HttpPost("force-submit")]
+        [SessionAuthorize("F0515")]
+        public async Task<IActionResult> ForceSubmit([FromBody] ForceSubmitRequest dto)
+        {
+            try
+            {
+                await _examService.ForceSubmitAsync(dto.ExamId, dto.StudentId);
+                return Ok(new { success = true, message = "Đã nộp bài thành công" });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
+}
+
+/// <summary>
+/// Request DTO for force submit
+/// </summary>
+public class ForceSubmitRequest
+{
+    public int ExamId { get; set; }
+    public int StudentId { get; set; }
 }

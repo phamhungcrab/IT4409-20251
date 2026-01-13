@@ -26,6 +26,9 @@ namespace OnlineExam.Infrastructure.Data
         public DbSet<Role> Roles { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<UserPermission> UserPermissions { get; set; }
+        public DbSet<Announcement> Announcements { get; set; }
+        public DbSet<StudentAnnouncement> StudentAnnouncements { get; set; }
+        public DbSet<ExamStudentViolation> ExamStudentViolations { get; set; }
 
 
         public DbSet<ExamBlueprintChapter> ExamBlueprintChapters { get; set; }
@@ -153,7 +156,7 @@ namespace OnlineExam.Infrastructure.Data
                 entity.HasOne(sq => sq.QuestionExam)
                     .WithMany(qe => qe.StudentQuestions)
                     .HasForeignKey(sq => new { sq.ExamId, sq.StudentId, sq.QuestionId })
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 // FK → Student
                 entity.HasOne(sq => sq.Student)
@@ -170,7 +173,7 @@ namespace OnlineExam.Infrastructure.Data
                       .WithMany(u => u.Session)
                       .HasForeignKey(e => e.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
-                 
+
             });
 
             //ExamBlueprint
@@ -185,7 +188,7 @@ namespace OnlineExam.Infrastructure.Data
 
             modelBuilder.Entity<ExamBlueprintChapter>(entity =>
             {
-                entity.ToTable("ExamBlueprintChapters"); 
+                entity.ToTable("ExamBlueprintChapters");
                 entity.HasKey(e => e.Id);
             });
 
@@ -238,7 +241,61 @@ namespace OnlineExam.Infrastructure.Data
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
+            // Announcement
+            modelBuilder.Entity<Announcement>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).IsRequired();
+                entity.Property(e => e.Content).IsRequired();
+                entity.Property(e => e.Type).HasDefaultValue("info");
+
+                entity.HasOne(e => e.Class)
+                      .WithMany()
+                      .HasForeignKey(e => e.ClassId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Creator)
+                      .WithMany()
+                      .HasForeignKey(e => e.CreatedBy)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // StudentAnnouncement
+            modelBuilder.Entity<StudentAnnouncement>(entity =>
+            {
+                entity.HasKey(e => new { e.StudentId, e.AnnouncementId });
+
+                entity.HasOne(e => e.Student)
+                      .WithMany()
+                      .HasForeignKey(e => e.StudentId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Announcement)
+                      .WithMany(a => a.StudentAnnouncements)
+                      .HasForeignKey(e => e.AnnouncementId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ExamStudentViolation
+            modelBuilder.Entity<ExamStudentViolation>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ViolationType).HasConversion<string>();
+
+                entity.HasOne(e => e.Exam)
+                      .WithMany()
+                      .HasForeignKey(e => e.ExamId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Student)
+                      .WithMany()
+                      .HasForeignKey(e => e.StudentId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.ExamId, e.StudentId })
+                      .HasDatabaseName("IX_ExamStudentViolation_Exam_Student");
+            });
 
         }
-    } 
+    }
 }

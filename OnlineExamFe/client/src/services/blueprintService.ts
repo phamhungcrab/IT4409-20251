@@ -83,5 +83,27 @@ export const blueprintService = {
    */
   updateBlueprint: async (id: number, data: CreateBlueprintDto): Promise<Blueprint> => {
     return await apiClient.put<Blueprint>(`/api/ExamBlueprint/update/${id}`, data);
+  },
+
+  /**
+   * getByClass(classId):
+   * - Lấy danh sách Exam cùng với Blueprint theo classId
+   * - Gọi GET /api/ExamBlueprint/by-class/{classId}
+   */
+  getByClass: async (classId: number): Promise<ExamWithBlueprintSimple[]> => {
+    return await apiClient.get<ExamWithBlueprintSimple[]>(`/api/ExamBlueprint/by-class/${classId}`);
   }
 };
+
+/**
+ * ExamWithBlueprintSimple:
+ * - Response từ API by-class
+ */
+export interface ExamWithBlueprintSimple {
+  examId: number;
+  examName: string;
+  startTime: string;
+  endTime: string;
+  blueprintId: number | null;
+  blueprintCreatedAt: string | null;
+}

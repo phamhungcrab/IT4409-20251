@@ -1,0 +1,38 @@
+@startuml Teacher_UseCase_Real
+left to right direction
+actor "Giáo viên" as Teacher
+rectangle "Hệ thống Thi Trực Tuyến (OnlineExam)" {
+
+  package "Quản lý Lớp học & Đề thi" {
+    usecase "Xem chi tiết lớp học" as UC_ViewClass
+    usecase "Quản lý Cấu trúc đề (Blueprint)" as UC_ManageBlueprint
+    usecase "Tạo/Sửa Đề thi" as UC_ManageExam
+    usecase "Cấu hình thời gian & thời lượng" as UC_ConfigExam
+  }
+
+  package "Giám sát & Chấm thi (TeacherExamList)" {
+    usecase "Xem danh sách bài thi" as UC_ViewExamList
+    usecase "Xem trạng thái sinh viên\n(Realtime Status)" as UC_MonitorStatus
+    usecase "Xem chi tiết bài làm & Vi phạm" as UC_ViewResult
+    usecase "Thu bài (Force Submit)" as UC_ForceSubmit
+  }
+
+  ' Relationships
+  Teacher --> UC_ViewClass
+  Teacher --> UC_ManageBlueprint
+  Teacher --> UC_ManageExam
+
+  UC_ManageExam ..> UC_ConfigExam : <<include>>
+  UC_ManageExam ..> UC_ManageBlueprint : <<include>>
+
+  Teacher --> UC_ViewExamList
+  UC_ViewExamList ..> UC_MonitorStatus : <<include>>
+
+  Teacher --> UC_ViewResult
+  Teacher --> UC_ForceSubmit
+
+  ' Constraints & Extensions
+  UC_ForceSubmit ..> UC_MonitorStatus : <<extend>> \n(Khi HS đang thi)
+  UC_ViewResult ..> UC_MonitorStatus : <<extend>> \n(Khi HS đã nộp)
+}
+@enduml

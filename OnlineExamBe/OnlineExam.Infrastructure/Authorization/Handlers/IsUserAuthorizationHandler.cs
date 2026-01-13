@@ -21,37 +21,37 @@ namespace OnlineExam.Infrastructure.Policy.Handlers
         /// <param name="requirement"></param>
         /// <param name="resource"></param>
         /// <returns></returns>
-        //protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, ResourceRequirement requirement, User? resource)
-        //{
-        //    if(resource == null) return Task.CompletedTask;
-
-        //    var userId = int.Parse(context.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-
-
-        //    if (context.User.IsInRole("ADMIN"))
-        //    {
-        //        context.Succeed(requirement);
-        //        return Task.CompletedTask;
-        //    }
-        //    else
-        //    {
-        //        if(resource.Id == userId)
-        //        {
-        //            context.Succeed(requirement);
-        //            return Task.CompletedTask;
-        //        }
-
-        //    }
-
-        //    return Task.CompletedTask;
-        //}
-
         protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, ResourceRequirement requirement, User? resource)
         {
-            context.Succeed(requirement);
+            if (resource == null) return Task.CompletedTask;
+
+            var userId = int.Parse(context.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+
+            if (context.User.IsInRole("ADMIN"))
+            {
+                context.Succeed(requirement);
+                return Task.CompletedTask;
+            }
+            else
+            {
+                if (resource.Id == userId)
+                {
+                    context.Succeed(requirement);
+                    return Task.CompletedTask;
+                }
+
+            }
 
             return Task.CompletedTask;
         }
+
+        //protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, ResourceRequirement requirement, User? resource)
+        //{
+        //    context.Succeed(requirement);
+
+        //    return Task.CompletedTask;
+        //}
 
     }
 }

@@ -11,6 +11,7 @@ using OnlineExam.Attributes;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Infrastructure.Policy.Requirements;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace OnlineExam.Controllers
 {
@@ -61,6 +62,7 @@ namespace OnlineExam.Controllers
             if (apiResultModel.MessageCode == ResponseCode.Forbidden) return Unauthorized("Forbidden: You do not have permission to perform this action.");
             return Ok(apiResultModel);
         }
+
         [HttpGet]
         [Route("get-classes-for-student")]
         [SessionAuthorize("F0122")]
@@ -74,7 +76,7 @@ namespace OnlineExam.Controllers
         }
         [HttpGet]
         [Route("get-by-id/{classId}")]
-        [SessionAuthorize("F0112")]
+        [SessionAuthorize("F0122")]
         public async Task<IActionResult> GetById(int classId)
         {
             ResultApiModel apiResultModel = new ResultApiModel();
@@ -114,12 +116,19 @@ namespace OnlineExam.Controllers
         {
             if (file == null || file.Length == 0)
                 return BadRequest("File is empty");
+            var options = new JsonSerializerOptions
+            {
+                Converters = { new JsonStringEnumConverter() },
+                PropertyNameCaseInsensitive = true
+            };
+
+            options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
 
             using var stream = file.OpenReadStream();
             using var reader = new StreamReader(stream);
             string json = await reader.ReadToEndAsync();
 
-            var listUser = JsonSerializer.Deserialize<AddStudentDto[]>(json);
+            var listUser = JsonSerializer.Deserialize<AddStudentDto[]>(json,options);
 
             if (listUser == null)
                 return BadRequest("Invalid JSON file");
@@ -142,7 +151,32 @@ namespace OnlineExam.Controllers
             if (result.MessageCode == ResponseCode.Forbidden) return Unauthorized("Forbidden: You do not have permission to perform this action.");
             return Ok(result);
         }
+        /// <summary>
+        /// xoa sinh vien
+        /// </summary>
+        /// <param name="file"></param>
+        /// <param name="classId"></param>
+        /// <returns></returns>
+        [HttpDelete]
+        [Route("remove-users/{classId}")]
+        [SessionAuthorize("F0113")]
+        public async Task<IActionResult> RemoveStudents([FromQuery] int[] studentIds, int classId)
+        {
+            
+            var result = await _classService.RemoveStudentsAsync(studentIds, classId);
+            if (result.MessageCode == ResponseCode.Forbidden) return Unauthorized("Forbidden: You do not have permission to perform this action.");
+            return Ok(result);
+        }
 
+        [HttpDelete]
+        [Route("remove-user/{classId}/{studentId}")]
+        [SessionAuthorize("F0113")]
+        public async Task<IActionResult> RemoveStudent(int studentId, int classId)
+        {
+            var result = await _classService.RemoveStudentAsync(studentId, classId);
+            if (result.MessageCode == ResponseCode.Forbidden) return Unauthorized("Forbidden: You do not have permission to perform this action.");
+            return Ok(result);
+        }
         [HttpPost]
         [Route("create")]
         [SessionAuthorize("F0101")]

@@ -131,5 +131,6 @@ testMSSSV.json
 /OnlineExamBe/OnlineExam.Application/obj/Release/net8.0/OnlineExam.Application.GlobalUsings.g.cs
 /OnlineExamBe/OnlineExam.Application/obj/Release/net8.0/OnlineExam.Application.pdb
 
-# Allow robots.txt for SEO
+# Allow robots.txt and ads.txt for SEO
 !robots.txt
+!ads.txt
