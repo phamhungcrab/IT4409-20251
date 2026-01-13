@@ -441,7 +441,7 @@ const ExamRoomPage: React.FC = () => {
             const orderVal = item.order ?? item.Order ?? 0;
             if (qId !== undefined && qId !== null) {
               const raw = item.answer ?? item.Answer;
-              const answerText = Array.isArray(raw) ? raw.join('|') : String(raw ?? '');
+              const answerText = Array.isArray(raw) ? raw.join('||') : String(raw ?? '');
 
               // Chỉ update nếu local chưa có hoặc local đang synced (không ghi đè pending)
               if (!next[qId] || next[qId].status === 'synced') {
@@ -614,7 +614,7 @@ const ExamRoomPage: React.FC = () => {
             q.options
               ?.filter((opt) => parsed.includes(opt.id))
               .map((opt) => opt.text) ?? [];
-          savedAnswers[q.id] = texts.join('|');
+          savedAnswers[q.id] = texts.join('||');
         }
         /**
          * Trường hợp parsed là 1 số (ví dụ 2) -> đổi sang text đáp án
@@ -738,7 +738,7 @@ const ExamRoomPage: React.FC = () => {
     if (!question || !answerText) return [];
 
     const tokens = answerText
-      .split('|')
+      .split('||')
       .map((t) => normalizeText(t))
       .filter(Boolean);
 
@@ -776,7 +776,7 @@ const ExamRoomPage: React.FC = () => {
       const selectedOpts =
         q?.options?.filter((opt) => ids.includes(opt.id)).map((opt) => opt.text) ?? [];
 
-      answerText = selectedOpts.join('|');
+      answerText = selectedOpts.join('||');
     }
 
     // (1) Cập nhật answerMap với status pending (Vàng)

@@ -75,6 +75,21 @@ const TeacherExamList: React.FC = () => {
     );
   }, [exams, searchTerm]);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9; // 9 items per page (3 columns x 3 rows)
+
+  const totalPages = Math.ceil(filteredExams.length / itemsPerPage);
+  const paginatedExams = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredExams.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredExams, currentPage, itemsPerPage]);
+
+  // Reset to page 1 when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   const handleViewStatus = async (examId: number, examName: string) => {
       setViewingExamId(examId);
       setViewingExamName(examName);
@@ -187,7 +202,7 @@ const TeacherExamList: React.FC = () => {
             </div>
         ) : (
              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                 {filteredExams.map(ex => {
+                 {paginatedExams.map(ex => {
                      const now = new Date();
                      const start = parseUtcDate(ex.startTime) || new Date();
                      const end = parseUtcDate(ex.endTime) || new Date();
@@ -235,6 +250,50 @@ const TeacherExamList: React.FC = () => {
                      );
                  })}
              </div>
+        )}
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-6">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 rounded-lg border border-white/10 bg-slate-800 text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors"
+            >
+              ← Trước
+            </button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                    currentPage === page
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-slate-800 border border-white/10 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 rounded-lg border border-white/10 bg-slate-800 text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors"
+            >
+              Sau →
+            </button>
+          </div>
+        )}
+
+        {/* Info Text */}
+        {filteredExams.length > 0 && (
+          <p className="text-center text-sm text-slate-500">
+            Hiển thị {paginatedExams.length} / {filteredExams.length} kỳ thi
+          </p>
         )}
 
         {/* Modal Xem Trạng Thái */}

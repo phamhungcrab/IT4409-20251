@@ -131,16 +131,21 @@ namespace OnlineExam.Controllers
 
         [HttpPost("create-exam")]
         [SessionAuthorize("F0511")]
+
         public async Task<IActionResult> CreateExam([FromBody] CreateExamForTeacherOrAdmin dto)
         {
-            var curClass = await _classService.GetByIdAsync(dto.ClassId);
-            var checkAuth = await _authorizationService.AuthorizeAsync(User, curClass, new ResourceRequirement(ResourceAction.Delete));
-            if (!checkAuth.Succeeded)
-            {
-                return Unauthorized("Forbidden: You do not have permission to perform this action.");
-            }
             try
             {
+                var curClass = await _classService.GetByIdAsync(dto.ClassId);
+                if (curClass == null)
+                    return BadRequest("Class not found");
+
+                var checkAuth = await _authorizationService.AuthorizeAsync(User, curClass, new ResourceRequirement(ResourceAction.Delete));
+                if (!checkAuth.Succeeded)
+                {
+                    return Unauthorized("Forbidden: You do not have permission to perform this action.");
+                }
+
                 var exam = new Exam
                 {
                     Name = dto.Name,
@@ -152,11 +157,15 @@ namespace OnlineExam.Controllers
                 };
 
                 await _examService.CreateAsync(exam);
+
+                // Break JSON cycle (EF Core Reference Fixup populates this because curClass is tracked)
+                exam.Class = null;
+
                 return Ok(exam);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest($"Error creating exam: {ex.Message} {ex.InnerException?.Message}");
             }
         }
 
@@ -192,7 +201,7 @@ namespace OnlineExam.Controllers
                         var deadline = state.StartTime!.AddMinutes(exam.DurationMinutes);
                         if (DateTime.Now > deadline)
                             return Ok(new { status = "expired" });
-                        
+
                         return Ok(new { status = "in_progress", wsUrl = websocketUrl });
                     }
 
@@ -352,7 +361,7 @@ namespace OnlineExam.Controllers
                     message = ex.Message
                 });
             }
-            
+
 
         }
 

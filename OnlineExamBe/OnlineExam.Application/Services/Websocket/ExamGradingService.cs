@@ -123,7 +123,7 @@ namespace OnlineExam.Application.Services.Websocket
                 return "";
 
             var parts = answer
-                .Split('|', StringSplitOptions.RemoveEmptyEntries)
+                .Split("||", StringSplitOptions.RemoveEmptyEntries)
                 .Select(p => p.Trim())
                 .Where(p => p.Length > 0)
                 .Select(p => p.ToLowerInvariant())
@@ -131,7 +131,7 @@ namespace OnlineExam.Application.Services.Websocket
                 .OrderBy(p => p, StringComparer.InvariantCultureIgnoreCase)
                 .ToList();
 
-            return string.Join("|", parts);
+            return string.Join("||", parts);
         }
 
     }
