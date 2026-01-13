@@ -1,15 +1,17 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using OnlineExam.Application.Dtos.WebSocket;
 using OnlineExam.Application.Interfaces;
 using OnlineExam.Application.Interfaces.Websocket;
+using OnlineExam.Application.Services.Websocket;
 using OnlineExam.Domain.Entities;
 using OnlineExam.Domain.Enums;
 using OnlineExam.Domain.Interfaces;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Encodings.Web;
 
 namespace OnlineExam.Middleware
 {
@@ -17,6 +19,7 @@ namespace OnlineExam.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly WsSessionManager _sessionManager;
 
         // Use relaxed escaping to prevent unicode characters like Vietnamese from being escaped (e.g. \u1ECDi -> ọi)
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
@@ -28,11 +31,13 @@ namespace OnlineExam.Middleware
 
         public ExamWebSocketMiddleware(
             RequestDelegate next,
-            IServiceScopeFactory scopeFactory)
+            IServiceScopeFactory scopeFactory,
+            WsSessionManager sessionManager)
         {
             _next = next;
             _scopeFactory = scopeFactory;
-        }
+            _sessionManager = sessionManager;
+        }   
 
         public async Task InvokeAsync(HttpContext context)
         {
@@ -55,7 +60,33 @@ namespace OnlineExam.Middleware
                 return;
             }
 
+            var key = (examId, studentId);
+
+            if (_sessionManager.TryGet(key, out var existing))
+            {
+                var diff = DateTime.Now - existing.LastHeartbeat;
+
+                if (diff <= TimeSpan.FromSeconds(60))
+                {
+                    context.Response.StatusCode = StatusCodes.Status409Conflict;
+                    await context.Response.WriteAsync("ALREADY_CONNECTED");
+                    return;
+                }
+
+                // quá timeout → cho reconnect
+                _sessionManager.Remove(key);
+            }
+
             using WebSocket socket = await context.WebSockets.AcceptWebSocketAsync();
+
+            _sessionManager.TryAdd(
+                (examId, studentId),
+                new WsSession
+                {
+                    Socket = socket,
+                    LastHeartbeat = DateTime.Now
+                }
+            );
             await ListenLoop(socket, examId, studentId);
         }
 
@@ -203,7 +234,8 @@ namespace OnlineExam.Middleware
                             break;
 
                         case WebsocketAction.Heartbeat:
-                            var ms = Encoding.UTF8.GetBytes(
+                                _sessionManager.UpdateHeartbeat((examId, studentId));
+                                var ms = Encoding.UTF8.GetBytes(
                                 JsonSerializer.Serialize(new { status = "Heartbeat"}, _jsonOptions)
                             );
 
@@ -218,7 +250,8 @@ namespace OnlineExam.Middleware
             }
             finally
             {
-                if (socket.State != WebSocketState.Closed &&
+                    _sessionManager.Remove((examId, studentId));
+                    if (socket.State != WebSocketState.Closed &&
                     socket.State != WebSocketState.Aborted)
                 {
                     await socket.CloseAsync(
