@@ -277,6 +277,58 @@ namespace OnlineExam.Application.Services
             };
             
         }
+
+        public async Task<ResultApiModel> RemoveStudentsAsync(int[] studentIds, int classId)
+        {
+            List<int> invalidStudents = new List<int>();
+            var curClass = await this.GetByIdAsync(classId, ["StudentClasses"]);
+            var authResult = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, curClass, new ResourceRequirement(ResourceAction.Edit));
+            if (!authResult.Succeeded)
+            {
+                return new ResultApiModel
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.Forbidden
+
+                };
+            }
+            if (curClass == null) return new ResultApiModel
+            {
+                Status = false,
+                MessageCode = ResponseCode.NotFound,
+                Data = "Lớp không tồn tại"
+            };
+            foreach (var item in studentIds)
+            {
+                
+                    var exists = curClass.StudentClasses.FirstOrDefault(sc => sc.StudentId == item);
+                    if (exists == null)
+                    {
+                        invalidStudents.Add(item);
+                        continue;
+                    }
+                    
+
+                    try
+                    {
+                        _studentClassRepo.DeleteAsync(exists);
+                        await _studentClassRepo.SaveChangesAsync();
+                    }
+                    catch (DbUpdateException ex) when (ex.InnerException is SqlException sqlEx && sqlEx.Number == 2601)
+                    {
+                    }
+
+                
+
+            }
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success,
+                Data = invalidStudents.ToArray()
+            };
+
+        }
         public async Task<ResultApiModel> AddStudentAsync(AddStudentDto student, int classId)
         {
             var curClass = await this.GetByIdAsync(classId, ["StudentClasses"]);
@@ -309,7 +361,17 @@ namespace OnlineExam.Application.Services
 
             else
                 {
-                    var studentClass = new StudentClass
+                bool exists = curClass.StudentClasses.Any(sc => sc.StudentId == s.Id && sc.ClassId == classId);
+                if (exists)
+                {
+                    return new ResultApiModel
+                    {
+                        Status = false,
+                        MessageCode = ResponseCode.Conflict,
+                        Data = "Đã tồn tại sinh viên"
+                    };
+                }
+                var studentClass = new StudentClass
                     {
                         StudentId = s.Id,
                         ClassId = classId
@@ -335,7 +397,56 @@ namespace OnlineExam.Application.Services
             };
 
         }
+        public async Task<ResultApiModel> RemoveStudentAsync(int studentId, int classId)
+        {
+            var curClass = await this.GetByIdAsync(classId, ["StudentClasses"]);
+            var authResult = await _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, curClass, new ResourceRequirement(ResourceAction.ViewDetail));
+            if (!authResult.Succeeded)
+            {
+                return new ResultApiModel
+                {
+                    Status = false,
+                    MessageCode = ResponseCode.Forbidden
 
+                };
+            }
+            if (curClass == null) return new ResultApiModel
+            {
+                Status = false,
+                MessageCode = ResponseCode.NotFound,
+                Data = "Lớp không tồn tại"
+            };
+
+            
+                var exist = curClass.StudentClasses.FirstOrDefault(sc => sc.StudentId == studentId);
+                if (exist == null)
+                {
+                    return new ResultApiModel
+                    {
+                        Status = false,
+                        MessageCode = ResponseCode.NotFound,
+                        Data = "Không tồn tại sinh viên"
+                    };
+                }
+                try
+                {
+                    _studentClassRepo.DeleteAsync(exist);
+                    await _studentClassRepo.SaveChangesAsync();
+                }
+                catch (DbUpdateException ex) when (ex.InnerException is SqlException sqlEx && sqlEx.Number == 2601)
+                {
+
+                
+            }
+
+
+            return new ResultApiModel
+            {
+                Status = true,
+                MessageCode = ResponseCode.Success
+            };
+
+        }
         public async Task<ResultApiModel> CreateAsync(CreateClassDto newClass)
         {
             

@@ -151,7 +151,32 @@ namespace OnlineExam.Controllers
             if (result.MessageCode == ResponseCode.Forbidden) return Unauthorized("Forbidden: You do not have permission to perform this action.");
             return Ok(result);
         }
+        /// <summary>
+        /// xoa sinh vien
+        /// </summary>
+        /// <param name="file"></param>
+        /// <param name="classId"></param>
+        /// <returns></returns>
+        [HttpDelete]
+        [Route("remove-users/{classId}")]
+        [SessionAuthorize("F0113")]
+        public async Task<IActionResult> RemoveStudents([FromQuery] int[] studentIds, int classId)
+        {
+            
+            var result = await _classService.RemoveStudentsAsync(studentIds, classId);
+            if (result.MessageCode == ResponseCode.Forbidden) return Unauthorized("Forbidden: You do not have permission to perform this action.");
+            return Ok(result);
+        }
 
+        [HttpDelete]
+        [Route("remove-user/{classId}/{studentId}")]
+        [SessionAuthorize("F0113")]
+        public async Task<IActionResult> RemoveStudent(int studentId, int classId)
+        {
+            var result = await _classService.RemoveStudentAsync(studentId, classId);
+            if (result.MessageCode == ResponseCode.Forbidden) return Unauthorized("Forbidden: You do not have permission to perform this action.");
+            return Ok(result);
+        }
         [HttpPost]
         [Route("create")]
         [SessionAuthorize("F0101")]
