@@ -156,7 +156,7 @@ namespace OnlineExam.Infrastructure.Data
                 entity.HasOne(sq => sq.QuestionExam)
                     .WithMany(qe => qe.StudentQuestions)
                     .HasForeignKey(sq => new { sq.ExamId, sq.StudentId, sq.QuestionId })
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 // FK → Student
                 entity.HasOne(sq => sq.Student)

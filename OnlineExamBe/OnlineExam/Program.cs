@@ -179,6 +179,21 @@ app.UseAuthorization();
 
 app.UseMiddleware<ExamWebSocketMiddleware>();
 
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<ExamSystemDbContext>();
+        context.Database.Migrate(); 
+        Console.WriteLine("--> Database Migration Applied Successfully!");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"--> Could not run migration: {ex.Message}");
+    }
+}
+
 app.MapControllers();
 
 app.Run();

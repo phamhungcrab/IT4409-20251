@@ -865,6 +865,12 @@ namespace OnlineExam.Infrastructure.Migrations
 
             modelBuilder.Entity("StudentQuestion", b =>
                 {
+                    b.HasOne("OnlineExam.Domain.Entities.Exam", "Exam")
+                        .WithMany()
+                        .HasForeignKey("ExamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("OnlineExam.Domain.Entities.User", "Student")
                         .WithMany("StudentQuestions")
                         .HasForeignKey("StudentId")
@@ -874,8 +880,10 @@ namespace OnlineExam.Infrastructure.Migrations
                     b.HasOne("OnlineExam.Domain.Entities.QuestionExam", "QuestionExam")
                         .WithMany("StudentQuestions")
                         .HasForeignKey("ExamId", "StudentId", "QuestionId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Exam");
 
                     b.Navigation("QuestionExam");
 

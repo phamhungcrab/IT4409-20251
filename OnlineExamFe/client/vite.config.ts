@@ -42,7 +42,7 @@ export default defineConfig(({ mode }) => {
       // Example: proxy API requests to avoid CORS during development
       proxy: {
         "/api": {
-          target: env.VITE_API_TARGET || "https://localhost:7239", // Default to local if not set
+          target: process.env.VITE_API_TARGET || env.VITE_API_TARGET || "https://localhost:7239", // Default to local if not set
           changeOrigin: true,
           secure: false, // Handle HTTPS
         },

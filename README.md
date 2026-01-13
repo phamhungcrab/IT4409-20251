@@ -89,6 +89,32 @@ npm install
 npm run dev
 ```
 
+## CI/CD (GitHub Actions + Docker Hub)
+Workflow build & push image backend len Docker Hub.
+File: `.github/workflows/docker-backend.yml`.
+
+### Can chuan bi
+1) Tao Docker Hub account + repo (vi du: onlineexam-backend).
+2) Tao Access Token (Docker Hub -> Account Settings -> Security).
+3) Them GitHub secrets:
+   - DOCKERHUB_USERNAME
+   - DOCKERHUB_TOKEN
+
+### Cach dung nhanh
+1) Push code len nhanh `main` (workflow tu chay) hoac chay tay trong tab Actions.
+2) Image se duoc day len Docker Hub:
+   - `<dockerhub-username>/onlineexam-backend:latest`
+
+### Pull & run thu image
+```bash
+docker pull <dockerhub-username>/onlineexam-backend:latest
+docker run -p 8080:8080 \
+  -e ASPNETCORE_ENVIRONMENT=Production \
+  -e ConnectionStrings__DefaultConnection="Server=<db-host>;Database=ExamSystemDB;User Id=sa;Password=<password>;TrustServerCertificate=True;Encrypt=False;MultipleActiveResultSets=true" \
+  <dockerhub-username>/onlineexam-backend:latest
+```
+
+> Neu doi ten image trong workflow, cap nhat lai ten repo Docker Hub cho khop.
 ## Tài khoản demo
 - Student: `sv3@example.com/sv3`
 - Teacher: `teacher@example.com/teacher`
