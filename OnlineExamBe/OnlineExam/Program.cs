@@ -128,6 +128,8 @@ builder.Services.AddScoped<IExamGradingService, ExamGradingService>();
 builder.Services.AddSingleton<IExamAnswerCache, ExamAnswerCache>();
 builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
 
+builder.Services.AddSingleton<WsSessionManager>();
+
 // CORS configuration
 builder.Services.AddCors(options =>
 {
