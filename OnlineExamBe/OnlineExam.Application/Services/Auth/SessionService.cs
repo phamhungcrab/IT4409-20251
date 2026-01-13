@@ -53,7 +53,7 @@ namespace OnlineExam.Application.Services.Auth
         public async Task<Session?> GetBySessionStringAsync(string sessionString)
         {
             
-            var session = await _repository.FindAsync(c => c.SessionString == sessionString);
+            var session = await _repository.FindAsync(c => c.SessionString == HashPassword(sessionString));
             return session.FirstOrDefault();
         }
 
@@ -77,7 +77,7 @@ namespace OnlineExam.Application.Services.Auth
             var oldSession = await _repository.FindAsync(c => c.UserId == user.Id);
             if (oldSession.Any()) 
             {
-                await DeleteAsync((oldSession.First().Id));
+                await DeleteByUserIdAsync(user.Id);
 
             }
             var sessionString = session.SessionString;
@@ -116,10 +116,10 @@ namespace OnlineExam.Application.Services.Auth
         public  async Task<bool> DeleteByUserIdAsync(int userId)
         {
             var session = await _repository.FindAsync(c => c.UserId == userId);
-            _cache.Remove(HashPassword(session.First().SessionString));
+            _cache.Remove(session.First().SessionString);
             if (session.Any())
             {
-               await DeleteAsync((session.First().Id));
+               await DeleteAsync(session.First().Id);
                 return true;
             }
             
