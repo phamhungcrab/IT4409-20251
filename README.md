@@ -9,7 +9,7 @@ Frontend React/Vite kết hợp ASP.NET Core giúp trải nghiệm mượt và d
 
 ## Demo
 - FE (Vercel): https://it4409-fe.vercel.app
-- Domain : manhhangmobile.store (liên hệ Mạnh Hằng Mobile Bắc Ninh mua iphone - 0868 963 999 - 0868 90 3333)
+- Domain : https://www.manhhangmobile.store (liên hệ Mạnh Hằng Mobile Bắc Ninh mua iphone - 0868 963 999 - 0868 90 3333)
 - API + Swagger: https://it4409-20251.onrender.com/swagger
 
 ## Ảnh & video
@@ -22,9 +22,10 @@ Frontend React/Vite kết hợp ASP.NET Core giúp trải nghiệm mượt và d
 
 <!-- Video option 2: HTML tag (cần click play) -->
 <video src="docs/assets/demo.mp4" controls width="100%"></video>
+
 <!-- Video option 3: YouTube -->
 
-[![Video Demo](https://img.youtube.com/vi/VIDEO_ID/0.jpg)](https://www.youtube.com/watch?v=VIDEO_ID) 
+[![Video Demo](https://img.youtube.com/vi/I2BNTTbmXLE/0.jpg)](https://youtu.be/I2BNTTbmXLE)
 
 YouTube/Drive: `[Video demo](cập nhật sau)`.
 
