@@ -62,7 +62,7 @@ const TeacherClassDetail: React.FC = () => {
   }>({
     show: false,
     studentName: '',
-    mssv: '', 
+    mssv: '',
     data: null,
     loading: false
   });
@@ -1691,8 +1691,23 @@ const TeacherClassDetail: React.FC = () => {
             </div>
 
             {createError && (
-              <div className="text-rose-200 text-sm border border-rose-400/40 bg-rose-500/10 rounded-lg p-3">
-                {createError}
+              <div className="flex items-start gap-3 text-rose-200 text-sm border border-rose-400/40 bg-rose-500/10 rounded-lg p-4">
+                <svg className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="font-medium text-rose-300 mb-1">Không thể tạo kỳ thi</p>
+                  <p className="text-rose-200/90">{createError}</p>
+                </div>
+                <button
+                  onClick={() => setCreateError(null)}
+                  className="text-rose-400 hover:text-rose-300 shrink-0"
+                  aria-label="Đóng thông báo lỗi"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
             )}
 
