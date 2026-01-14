@@ -69,7 +69,7 @@ const ResultDetailPage: React.FC = () => {
 
   if (error || !detail) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6">
         <div className="glass-card p-6 space-y-4 text-center">
           <div className="w-16 h-16 mx-auto rounded-full bg-rose-500/20 flex items-center justify-center">
             <svg className="w-8 h-8 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -98,7 +98,7 @@ const ResultDetailPage: React.FC = () => {
     : 0;
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-6">
+    <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
       {/* HEADER: Thông tin tổng quan */}
       <div className="glass-card p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

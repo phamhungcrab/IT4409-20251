@@ -995,12 +995,14 @@ const ExamRoomPage: React.FC = () => {
     <div className="min-h-screen flex flex-col">
       {/* Header dính trên cùng: trạng thái kết nối, timer, nút nộp */}
       <header className="sticky top-0 z-10 border-b border-white/10 bg-slate-950/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-sky-200/70">Đang làm bài</p>
 
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold text-white">{examName}</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="w-full text-lg font-semibold text-white break-words sm:w-auto sm:text-xl sm:max-w-[520px] sm:truncate">
+                {examName}
+              </h1>
 
               {/* Badge trạng thái WebSocket: connected / reconnecting / disconnected */}
               <span
@@ -1017,14 +1019,14 @@ const ExamRoomPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
             {/* Đồng hồ đếm ngược */}
-            <div className={`text-xl font-mono transition-colors duration-300 ${getTimerColor(timeLeft)}`}>
+            <div className={`text-lg font-mono transition-colors duration-300 sm:text-xl ${getTimerColor(timeLeft)}`}>
               {formattedTime}
             </div>
 
             {/* Nút nộp bài */}
-            <button onClick={handleSubmit} className="btn btn-primary hover:-translate-y-0.5">
+            <button onClick={handleSubmit} className="btn btn-primary w-full sm:w-auto hover:-translate-y-0.5">
               {t('exam.submitExam')}
             </button>
           </div>
@@ -1033,13 +1035,13 @@ const ExamRoomPage: React.FC = () => {
 
       {/* Cảnh báo offline */}
       {(connectionState === 'disconnected' || connectionState === 'reconnecting') && (
-        <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-3 text-center text-sm font-medium text-amber-300 animate-pulse">
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3 text-center text-sm font-medium text-amber-300 animate-pulse sm:px-6">
             ⚠️ Đang mất kết nối máy chủ. Đừng lo, đáp án của bạn đang được lưu offline và sẽ tự động gửi khi có mạng lại. Vui lòng KHÔNG đóng tab này.
         </div>
       )}
 
       <main className="flex-1">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-6 lg:flex-row">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row">
           {/* Cột trái: câu hỏi hiện tại + prev/next */}
           <div className="flex-1 space-y-4">
             {currentQuestion && (
@@ -1283,7 +1285,7 @@ const ExamRoomPage: React.FC = () => {
 
       {/* Toast Cảnh báo thời gian */}
       {timeToast && (
-        <div className="fixed top-20 right-5 z-50 animate-bounce-in">
+        <div className="fixed top-20 left-4 right-4 z-50 animate-bounce-in sm:left-auto sm:right-5">
           <div className={`px-6 py-4 rounded-xl shadow-2xl border backdrop-blur-md flex items-center gap-3 ${
             timeToast.type === 'error'
               ? 'bg-red-500/20 border-red-500/50 text-red-100'
@@ -1302,7 +1304,7 @@ const ExamRoomPage: React.FC = () => {
       )}
 
       {/* Proctoring Camera Loopback */}
-      <div className="fixed bottom-4 left-4 z-40 bg-slate-900/80 backdrop-blur border border-white/20 rounded-lg overflow-hidden shadow-lg w-40 h-32 flex items-center justify-center group">
+      <div className="fixed bottom-3 left-3 z-40 bg-slate-900/80 backdrop-blur border border-white/20 rounded-lg overflow-hidden shadow-lg w-28 h-20 flex items-center justify-center group sm:bottom-4 sm:left-4 sm:w-40 sm:h-32">
          <video
             ref={localVideoRef}
             muted

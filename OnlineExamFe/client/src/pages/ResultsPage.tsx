@@ -110,7 +110,7 @@ const ResultsPage: React.FC = () => {
      *  - p-6: padding
      *  - space-y-4: khoảng cách dọc giữa các khối
      */
-    <div className="max-w-5xl mx-auto p-6 space-y-4">
+    <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
       {/* Tiêu đề trang */}
       <div>
         <p className="text-sm text-slate-300">{t('nav.results')}</p>

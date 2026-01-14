@@ -228,7 +228,7 @@ const TeacherClassReports: React.FC<TeacherClassReportsProps> = ({ classId, clas
       )}
 
       {/* Detailed Table */}
-      <div className="panel p-0 overflow-hidden print:border print:border-gray-300">
+      <div className="panel p-0 overflow-x-auto print:border print:border-gray-300">
          <table className="w-full text-left border-collapse">
             <thead className="bg-white/5 text-slate-400 text-sm uppercase border-b border-white/10 print:bg-gray-100 print:text-black">
                <tr>

@@ -173,7 +173,7 @@ const TeacherExamList: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in p-6">
+    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in p-4 sm:p-6">
        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div>
                 <h1 className="text-2xl font-bold text-white mb-2">Quản lý Kỳ thi</h1>
@@ -317,7 +317,7 @@ const TeacherExamList: React.FC = () => {
                         ) : examStudents.length === 0 ? (
                              <div className="py-20 text-center text-slate-500">Chưa có sinh viên nào tham gia thi.</div>
                         ) : (
-                            <table className="w-full text-left text-sm">
+                            <table className="w-full min-w-[720px] text-left text-sm">
                                 <thead className="bg-white/5 text-slate-400 sticky top-0 backdrop-blur-md z-10">
                                     <tr>
                                         <th className="py-3 px-4 font-semibold">MSSV</th>

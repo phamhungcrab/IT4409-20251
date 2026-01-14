@@ -82,7 +82,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-xl border border-white/10 bg-slate-900/95 backdrop-blur-md shadow-2xl z-50">
+        <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-h-96 overflow-y-auto rounded-xl border border-white/10 bg-slate-900/95 backdrop-blur-md shadow-2xl z-50">
           {/* Header */}
           <div className="sticky top-0 px-4 py-3 border-b border-white/10 bg-slate-900/95">
             <h3 className="text-sm font-semibold text-white">

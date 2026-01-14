@@ -1549,7 +1549,7 @@ const TeacherClassDetail: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div>
                       <label className="block text-xs text-slate-400 mb-1">Dễ</label>
                       <input
@@ -1785,8 +1785,8 @@ const TeacherClassDetail: React.FC = () => {
                                 </div>
                             </div>
 
-                             <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
-                                  <div className="grid grid-cols-12 gap-2 text-xs text-slate-500 uppercase font-semibold text-center mb-1">
+                             <div className="space-y-2 max-h-[250px] overflow-y-auto overflow-x-auto pr-1">
+                                  <div className="grid min-w-[480px] grid-cols-12 gap-2 text-xs text-slate-500 uppercase font-semibold text-center mb-1">
                                       <div className="col-span-2 text-left">Chương</div>
                                       <div className="col-span-2">Dễ</div>
                                       <div className="col-span-2">TBình</div>
@@ -1794,7 +1794,7 @@ const TeacherClassDetail: React.FC = () => {
                                       <div className="col-span-2">R.Khó</div>
                                   </div>
                                   {selectedBlueprintDetail.chapters?.map((ch, idx) => (
-                                      <div key={idx} className="grid grid-cols-12 gap-2 items-center text-sm text-slate-300 text-center border-b border-white/5 pb-1 last:border-0">
+                                      <div key={idx} className="grid min-w-[480px] grid-cols-12 gap-2 items-center text-sm text-slate-300 text-center border-b border-white/5 pb-1 last:border-0">
                                           <div className="col-span-2 text-left font-medium text-white">#{ch.chapter}</div>
                                           <div className="col-span-2">{ch.easyCount}</div>
                                           <div className="col-span-2">{ch.mediumCount}</div>
@@ -1818,8 +1818,8 @@ const TeacherClassDetail: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                      <div className="grid grid-cols-12 gap-2 text-xs text-slate-500 uppercase font-semibold text-center mb-1">
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto overflow-x-auto pr-1">
+                      <div className="grid min-w-[520px] grid-cols-12 gap-2 text-xs text-slate-500 uppercase font-semibold text-center mb-1">
                           <div className="col-span-2 text-left">Chương</div>
                           <div className="col-span-2">Dễ</div>
                           <div className="col-span-2">TBình</div>
@@ -1829,7 +1829,7 @@ const TeacherClassDetail: React.FC = () => {
                       </div>
 
                       {blueprintForm.chapters.map((chapter, idx) => (
-                        <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                        <div key={idx} className="grid min-w-[520px] grid-cols-12 gap-2 items-center">
                             <div className="col-span-2 flex items-center gap-1">
                                 <span className="text-slate-400 text-sm">#</span>
                                 <input
