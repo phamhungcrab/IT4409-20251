@@ -227,8 +227,56 @@ const TeacherClassReports: React.FC<TeacherClassReportsProps> = ({ classId, clas
         </div>
       )}
 
+      <div className="space-y-3 sm:hidden print:hidden">
+         {stats.map((s) => {
+           const avgClass = s.averageScore >= 5 ? 'text-emerald-400' : 'text-rose-400';
+
+           return (
+             <div key={s.examId} className="glass-card p-4 space-y-3">
+               <div className="flex items-start justify-between gap-3">
+                 <div className="min-w-0">
+                   <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">KỲ THI</p>
+                   <h3 className="text-base font-semibold text-white break-words">{s.examName}</h3>
+                 </div>
+                 <span className="tag border-emerald-500/30 text-emerald-300 bg-emerald-500/10">
+                   Đạt {s.passRate.toFixed(1)}%
+                 </span>
+               </div>
+
+               <div className="grid grid-cols-2 gap-3 text-sm text-slate-300">
+                 <div>
+                   <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">TỔNG SV</p>
+                   <p className="text-white font-semibold">{s.totalStudents}</p>
+                 </div>
+                 <div>
+                   <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">ĐÃ NỘP</p>
+                   <p className="text-sky-300 font-semibold">{s.submittedCount}</p>
+                 </div>
+                 <div>
+                   <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">ĐIỂM TB</p>
+                   <p className={`font-semibold ${avgClass}`}>{s.averageScore.toFixed(2)}</p>
+                 </div>
+                 <div>
+                   <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">CAO NHẤT</p>
+                   <p className="text-slate-200 font-semibold">{s.maxScore}</p>
+                 </div>
+                 <div>
+                   <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">THẤP NHẤT</p>
+                   <p className="text-slate-200 font-semibold">{s.minScore}</p>
+                 </div>
+                 <div>
+                   <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">TỶ LỆ ĐẠT</p>
+                   <p className="text-emerald-300 font-semibold">{s.passRate.toFixed(1)}%</p>
+                 </div>
+               </div>
+             </div>
+           );
+         })}
+      </div>
+
       {/* Detailed Table */}
-      <div className="panel p-0 overflow-x-auto print:border print:border-gray-300">
+      <div className="hidden sm:block print:block">
+       <div className="panel p-0 overflow-x-auto print:border print:border-gray-300">
          <table className="w-full text-left border-collapse">
             <thead className="bg-white/5 text-slate-400 text-sm uppercase border-b border-white/10 print:bg-gray-100 print:text-black">
                <tr>
@@ -253,6 +301,7 @@ const TeacherClassReports: React.FC<TeacherClassReportsProps> = ({ classId, clas
                ))}
             </tbody>
          </table>
+       </div>
       </div>
 
       {/* Print Footer */}

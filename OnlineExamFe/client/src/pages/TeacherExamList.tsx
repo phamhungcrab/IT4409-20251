@@ -317,7 +317,63 @@ const TeacherExamList: React.FC = () => {
                         ) : examStudents.length === 0 ? (
                              <div className="py-20 text-center text-slate-500">Chưa có sinh viên nào tham gia thi.</div>
                         ) : (
-                            <table className="w-full min-w-[720px] text-left text-sm">
+                            <>
+                                <div className="space-y-3 p-4 sm:hidden">
+                                    {examStudents.map((student) => {
+                                        const statusLabel = student.status === 'COMPLETED'
+                                          ? 'Hoàn thành'
+                                          : student.status === 'IN_PROGRESS'
+                                            ? 'Đang làm'
+                                            : 'Chưa làm';
+                                        const statusClass = student.status === 'COMPLETED'
+                                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/20'
+                                          : student.status === 'IN_PROGRESS'
+                                            ? 'bg-amber-500/20 text-amber-400 border-amber-500/20'
+                                            : 'bg-slate-500/20 text-slate-400 border-slate-500/20';
+
+                                        return (
+                                            <div key={student.studentId} className="glass-card p-4 space-y-3">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="min-w-0">
+                                                        <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{student.mssv}</p>
+                                                        <p className="text-base font-semibold text-white break-words">{student.studentName}</p>
+                                                    </div>
+                                                    <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border ${statusClass}`}>
+                                                        {statusLabel}
+                                                    </span>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-3 text-sm text-slate-300">
+                                                    <div>
+                                                        <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Điểm</p>
+                                                        {student.score !== null ? (
+                                                            <p className="font-semibold text-sky-400">{student.score}</p>
+                                                        ) : (
+                                                            <p className="text-slate-500">-</p>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Nộp lúc</p>
+                                                        <p className="text-slate-200">
+                                                            {student.submittedAt ? formatLocalDateTime(student.submittedAt) : '-'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {(student.status === 'COMPLETED' || student.status === 'IN_PROGRESS') && (
+                                                    <button
+                                                        onClick={() => handleViewStudentDetail(viewingExamId!, student.studentId, student.studentName, student.mssv, student.status)}
+                                                        className="btn btn-ghost w-full justify-center text-sm"
+                                                    >
+                                                        {student.status === 'IN_PROGRESS' ? 'Xem / Nộp hộ' : 'Chi tiết'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <table className="hidden sm:table w-full min-w-[720px] text-left text-sm">
                                 <thead className="bg-white/5 text-slate-400 sticky top-0 backdrop-blur-md z-10">
                                     <tr>
                                         <th className="py-3 px-4 font-semibold">MSSV</th>
@@ -364,6 +420,7 @@ const TeacherExamList: React.FC = () => {
                                     ))}
                                 </tbody>
                             </table>
+                            </>
                         )}
                     </div>
                 </div>
