@@ -37,13 +37,18 @@ const CMSLogin = () => {
 
             console.log("Login data: ", data.data);
 
-            if (data.data.sessionString !== null && data.data.user.role === "ADMIN") {
+            if (data.messageCode === 401) {
+                toast.error("Sai mật khẩu. Vui lòng đăng nhập lại")
+            }
+
+            else if (data.data.sessionString !== null && data.data.user.role === "ADMIN") {
                 localStorage.setItem("session", data.data.sessionString);
                 localStorage.setItem("role", data.data.user.role);
+                localStorage.setItem("admin-name", data.data.user.fullName);
+                localStorage.setItem("admin-email", data.data.user.email);
+                // console.log("Admin info: ", localStorage.getItem("admin-info"))
                 toast.success("Đăng nhập thành công!");
-                navigate("/home", { replace: true });
-
-
+                navigate("/", { replace: true });
             }
 
             else {

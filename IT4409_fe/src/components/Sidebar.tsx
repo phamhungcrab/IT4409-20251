@@ -1,51 +1,19 @@
-/**
- * Sidebar: Thanh điều hướng (menu) nằm bên trái màn hình.
- *
- * Chức năng:
- * - Hiển thị danh sách link (đường dẫn) để người dùng chuyển trang.
- * - Dùng NavLink của react-router-dom để tự động nhận biết link nào “đang active”
- *   (tức là URL hiện tại khớp với link đó) -> từ đó đổi màu/đổi style.
- *
- * Lưu ý:
- * - Sidebar này đang dùng class `hidden lg:flex` nghĩa là:
- *   + Trên màn hình nhỏ (mobile) sẽ ẩn
- *   + Trên màn hình lớn (>= lg) mới hiện
- *   (vì bạn đã có nav dạng tag ở Layout cho mobile)
- */
-
 import React from 'react';
 import { NavLink } from 'react-router-dom'; ``
 
-/**
- * SidebarLink mô tả 1 mục menu.
- * - path: đường dẫn URL (ví dụ '/login', '/exams')
- * - label: chữ hiển thị cho người dùng
- * - icon: icon tùy chọn (có thể truyền vào 1 React element)
- */
 export interface SidebarLink {
     path: string;
     label: string;
     icon?: React.ReactNode;
 }
 
-/**
- * Props của Sidebar:
- * - links: mảng các link menu sẽ hiển thị
- * (component cha như Layout sẽ quyết định links theo role: Student/Teacher/Admin)
- */
 export interface SidebarProps {
     links: SidebarLink[];
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ links }) => {
     return (
-        /**
-         * <aside>: thẻ semantic HTML dùng cho vùng nội dung phụ (sidebar)
-         * - hidden lg:flex: ẩn trên mobile, hiện trên màn hình lớn
-         * - w-72: chiều rộng ~ 18rem
-         * - border-r: viền bên phải
-         * - backdrop-blur: hiệu ứng kính mờ (glass)
-         */
+
         <aside className="hidden lg:flex w-72 flex-col border-r border-white/5 bg-slate-950/60 backdrop-blur-xl px-6 py-8 text-slate-100 shadow-xl">
             {/* Phần header của sidebar: tiêu đề dashboard */}
             <div className="mb-8 space-y-2">
@@ -74,13 +42,6 @@ const Sidebar: React.FC<SidebarProps> = ({ links }) => {
                     <NavLink
                         key={link.path}
                         to={link.path}
-                        /**
-                         * className có thể truyền vào 1 function.
-                         * React Router sẽ gọi function này và đưa vào object có { isActive }.
-                         *
-                         * isActive = true khi URL hiện tại “khớp” với link này.
-                         * => bạn đổi style để người dùng biết họ đang ở trang nào.
-                         */
                         className={({ isActive }) =>
                             [
                                 'flex items-center gap-3 rounded-xl px-4 py-3 font-semibold transition',
@@ -89,10 +50,6 @@ const Sidebar: React.FC<SidebarProps> = ({ links }) => {
                                     : 'text-slate-200 hover:bg-white/10',
                             ].join(' ')
                         }
-                        /**
-                         * aria-label: nhãn hỗ trợ đọc màn hình (accessibility).
-                         * Tốt cho người dùng dùng screen reader.
-                         */
                         aria-label={link.label}
                     >
                         {/* Nếu có icon thì render icon */}

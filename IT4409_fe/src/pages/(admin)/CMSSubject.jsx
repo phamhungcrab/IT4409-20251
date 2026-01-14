@@ -39,7 +39,7 @@ const CMSSubject = () => {
     useEffect(() => {
         const timeout = setTimeout(() => {
             fetchSubjects();
-        }, 400);
+        }, 200);
         return () => clearTimeout(timeout);
     }, [fetchSubjects]);
 
@@ -48,7 +48,7 @@ const CMSSubject = () => {
     }, [filters]);
 
     const columns = [
-        { header: "STT", accessor: "id" },
+        { header: "ID", accessor: "id" },
         { header: "Mã học phần", accessor: "subjectCode" },
         { header: "Tên học phần", accessor: "name" },
         { header: "Số chương", accessor: "totalChapters" }
@@ -93,32 +93,45 @@ const CMSSubject = () => {
     ];
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6">Quản lý môn học</h1>
-
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3 flex-1">
-                    <input
-                        type="text"
-                        placeholder="Tìm theo tên học phần..."
-                        className="flex-1 max-w-xs px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-400"
-                        value={filters.name}
-                        onChange={(e) => setFilters(prev => ({ ...prev, name: e.target.value }))}
-                    />
-                    <input
-                        type="text"
-                        placeholder="Mã học phần..."
-                        className="w-40 px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-400"
-                        value={filters.subjectCode}
-                        onChange={(e) => setFilters(prev => ({ ...prev, subjectCode: e.target.value }))}
-                    />
-                </div>
-
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h1 className="text-3xl font-bold text-gray-800">Quản lý môn học</h1>
                 <CommonButton
                     label="+ Thêm môn học"
                     color="danger"
                     onClick={() => { setEditData(null); setOpen(true); }}
                 />
+            </div>
+
+            <div className="mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <div className="lg:col-span-2">
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Tên học phần</label>
+                    <input
+                        type="text"
+                        placeholder="Tìm theo tên học phần..."
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-400 transition-all text-slate-900"
+                        value={filters.name}
+                        onChange={(e) => setFilters(prev => ({ ...prev, name: e.target.value }))}
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Mã học phần</label>
+                    <input
+                        type="text"
+                        placeholder="Nhập mã học phần..."
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-400 transition-all text-slate-900"
+                        value={filters.subjectCode}
+                        onChange={(e) => setFilters(prev => ({ ...prev, subjectCode: e.target.value }))}
+                    />
+                </div>
+
+                <button
+                    onClick={() => setFilters({ name: "", subjectCode: "" })}
+                    className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-sm font-bold transition-all border border-gray-200 h-[38px]"
+                >
+                    Xóa bộ lọc
+                </button>
             </div>
 
             <DataTable columns={columns} data={subjects} actions={actions} />

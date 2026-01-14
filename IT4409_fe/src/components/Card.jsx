@@ -1,35 +1,28 @@
 import { useEffect, useRef, useState } from "react";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, ArrowRight, User } from "lucide-react";
 import { getInitials, getColorFromText } from "../utils/helper.js";
 
 export const ExamCard = ({
     title,
     subtitle,
     actions = [],
-    children,
     status = "",
     className = "",
     onClick
 }) => {
+    const [showMenu, setShowMenu] = useState(false);
+    const menuRef = useRef(null);
+
     const colorClass = {
-        indigo: "text-indigo-700",
-        red: "text-[#AA1D2B]",
-        gray: "text-gray-700",
+        indigo: "text-indigo-600 hover:bg-indigo-50",
+        red: "text-red-600 hover:bg-red-50",
+        gray: "text-slate-600 hover:bg-slate-50",
     };
 
     const statusBadge = {
-        ACTIVE: {
-            text: "Đang mở",
-            class: "bg-green-100 text-green-700 border border-green-300"
-        },
-        INACTIVE: {
-            text: "Đã đóng",
-            class: "bg-gray-200 text-gray-700 border border-gray-300"
-        }
+        ACTIVE: "bg-emerald-50 text-emerald-600 border-emerald-100",
+        INACTIVE: "bg-slate-50 text-slate-400 border-slate-100",
     };
-
-    const [showMenu, setShowMenu] = useState(false);
-    const menuRef = useRef(null);
 
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -44,61 +37,75 @@ export const ExamCard = ({
     return (
         <div
             onClick={onClick}
-            className={`relative p-4 rounded-xl shadow bg-white w-[270px] h-[150px] cursor-pointer ${className}`}
+            className={`group relative p-5 rounded-2xl border border-slate-200 bg-white hover:border-indigo-400 hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col justify-center ${className}`}
         >
-            <div className="flex items-start gap-3">
-                <div
-                    className={`w-12 h-12 rounded-md flex items-center justify-center 
-              font-semibold text-base text-white/90 shadow-sm ${getColorFromText(title)}`}
-                >
+            <div className="flex items-center gap-4">
+                <div className={`w-14 h-14 rounded-xl flex items-center justify-center font-black text-xl text-white shadow-sm shrink-0 ${getColorFromText(title)}`}>
                     {getInitials(title)}
                 </div>
 
-                <div className="flex-1">
-                    <h3 className="text-lg font-bold">{title}</h3>
-                    {subtitle && (
-                        <p className="text-sm text-gray-500">{subtitle}</p>
-                    )}
-                    <span
-                        className={`inline-block mt-1 px-2 py-0.5 text-xs rounded-md ${statusBadge[status]?.class}`}
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-[17px] font-black text-slate-800 truncate group-hover:text-indigo-600 transition-colors">
+                            {title}
+                        </h3>
+                        {status && (
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter border ${statusBadge[status]}`}>
+                                {status === 'ACTIVE' ? "OPEN" : "CLOSED"}
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider border border-slate-200 uppercase">
+                            {typeof subtitle === 'object' ? subtitle.props.children[0].props.children : "COURSE"}
+                        </span>
+                        <div className="flex items-center text-slate-400 text-[12px] gap-1.5 truncate">
+                            <User size={14} className="text-slate-300" />
+                            <span className="font-medium italic">
+                                {typeof subtitle === 'object' ? subtitle.props.children[1].props.children[1] : subtitle}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="relative self-center">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowMenu(prev => !prev);
+                        }}
+                        className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"
                     >
-                        {statusBadge[status]?.text}
-                    </span>
+                        <MoreHorizontal size={20} />
+                    </button>
+
+                    {showMenu && (
+                        <div
+                            ref={menuRef}
+                            className="absolute right-0 mt-2 bg-white shadow-2xl rounded-xl border border-slate-100 w-40 py-1.5 z-50 animate-in fade-in zoom-in duration-200"
+                        >
+                            {actions.map((a, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        a.onClick();
+                                        setShowMenu(false);
+                                    }}
+                                    className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors ${colorClass[a.color] || colorClass.gray}`}
+                                >
+                                    {a.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            <button
-                onClick={(e) => {
-                    e.stopPropagation();
-                    setShowMenu(prev => !prev);
-                }}
-                className="absolute bottom-2 right-2 p-2 hover:bg-gray-100 rounded-full"
-            >
-                <MoreHorizontal size={22} />
-            </button>
-
-            {showMenu && (
-                <div
-                    ref={menuRef}
-                    className="absolute bottom-12 right-2 bg-white shadow-lg rounded-lg border border-gray-200 w-36 py-1 z-50"
-                >
-                    {actions.map((a, idx) => (
-                        <button
-                            key={idx}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                a.onClick();
-                                setShowMenu(false);
-                            }}
-                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${colorClass[a.color]}`}
-                        >
-                            {a.label}
-                        </button>
-                    ))}
-                </div>
-            )}
-
-            {children && <div className="mt-2">{children}</div>}
+            <div className="absolute bottom-3 right-5 text-indigo-200 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0">
+                <ArrowRight size={16} />
+            </div>
         </div>
     );
 };

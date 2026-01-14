@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 
-export const Form = ({ fields, initialValues = {}, onSubmit, onCancel }) => {
+export const Form = ({ fields, initialValues = {}, onSubmit, onCancel, children }) => {
     const [formData, setFormData] = useState(initialValues);
 
     useEffect(() => {
         setFormData(initialValues);
+        console.log(formData);
     }, [initialValues]);
 
     const handleChange = (name, value) => {
@@ -41,6 +42,15 @@ export const Form = ({ fields, initialValues = {}, onSubmit, onCancel }) => {
                                 </option>
                             ))}
                         </select>
+                    ) : f.type === "textarea" ? (
+                        <textarea
+                            value={formData[f.name] || ""}
+                            onChange={(e) => handleChange(f.name, e.target.value)}
+                            rows={f.rows || 10}
+                            placeholder={f.placeholder}
+                            className="border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono
+                                       focus:ring-2 focus:ring-indigo-400 outline-none transition-all"
+                        />
                     ) : (
                         <input
                             type={f.type}
@@ -52,6 +62,8 @@ export const Form = ({ fields, initialValues = {}, onSubmit, onCancel }) => {
                     )}
                 </div>
             ))}
+
+            {children}
 
             <div className="flex justify-end gap-2 pt-2">
                 <button

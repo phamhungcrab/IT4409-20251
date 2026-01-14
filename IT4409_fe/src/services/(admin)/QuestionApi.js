@@ -30,6 +30,17 @@ export const getAllQuestions = async () => {
     }
 }
 
+export const searchQuestionsForAdmin = async (params) => {
+    try {
+        const response = await api.post("/Question/search-for-admin", params);
+        console.log("questions: ", response.data);
+        return response.data;
+    } catch (e) {
+        console.error("Lỗi khi tìm kiếm bài kiểm tra:", e);
+        return null;
+    }
+};
+
 export const createQuestion = async (credentials) => {
     try {
         const res = await api.post("/Question/create-question", {
@@ -50,7 +61,8 @@ export const createQuestion = async (credentials) => {
 
 export const updateQuestion = async (credentials, questionId) => {
     try {
-        const res = await api.post("/Question/create-question", {
+        const res = await api.put("/Question/update-question", {
+            id: questionId,
             content: credentials.content,
             answer: credentials.answer,
             point: credentials.point,

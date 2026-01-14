@@ -28,14 +28,25 @@ export const UsersFormData = ({ onSuccess }) => {
         setLoading(false);
 
         if (result.success) {
-            const mappedData = result.data.map(item => ({
-                fullName: item["Họ tên"] || "",
-                dateOfBirth: item["Ngày sinh"] || "",
-                mssv: item["MSSV"] || "",
-                email: item["Email"] || "",
-                password: item["Mật khẩu"] || "",
-                role: item["Vai trò"] || "STUDENT"
-            }));
+            const mappedData = result.data.map(item => {
+                const formatExcelDate = (value) => {
+                    if (!value) return "";
+                    if (typeof value === 'number') {
+                        const date = new Date(Math.round((value - 25569) * 86400 * 1000));
+                        return date.toISOString().split('T')[0];
+                    }
+                    return String(value);
+                };
+                return {
+                    fullName: String(item["Họ tên"] || ""),
+                    dateOfBirth: formatExcelDate(item["Ngày sinh"]),
+                    mssv: item["MSSV"] ? String(item["MSSV"]) : "",
+                    email: String(item["Email"] || ""),
+                    password: item["Mật khẩu"] ? String(item["Mật khẩu"]) : "",
+                    role: String(item["Vai trò"] || "STUDENT")
+                };
+            });
+            console.log(mappedData);
 
             setRows(mappedData);
             toast.success(`Đã đọc ${mappedData.length} sinh viên`);
@@ -57,12 +68,12 @@ export const UsersFormData = ({ onSuccess }) => {
 
         try {
             const res = await uploadUsersJson(rows);
+            if (res) toast.success("Thêm danh sách người dùng thành công!");
             setSuccessMsg("Gửi dữ liệu thành công!");
-            toast.success("Đã thêm danh sách người dùng!");
             onSuccess(res);
         } catch (err) {
+            toast.error("Thêm danh sách người dùng thất bại");
             setError(err.message);
-            toast.error("Lỗi khi gửi dữ liệu");
         } finally {
             setLoading(false);
         }
@@ -79,7 +90,7 @@ export const UsersFormData = ({ onSuccess }) => {
             </div>
 
             {rows.length > 0 && (
-                <div className="max-h-[400px] overflow-auto border border-gray-200 rounded-lg shadow-sm">
+                <div className="max-h-[400px] overflow-y-auto overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
                     <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
                         <thead className="bg-gray-50 sticky top-0">
                             <tr>
