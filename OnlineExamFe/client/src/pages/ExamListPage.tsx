@@ -479,11 +479,11 @@ const ExamListPage: React.FC = () => {
             return (
               <div key={exam.examId} className={`relative p-5 flex flex-col gap-4 justify-between bg-white dark:bg-white/5 border rounded-xl shadow-sm transition-all ${isExpired || isCompleted ? 'opacity-80 hover:opacity-100 border-gray-200 dark:border-white/5' : 'border-gray-200 dark:border-white/10 hover:shadow-md hover:border-emerald-500/30'}`}>
                 <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white line-clamp-2 leading-tight" title={exam.examName}>{exam.examName}</h3>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white line-clamp-2 leading-tight" title={exam.examName}>{exam.examName}</h3>
 
                     {/* Tag trạng thái */}
-                    <span className={`flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${statusColor}`}>
+                    <span className={`flex-shrink-0 self-start sm:self-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${statusColor}`}>
                       <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} aria-hidden />
                       {statusLabel}
                     </span>
@@ -540,7 +540,7 @@ const ExamListPage: React.FC = () => {
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-6">
+        <div className="flex flex-wrap items-center justify-center gap-2 mt-6">
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
@@ -549,7 +549,7 @@ const ExamListPage: React.FC = () => {
             ← Trước
           </button>
 
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center justify-center gap-1">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}

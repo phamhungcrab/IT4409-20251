@@ -110,9 +110,74 @@ const ResultTable: React.FC<ResultTableProps> = ({ results }) => {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
+      <div className="space-y-3 sm:hidden">
+        {processedResults.map((result) => (
+          <div key={result.examId} className="glass-card p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">BÀI THI</p>
+                <h3 className="text-base font-semibold text-white break-words line-clamp-2">{result.examTitle}</h3>
+              </div>
+              <div className="shrink-0 rounded-lg bg-sky-500/20 px-2.5 py-1 text-sm font-bold text-sky-300">
+                {result.score.toFixed(1)}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-sm text-slate-300">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">SỐ CÂU ĐÚNG</p>
+                <p className="font-semibold text-emerald-400">
+                  {result.correctCount ?? '--'}
+                  <span className="text-slate-400">/{result.totalQuestions ?? '--'}</span>
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">THỜI GIAN NỘP</p>
+                <p className="text-slate-200">
+                  {result.submittedAt ? formatLocalDateTime(result.submittedAt) : '--'}
+                </p>
+              </div>
+            </div>
+
+            <Link
+              to={`/results/${result.examId}`}
+              state={{ result }}
+              className="btn btn-ghost w-full justify-center text-sm"
+            >
+              Xem chi tiết
+            </Link>
+          </div>
+        ))}
+
+        {processedResults.length === 0 && (
+          <div className="glass-card px-6 py-8 text-center">
+            <div className="flex flex-col items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-10 h-10 text-slate-500"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <p className="text-slate-400">
+                {searchTerm ? `Không tìm thấy kết quả cho "${searchTerm}"` : 'Chưa có kết quả bài thi nào.'}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="hidden sm:block">
+        <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-xl">
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
             {/* THEAD: phần tiêu đề cột */}
             <thead>
               <tr className="bg-white/5">
@@ -246,7 +311,8 @@ const ResultTable: React.FC<ResultTableProps> = ({ results }) => {
                 </tr>
               )}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       </div>
     </div>

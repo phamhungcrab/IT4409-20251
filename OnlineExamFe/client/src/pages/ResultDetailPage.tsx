@@ -79,11 +79,11 @@ const ResultDetailPage: React.FC = () => {
           <h1 className="text-2xl font-semibold text-white">Có lỗi xảy ra</h1>
           <p className="text-slate-300">{error || 'Không tìm thấy kết quả.'}</p>
 
-          <div className="flex justify-center gap-3 pt-2">
-            <button onClick={() => navigate('/results')} className="btn btn-primary">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
+            <button onClick={() => navigate('/results')} className="btn btn-primary w-full sm:w-auto">
               Quay lại danh sách
             </button>
-            <button onClick={() => navigate('/exams')} className="btn btn-ghost border border-white/15">
+            <button onClick={() => navigate('/exams')} className="btn btn-ghost border border-white/15 w-full sm:w-auto">
               Danh sách kỳ thi
             </button>
           </div>
@@ -153,11 +153,11 @@ const ResultDetailPage: React.FC = () => {
         </div>
 
         {/* Nút điều hướng */}
-        <div className="flex gap-3 mt-6">
-          <button onClick={() => navigate('/results')} className="btn btn-primary">
+        <div className="flex flex-col sm:flex-row gap-3 mt-6">
+          <button onClick={() => navigate('/results')} className="btn btn-primary w-full sm:w-auto">
             ← Quay lại
           </button>
-          <button onClick={() => navigate('/exams')} className="btn btn-ghost border border-white/15">
+          <button onClick={() => navigate('/exams')} className="btn btn-ghost border border-white/15 w-full sm:w-auto">
             Làm bài thi khác
           </button>
         </div>
